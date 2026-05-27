@@ -1,3 +1,19 @@
+# LaTeX build artifacts
+tex/*.aux
+tex/*.bbl
+tex/*.blg
+tex/*.log
+tex/*.out
+tex/*.synctex.gz
+tex/*.fls
+tex/*.fdb_latexmk
+tex/*.pdf
+
+# Large FITS data files (data lives on NERSC; only small reference files in data/)
+*.fits
+*.fits.gz
+*.hdf5
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

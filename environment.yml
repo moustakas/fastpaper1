@@ -1,0 +1,26 @@
+name: fastpaper1
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - numpy
+  - scipy
+  - matplotlib
+  - seaborn
+  - astropy
+  - fitsio
+  - corner
+  - jupyter
+  - ipykernel
+  - pip
+  - pip:
+    # DESI software stack
+    - git+https://github.com/desihub/fastspecfit.git
+    - git+https://github.com/desihub/desitarget.git
+    - git+https://github.com/desihub/desiutil.git
+    # Prospector SED fitting (for comparison, appendix)
+    - prospect
+    - sedpy
+    # python-fsps must be compiled with C3K flags:
+    # FFLAGS="-DMILES=0 -DC3K=1" pip install fsps --no-binary fsps
