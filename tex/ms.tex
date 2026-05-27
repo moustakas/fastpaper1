@@ -175,32 +175,47 @@ with the appropriate filter curves.
 \label{sec:continuum}
 %% ============================================================
 
-% Overview of the two fitting modes (fastphot, fastspec) and the
-% pipeline sequence.
+\fastspecfit{} operates in two modes. \fastphot{} fits broadband spectral
+energy distributions (SEDs) to Legacy Survey DR9/DR10 photometry with no
+spectroscopic data. \fastspec{} jointly fits spectra from all three DESI
+cameras (B, R, Z) and broadband photometry simultaneously. Both modes
+share the same template library, dust model, and physical output
+quantities; they differ only in the data that enter the fit and in
+whether the stellar velocity dispersion is a free parameter.
 
 \subsection{SPS Template Library}
 \label{ssec:templates}
 
 \begin{itemize}
-  \item FSPS with C3K stellar library (2750--9100~\AA, $R = 3000$), MIST
-    isochrones \citep{choi16a, dotter16a}, Chabrier IMF \citep{chabrier03a}
-  \item Non-parametric SFH: 5 lookback-time bins (30~Myr to 13.7~Gyr)
-  \item Solar metallicity default; nebular emission included via FSPS grid
-  \item Auxiliary templates: Draine \& Li (2007) dust emission, Nenkova et
-    al.\ (2008) AGN torus, Vestergaard \& Wilkes (2001) Fe emission
-  \item Wavelength grid: 25~\kms\ pixels in 2750--9100~\AA; native FSPS
-    grid outside this range
+  \item FSPS\footnote{\url{https://github.com/cconroy20/fsps}}
+    \citep{conroy09a, conroy10b} via
+    \texttt{python-fsps}\footnote{\url{https://github.com/dfm/python-fsps}}
+    with C3K stellar library (2750--9100~\AA, $R = 3000$), MIST
+    isochrones \citep{choi16a, dotter16a}, Chabrier IMF
+    \citep{chabrier03a}
+  \item Non-parametric SFH: 5 constant-SFR lookback-time bins spanning
+    30~Myr to 13.7~Gyr, with bin boundaries following the continuity
+    prescription of \citet{leja17a}
+  \item Solar metallicity default; separate template sets with and without
+    nebular emission (via FSPS photoionization grid)
+  \item Auxiliary templates: \citet{draine07a} dust emission,
+    \citet{nenkova08a} AGN torus, \citet{vestergaard01a} UV/optical Fe
+    emission for broad-line AGN fitting
+  \item Wavelength grid: 25~\kms\ pixels in 2750--9100~\AA\ (constant
+    $\Delta\ln\lambda$, enabling Gaussian $\vdisp$ convolution via a
+    fixed-width log-space kernel); native FSPS grid outside this range
 \end{itemize}
 
-For the DESI galaxy templates we use the Flexible Stellar Population
-Synthesis (\texttt{FSPS}) modeling
-code\footnote{\url{https://github.com/cconroy20/fsps}}
-\citep{conroy09a, conroy10b} via the
-\texttt{python-fsps}\footnote{\url{https://github.com/dfm/python-fsps}}
-Python interface. The code includes the option of excluding templates
-older than the age of the universe; however, by default we use all
-templates, largely because of the relatively coarse grid in mean stellar
-age \citep{leja17a, leja19a}.
+Each template spectrum is normalized so that one solar mass of stars
+formed at the tabulated age produces the stored flux at 10\,pc,
+$F_\lambda\,[\mathrm{erg\,s^{-1}\,cm^{-2}\,\text{\AA}^{-1}\,M_\odot^{-1}}]
+= L_\odot/(4\pi(10\,\mathrm{pc})^2) \cdot L_\lambda/L_\odot$.
+This normalization means the fitted non-negative template coefficients
+$\mathbf{c} \geq 0$ have units of $M_\odot$ (up to a mass normalization
+factor $\mathcal{M}_0 = 10^{10}\,M_\odot$). The code includes the option
+to exclude templates older than the age of the universe at the object's
+redshift; by default all templates are used because of the relatively
+coarse age grid \citep{leja19a}.
 
 \begin{figure*}
 \includegraphics[width=6.5in]{figures/sps-models.png}
@@ -213,85 +228,216 @@ age \citep{leja17a, leja19a}.
 \label{ssec:dust}
 
 \begin{itemize}
-  \item \citet{charlot00a} power-law screen:
-    $k(\lambda) \propto (\lambda / 5500\,\text{\AA})^{-0.7}$
-  \item Single free parameter $\tauv \in [0, 2]$
-  \item Energy-balance IR emission: absorbed luminosity reprocessed through
-    Draine \& Li (2007) template
+  \item \citet{charlot00a} power-law foreground screen with slope $-0.7$,
+    consistent with \citet{calzetti00a} shortward of $\sim$6000~\AA
+  \item Single free parameter $\tauv \in [0,\,2]$
+  \item Energy-balance IR emission: absorbed luminosity reprocessed
+    through \citet{draine07a} template, conserving bolometric luminosity
 \end{itemize}
+
+Stellar continuum attenuation is modeled as a uniform foreground screen,
+\begin{equation}
+  f_\lambda^\mathrm{att}(\lambda)
+  \;=\; f_\lambda(\lambda)\,\exp\!\bigl(-\tauv\,k(\lambda)\bigr),
+  \qquad
+  k(\lambda) \;=\; \left(\frac{\lambda}{5500\,\text{\AA}}\right)^{-0.7},
+  \label{eq:atten}
+\end{equation}
+where $f_\lambda$ is the unattenuated template flux and $\tauv$ is the
+$V$-band optical depth. Absorbed photons are re-emitted in the infrared
+following energy balance: the \citet{draine07a} dust template
+$f_\lambda^\mathrm{dust}$ (normalized to unit bolometric luminosity) is
+scaled by the absorbed luminosity,
+\begin{equation}
+  L_\mathrm{abs}
+  \;=\; \int_0^\infty f_\lambda(\lambda)
+        \bigl[1 - \exp(-\tauv\,k(\lambda))\bigr]\,d\lambda,
+\end{equation}
+so that the total model conserves bolometric luminosity:
+\begin{equation}
+  f_\lambda^\mathrm{tot}(\lambda)
+  \;=\; f_\lambda^\mathrm{att}(\lambda)
+        \;+\; L_\mathrm{abs}\,f_\lambda^\mathrm{dust}(\lambda).
+  \label{eq:ftot}
+\end{equation}
+The dust emission template uses default parameters ($q_\mathrm{PAH}=3.5$,
+$U_\mathrm{min}=1.0$, $\gamma=0.01$) and contributes only to the
+photometric fit (it falls outside the DESI spectral range for most
+targets).
 
 \subsection{Redshift, IGM, and Flux Scaling}
 \label{ssec:zfactors}
 
 \begin{itemize}
-  \item Inoue et al.\ (2014) IGM transmission (Ly$\alpha$ forest,
-    Lyman-limit systems)
-  \item Luminosity distance, flux normalization, mass normalization
-    ($\mathcal{M}_0 = 10^{10}\,\mathrm{M_\odot}$)
+  \item \citet{inoue14a} IGM transmission $T_\mathrm{IGM}(\lambda,z)$
+    (Ly$\alpha$ forest and Lyman-limit systems)
+  \item Luminosity distance $D_L$ (Mpc), flux normalization
+    $\mathcal{F}_0 = 10^{17}$, mass normalization
+    $\mathcal{M}_0 = 10^{10}\,M_\odot$
   \item Pre-computed \texttt{zfactors} array cached at object
-    initialization
+    initialization, evaluated once per object and reused for all
+    template evaluations during fitting
 \end{itemize}
+
+For an object at redshift $z$ with luminosity distance $D_L$, the
+observed flux density is related to the rest-frame template by
+\begin{equation}
+  f_\lambda^\mathrm{obs}(\lambda)
+  \;=\;
+  T_\mathrm{IGM}(\lambda,z)\,
+  \frac{\mathcal{F}_0\,\mathcal{M}_0}
+       {4\pi\,(3.086\times10^{24}\,D_L)^2}
+  \,\frac{f_\lambda^\mathrm{tot}(\lambda/(1+z))}{1+z}.
+  \label{eq:zfactor}
+\end{equation}
+The scalar prefactor and IGM transmission are combined into a single
+array (\texttt{zfactors}) evaluated once at object initialization and
+reused for all template evaluations during fitting.
 
 \subsection{Velocity Dispersion}
 \label{ssec:vdisp}
 
 \begin{itemize}
-  \item Gaussian convolution on $\log\lambda$ grid
-    ($\sigma_\mathrm{pix} = \vdisp / 25\,\kms$)
-  \item FFT-based convolution; pre-computed transform cache up to
-    500~\kms
-  \item Fitting window: 3800--6000~\AA\ rest-frame
-    (Ca\,H\&K, $G$-band, Mg\,\textsc{b}, Fe)
-  \item Two-stage fit: $\chi^2$ grid scan then trust-region refinement
-  \item Fallback: nominal 250~\kms\ when wavelength coverage is
-    insufficient
+  \item Gaussian convolution on constant-velocity ($\log\lambda$) grid:
+    $\sigma_\mathrm{pix} = \vdisp/\Delta v$ where $\Delta v = 25$~\kms
+  \item FFT-based convolution; transform cache pre-computed up to
+    $\vdisp^\mathrm{max} = 500$~\kms; direct pixel-space convolution
+    beyond
+  \item Fitting window: 3800--6000~\AA\ rest-frame (Ca\,H\&K, $G$-band,
+    Mg\,\textsc{b}, Fe absorption features); requires
+    $\lambda_\mathrm{min}^\mathrm{rest} < 3800$~\AA\ and
+    $\lambda_\mathrm{max}^\mathrm{rest} > 4800$~\AA
+  \item Two-stage fit: (1) $\chi^2$ grid scan over $N=5$ values in
+    $[75,\,500]$~\kms, accepted only if $\Delta\chi^2 \geq 25$ and the
+    minimum is not at a boundary; (2) TRF refinement initialized at the
+    grid minimum
+  \item Fallback: nominal $\vdisp = 250$~\kms\ when coverage or S/N is
+    insufficient; templates pre-convolved to this value are cached as
+    \texttt{flux\_nomvdisp}
 \end{itemize}
 
-The nominal velocity dispersion of 250~\kms\ is close to the knee of
-the velocity dispersion function at $z = 0$--$1.5$
-\citep[e.g.,][]{bezanson11a}. This value is an overestimate for the
-emission-line galaxies targeted by DESI, but the effect on the continuum
-fit is small because those targets are observed primarily in the
-rest-frame UV where stellar absorption features are less prominent.
+On the constant-velocity wavelength grid, a Gaussian with line-of-sight
+velocity dispersion $\vdisp$ corresponds to a kernel of fixed pixel width
+$\sigma_\mathrm{pix} = \vdisp/\Delta v$ ($\Delta v = 25$~\kms). The
+nominal value of 250~\kms\ is close to the knee of the velocity
+dispersion function at $z=0$--$1.5$ \citep[e.g.,][]{bezanson11a}. This
+is an overestimate for the emission-line galaxies targeted by DESI, but
+the effect on the continuum fit is small because those objects are
+observed primarily in the rest-frame UV where stellar absorption features
+are weak. The $\vdisp$ fit uses only templates without nebular emission
+and with $\tauv = 0$, which have negligible effect on the absorption
+features used for the fit.
 
 \subsection{Fitting Algorithm}
 \label{ssec:fitting}
 
 \begin{itemize}
+  \item Joint $\chi^2$ over spectral pixels and photometric bands
   \item Variable projection (VARPRO): outer Brent scalar search over
-    $\tauv$, inner non-negative least squares (NNLS) over template
-    coefficients
-  \item Aperture correction: fiber-to-total flux ratio applied before full
-    fit
-  \item Full spectrophotometric fit: spectra + photometry stacked
-    residuals, $\vdisp$ fixed, nebular emission included
-  \item Trust-region reflective (TRF) optimizer when $\vdisp$ is a free
-    parameter
+    $\tauv \in [0,\,2]$; inner non-negative least squares (NNLS,
+    \texttt{scipy.optimize.nnls}) over template coefficients $\mathbf{c}
+    \geq 0$; converges $\sim$10$\times$ faster than direct optimization
+    over the full parameter vector
+  \item Aperture correction applied before the full spectrophotometric
+    fit to bring the fiber spectrum into agreement with total broadband
+    photometry
+  \item Full fit: $\vdisp$ fixed (at fitted or nominal value); templates
+    with nebular emission; spectra and photometry fitted simultaneously
+  \item Trust-region reflective (TRF) optimizer used when $\vdisp$ is
+    a free parameter (separability broken)
 \end{itemize}
 
-The aperture correction may not be perfect for QSOs, but in general our
-templates have enough flexibility to recover the shape of the broadband
-SED reasonably well \citep{leja17a, leja19a, cappellari22a}.
+The fitting objective is the weighted sum of squared spectroscopic and
+photometric residuals,
+\begin{equation}
+  \chi^2(\tauv,\vdisp,\mathbf{c})
+  \;=\;
+  \sum_i \frac{\bigl(f_i^\mathrm{obs} - f_i^\mathrm{model}\bigr)^2}{\sigma_i^2}
+  \;+\;
+  \sum_k \frac{\bigl(F_k^\mathrm{obs} - F_k^\mathrm{model}\bigr)^2}{\sigma_{f,k}^2},
+  \label{eq:chi2cont}
+\end{equation}
+where the first sum runs over unmasked spectral pixels and the second
+over photometric bands with $\sigma_{f,k}^2 > 0$. When $\vdisp$ is
+fixed, the model is linear in $\mathbf{c}$ for any fixed $\tauv$; this
+separable structure is exploited via variable projection (VARPRO
+\citealt{golub73a}): an outer Brent scalar minimization over $\tauv$
+(typically 10--15 evaluations) with an inner NNLS solve for
+$\mathbf{c}$,
+\begin{equation}
+  \mathbf{c}^* \;=\; \arg\min_{\mathbf{c}\,\geq\,0}
+  \bigl\|\boldsymbol{\Psi}\,\mathbf{c} - \mathbf{b}\bigr\|^2,
+  \label{eq:nnls}
+\end{equation}
+where $\boldsymbol{\Psi}$ is the weighted design matrix of
+velocity-broadened, attenuated, and synthesized templates, and
+$\mathbf{b}$ is the vector of weighted observations (spectra and
+photometry stacked vertically).
+
+Before the full spectrophotometric fit, a per-band aperture correction
+$\eta_f$ is estimated from the ratio of observed fiber photometry to
+synthesized model photometry from the initial $\vdisp$ fit,
+\begin{equation}
+  \eta_f \;=\;
+  \frac{F_{\lambda,f}^\mathrm{fiber,obs}}{F_{\lambda,f}^\mathrm{model}},
+  \label{eq:apercorr}
+\end{equation}
+and the median $\bar{\eta}$ is applied to scale the fiber spectrum (and
+its uncertainties) to total flux before the final joint fit. The
+aperture correction may not be perfect for QSOs, but the template
+flexibility generally recovers the broadband SED shape
+\citep{cappellari22a}.
 
 \subsection{Smooth Continuum Correction}
 \label{ssec:smooth}
 
 \begin{itemize}
-  \item Nonparametric correction for residual flux-calibration errors and
-    template mismatch, computed after SED subtraction
-  \item Sliding-window robust median + quadratic spline fit per camera
-  \item Added to SED model before emission-line fitting
+  \item Nonparametric correction for residual flux-calibration errors
+    and template mismatch, estimated from the spectrum after subtracting
+    the best-fit line-free SED
+  \item Per camera: sliding 75-pixel window with 125-pixel step;
+    $2\sigma$ iterative clip; robust median and IQR sigma computed per
+    window (minimum 15 good pixels required)
+  \item Weighted quadratic spline (\texttt{UnivariateSpline}, $k=2$)
+    fit to window medians; added to the SED model before emission-line
+    fitting
 \end{itemize}
+
+The parametric SED model may leave low-level systematic residuals due
+to imperfect template matching or flux-calibration uncertainties.
+\fastspecfit{} estimates and removes these with a nonparametric smooth
+continuum computed per camera from the spectrum after subtracting the
+best-fit, line-free SED model. The resulting smooth baseline is added
+back to the SED model so that the emission-line fitter operates on
+spectra with an accurate continuum.
 
 \subsection{Uncertainties}
 \label{ssec:continuum_uncertainties}
 
 \begin{itemize}
-  \item Monte Carlo: $N = 50$ independent noise realizations of spectra
-    and photometry
+  \item Monte Carlo: $N_\mathrm{monte} = 50$ independent Gaussian
+    noise realizations of the spectra and photometry, drawn with a
+    fixed random seed (shared with the emission-line fitter)
   \item Uncertainties reported for $\tauv$, $\vdisp$ (when fitted),
-    $D_n(4000)$, luminosities, and continuum fluxes
+    $D_n(4000)$, rest-frame luminosities, and observed-frame continuum
+    fluxes
 \end{itemize}
+
+Parameter uncertainties are estimated by repeating the continuum fit on
+$N_\mathrm{monte} = 50$ independent realizations of the data,
+\begin{equation}
+  f_i^{(m)} \;\sim\; \mathcal{N}\!\bigl(f_i^\mathrm{obs},\,\sigma_i^2\bigr),
+  \qquad m = 1,\ldots,N_\mathrm{monte},
+\end{equation}
+with analogous draws for the photometry. The inverse variance of each
+fitted quantity $\theta$ is then
+\begin{equation}
+  \sigma_\theta^{-2}
+  \;=\; \bigl[\mathrm{Var}(\theta^{(1)},\ldots,\theta^{(N_\mathrm{monte})})\bigr]^{-1}.
+  \label{eq:mc_unc}
+\end{equation}
+The spectral realizations are drawn once and reused for both the
+continuum and emission-line fits.
 
 
 %% ============================================================
@@ -320,106 +466,129 @@ SED reasonably well \citep{leja17a, leja19a, cappellari22a}.
 \label{ssec:emline_model}
 
 \begin{itemize}
-  \item Intrinsic profile: log-Gaussian in observed wavelength
-  \item DESI resolution matrix: pre-convolved representation with
-    effective width
-    $\sigma_\mathrm{eff} = \sqrt{\sigma^2 + \sigma_G^2}$
-  \item Analytic Jacobian for efficient nonlinear least-squares
-  \item Removes 5--30\% flux bias present in earlier bin-integration
-    approach for unresolved lines
+  \item Intrinsic profile: log-Gaussian in observed wavelength with
+    amplitude $A$, line center $\lambda^*$, and width $\sigma = s/c$
+    (where $s$ is the velocity width in \kms)
+  \item DESI resolution matrix applied via a pre-convolved representation
+    with effective width
+    $\sigma_\mathrm{eff} = \sqrt{\sigma^2 + \sigma_{G,\ell}^2}$,
+    where $\sigma_{G,\ell} = \sigma_G/\lambda^*$ and
+    $\sigma_G = 0.5$~\AA
+  \item Analytic Jacobian with respect to $(A,\,\Delta v,\,s)$ for
+    efficient nonlinear least-squares optimization
+  \item Removes 5--30\% flux bias in earlier bin-integration approach
+    for lines narrower than $\sim$1 DESI pixel
 \end{itemize}
 
 After subtracting the best-fitting stellar continuum model from the data,
-we are left with a residual spectrum that may contain emission lines. We
-adopt a physically motivated forward-modeling approach to fit these
-residuals.
+we fit the residual spectrum using a forward model based on log-Gaussian
+emission-line profiles coupled to the DESI resolution matrix.
 
-We model the emission-line spectrum as a sum of Gaussian line profiles,
-each described by a model amplitude $A_{m}$ (in \fluxdensity), velocity
-shift $\Delta v$ (in \kms), and velocity width $\sigma$ (in \kms). The
-velocity shift, measured with respect to the Redrock redshift $z$,
-determines the redshifted wavelength of each line,
+\paragraph{Intrinsic profile.}
+The intrinsic spectral profile of a single emission line is a
+log-Gaussian in observed wavelength,
 \begin{equation}
-  \lambda_z = \lambda_{0} \left(1 + z + \frac{\Delta v}{c}\right),
+  f(\lambda;\,A,\lambda^*,\sigma)
+  \;=\;
+  A\exp\!\left(-\frac{(\ln\lambda - \ln\lambda^*)^{2}}{2\sigma^{2}}\right),
+  \label{eq:intrinsic}
 \end{equation}
-where $\lambda_{0}$ is the vacuum rest wavelength
-(Table~\ref{table:emlines}) and $c$ is the speed of light. Working in
-base-10 logarithmic wavelength space (constant-velocity pixel space), we
-construct each model emission line as
+where $A$ is the peak amplitude (in \fluxdensity), $\lambda^*$ is the
+observed line center,
 \begin{equation}
-  \widetilde{G}(A_{m}, \Delta v, \sigma, \lambda^{\prime}) =
-  A_{m} \exp\!\left[
-    -\frac{(\log_{10}\lambda^{\prime} - \log_{10}\lambda_z)^2}
-          {2\sigma_{\log\lambda}^2}
-  \right],
+  \lambda^* \;=\; \lambda_\mathrm{rest}
+    \left(1 + z + \frac{\Delta v}{c}\right),
+  \label{eq:lstar}
 \end{equation}
-where $\sigma_{\log\lambda} = \sigma / \log_{e}(10) / c$ is the velocity
-width in $\log_{10}(\mathrm{\AA})$ and $\lambda^{\prime}$ is the model
-wavelength array before resampling onto the DESI pixel grid. The full
-emission-line model is
+and $\sigma = s/c$ is the line width in log-$\lambda$ units. The total
+line flux is
 \begin{equation}
-  \widetilde{\mathcal{G}} = \sum_{i=1}^{N} \widetilde{G}_i,
+  \Phi \;=\; \sqrt{2\pi}\,A\,\lambda^*\,\sigma
+       \;=\; \sqrt{2\pi}\,A\,\lambda^*\,s/c,
+  \label{eq:flux_phys}
 \end{equation}
-where $N$ is the number of lines within the observed spectral range.
-After flux-conserving trapezoidal resampling onto the DESI pixel grid,
-we multiply by the resolution matrix $\mathcal{R}$ to obtain the final
-model,
+which is independent of the instrumental pixel grid and resolution
+matrix. \fastspecfit{} reports $\Phi$ as the measured line flux.
+
+\paragraph{Resolution matrix and pre-convolved forward model.}
+DESI spectra are produced by an optimal extraction that encodes the
+wavelength-dependent line-spread function (LSF) in a sparse, band-format
+resolution matrix $\mathbf{R}$ (with $\sim$11 diagonals), normalized to
+preserve integrated flux. The standard discrete model
+$\mathbf{d} \approx \mathbf{R}\,\mathbf{f}$ (with $\mathbf{f}$ evaluated
+at pixel centers) fails for features narrower than approximately one
+pixel. A more accurate discretization uses a Gaussian-pre-convolved
+spectrum evaluated at pixel centers: defining $\mathbf{W} =
+\mathbf{R}\,\mathbf{M}^{-1}$, where $\mathbf{M}_{ij} =
+G(\lambda_i - \lambda_j;\,0,\,\sigma_G)$ is a Gaussian design matrix
+with width $\sigma_G = 0.5$\,\AA, the predicted extracted spectrum is
+$\mathbf{d} \approx \mathbf{W}\,\mathbf{h}$, where
+$\mathbf{h}$ is the $\sigma_G$-pre-convolved profile evaluated at pixel
+centers \citep[following][]{koposov19a}.
+
+Because the log-Gaussian profile~\eqref{eq:intrinsic} is an exact
+Gaussian in log-$\lambda$ space, the convolution with $G_{\sigma_G}$ is
+analytic. Defining $x_j = \ln\lambda_j - \ln\lambda^*$ and the
+effective width $\sigma_\mathrm{eff} = \sqrt{\sigma^2 + \sigma_{G,\ell}^2}$
+(where $\sigma_{G,\ell} = \sigma_G/\lambda^*$), the pre-convolved profile
+at pixel center $\lambda_j$ is
 \begin{equation}
-  \mathcal{G}(\pmb{A_m}, \pmb{\Delta v}, \pmb{\sigma}, \lambda) =
-  \mathcal{R}\,\widetilde{\mathcal{G}}(\lambda^{\prime}\rightarrow\lambda).
-  \label{eq:gtilde}
+  \boxed{
+  F_j \;=\; A\,\frac{\sigma}{\sigma_\mathrm{eff}}
+    \exp\!\left(-\frac{x_j^2}{2\sigma_\mathrm{eff}^2}\right).
+  }
+  \label{eq:model}
 \end{equation}
-In practice the parameters $\pmb{A_{m}}$, $\pmb{\Delta v}$, and
-$\pmb{\sigma}$ are not all independent; physical constraints on
-amplitudes, velocity centers, and widths reduce the number of free
-parameters and improve reliability for weak or blended lines. Multiplying
-by $\mathcal{R}$ decreases each model line's amplitude by an amount that
-depends on the line width and wavelength. The observed amplitude $A$
-(peak of $\mathcal{G}_i$) is therefore recorded separately after the
-final fit, as it is the appropriate quantity for assessing line
-significance.
+The amplitude factor $\sigma/\sigma_\mathrm{eff} \leq 1$ accounts for
+broadening by the pre-convolution kernel. The full model spectrum is
+$\mathbf{d}^\mathrm{model} = \mathbf{W}\,\mathbf{F}$, summed over all
+$N$ emission lines falling within the observed spectral range. Physical
+constraints (shared $\Delta v$ and $s$ within kinematic groups; fixed
+doublet amplitude ratios) reduce the free-parameter count and improve
+reliability for blended or weak lines.
+
+\paragraph{Analytic Jacobian.}
+The optimizer (\texttt{scipy.optimize.least\_squares}) uses closed-form
+derivatives of $F_j$ with respect to $(A,\,\Delta v,\,s)$:
+\begin{align}
+  \frac{\partial F_j}{\partial A}      &= \frac{F_j}{A}, \\[4pt]
+  \frac{\partial F_j}{\partial \Delta v} &=
+    \frac{F_j\,x_j}{\sigma_\mathrm{eff}^2\,c\,(1+z+\Delta v/c)}, \\[4pt]
+  \frac{\partial F_j}{\partial s}      &=
+    \frac{A}{\sigma_\mathrm{eff}\,c}\,
+    e^{-x_j^2/(2\sigma_\mathrm{eff}^2)}\,
+    \Bigl[1 - \sigma^2\bigl(1 - x_j^2/\sigma_\mathrm{eff}^2\bigr)
+    /\sigma_\mathrm{eff}^2\Bigr].
+\end{align}
 
 \subsection{Fitting Algorithm and Upper Limits}
 \label{ssec:emline_fitting}
 
 \begin{itemize}
-  \item Nonlinear least-squares on continuum-subtracted residuals,
-    using the trust-region reflective algorithm
+  \item Nonlinear least-squares on continuum-subtracted residuals via
+    the trust-region reflective algorithm
     \citep[\texttt{scipy.optimize.least\_squares};][]{branch99a}
-  \item Significance threshold: $A\,\sqrt{I_A} > 1.5$, where $I_A$
-    is the inverse variance of the observed line amplitude
+  \item Line fluxes computed analytically from fitted parameters via
+    equation~\eqref{eq:flux_phys}; independent of pixel grid and
+    resolution matrix
+  \item Significance threshold: $A\,\sqrt{I_A} > 1.5$, where $I_A$ is
+    the inverse variance of the observed peak amplitude
   \item Upper limits and equivalent widths from adjacent continuum flux
-    densities measured from the SED model \citep{andrae10a}
+    densities measured from the SED model
 \end{itemize}
 
-Given the model $\mathcal{G}$, we minimize
+Given the model $\mathbf{d}^\mathrm{model}$, we minimize
 \begin{equation}
-  \chi^2 = \frac{1}{2} \sum_{j=1}^{n}
-  I_{j}\bigl(F_{j} - \mathcal{G}_{j}\bigr)^2,
+  \chi^2 = \sum_{j} I_{j}\bigl(d_j - d_j^\mathrm{model}\bigr)^2,
   \label{eq:chi2line}
 \end{equation}
-where $F_{j}$ is the observed spectrum (in \fluxdensity) and $I_{j}$ is
-the inverse-variance spectrum (in \ivardensity).
-
-To derive the Gaussian-integrated flux and its uncertainty we apply the
-matched-filtering formalism \citep[e.g.,][]{lang20a}. Let
-$P_{j} \equiv G_{j} / \sum_{j} G_{j}$ be the normalized,
-resolution-convolved line profile evaluated over the $\pm3\sigma$ pixel
-window. The statistical weight of each pixel (in \ivarflux) is
-\begin{equation}
-  w_{j} = \frac{P_{j}^{2}}{(\Delta\lambda)_{j}^{2}}\,I_{j},
-\end{equation}
-where $\Delta\lambda_{j}$ is the pixel width in \AA. The
-maximum-likelihood Gaussian-integrated flux is
-\begin{equation}
-  F_{\mathrm{Gauss}} =
-  \frac{\displaystyle\sum_{j} w_{j}\,\Delta\lambda_{j}\,G_{j} / P_{j}}
-       {\displaystyle\sum_{j} w_{j}},
-  \label{eq:gaussflux}
-\end{equation}
-with inverse variance $I_{F_\mathrm{Gauss}} = \sum_{j} w_{j}$. Both
-quantities are corrected by $\mathrm{erf}(3/\sqrt{2}) = 0.9973$ to
-account for flux outside the $\pm3\sigma$ window.
+where $d_j$ is the continuum-subtracted observed flux (in \fluxdensity)
+and $I_j$ is the corresponding inverse variance (in \ivardensity).
+Parameter uncertainties are estimated from the diagonal of the covariance
+matrix returned by the optimizer \citep{andrae10a}. Line fluxes and their
+uncertainties are computed analytically from the fitted $(A,\,\lambda^*,\,s)$
+via equation~\eqref{eq:flux_phys}, without reference to the pixel sampling
+or the resolution matrix.
 
 \begin{figure*}
 \includegraphics[width=6.5in]{example-emlines}
