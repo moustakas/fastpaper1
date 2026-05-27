@@ -1,0 +1,255 @@
+#!/usr/bin/env python
+
+"""Fit Fuji repeat observations to address
+https://github.com/desihub/fastspecfit/issues/127
+
+time /global/u2/i/ioannis/code/desihub/fastspecfit-projects/fastpaper1/fastspec-repeats --build-parent
+
+"""
+import os, subprocess, pdb
+import numpy as np
+import fitsio
+from glob import glob
+from astropy.table import Table, join
+from fastspecfit.io import ZWarningMask
+from desitarget.sv3.sv3_targetmask import bgs_mask
+
+def _fastspec_cumulative_one(args):
+    """Multiprocessing wrapper."""
+    return fastspec_cumulative_one(*args)
+
+#def fastspec_cumulative_one(cumulative_zcat, perexp_zcat, repeatsdir, specprod, overwrite):
+
+def fastspec_cumulative_one(cumulative_zcat, repeatsdir, specprod, overwrite):
+
+    # fit the cumulative coadd
+
+    assert(np.all(cumulative_zcat['TILEID'] == cumulative_zcat['TILEID'][0]))
+    assert(np.all(cumulative_zcat['LASTNIGHT'] == cumulative_zcat['LASTNIGHT'][0]))
+    assert(np.all(cumulative_zcat['PETAL_LOC'] == cumulative_zcat['PETAL_LOC'][0]))
+    
+    #targetid, zobj = cumulative_zcat['TARGETID'], cumulative_zcat['Z']
+    targetids = ','.join(cumulative_zcat['TARGETID'].astype(str))
+
+    tileid = cumulative_zcat['TILEID'][0]
+    lastnight = cumulative_zcat['LASTNIGHT'][0]
+    petal = cumulative_zcat['PETAL_LOC'][0]
+    redrockfile = os.getenv('DESI_ROOT')+f'/spectro/redux/{specprod}/tiles/cumulative/{tileid}/{lastnight}/redrock-{petal}-{tileid}-thru{lastnight}.fits'
+
+    outdir = repeatsdir+'/'+'/'.join(redrockfile.split('/')[-6:-1])
+    fastfile = outdir+'/'+os.path.basename(redrockfile).replace('redrock-', 'fastspec-').replace('.fits', '.fits.gz')
+
+    if not os.path.isfile(fastfile) or overwrite:
+        cmd = f'fastspec {redrockfile} -o {fastfile} --targetids {targetids} --mp 1'
+        print(cmd)
+        err = subprocess.call(cmd.split())
+    else:
+        print(f'Skipping existing {fastfile}')
+
+def main():
+
+    import argparse    
+
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--mp', type=int, default=1, help='Number of multiprocessing processes per MPI rank or node.')
+    parser.add_argument('--build-parent', action='store_true', help='Build the parent sample.')
+    parser.add_argument('--fastspec-cumulative', action='store_true', help='Fit the data.')
+    parser.add_argument('--fastspec-perexp', action='store_true', help='Fit the data.')
+    parser.add_argument('--merge', action='store_true', help='Gather all the results.')
+    parser.add_argument('--qa', action='store_true', help='Gather all the results.')
+    parser.add_argument('--overwrite', action='store_true', help='Overwrite existing QA files.')
+    args = parser.parse_args()
+
+    paperdir = '/global/cfs/cdirs/desicollab/users/ioannis/fastspecfit/fastpaper1'
+    repeatsdir = paperdir+'/data/repeats'
+    if not os.path.isdir(repeatsdir):
+        os.makedirs(repeatsdir, exist_ok=True)
+
+    survey = 'sv3'
+    program = 'bright'
+    specprod = 'fuji'
+
+    parent_cumulative = repeatsdir+f'/parent-{specprod}-{survey}-{program}-cumulative.fits'
+    parent_perexp = repeatsdir+f'/parent-{specprod}-{survey}-{program}-perexp.fits'
+
+    fastspec_cumulative = repeatsdir+f'/fastspec-{specprod}-{survey}-{program}-cumulative.fits'
+    fastspec_perexp = repeatsdir+f'/fastspec-{specprod}-{survey}-{program}-perexp.fits'
+
+    if args.build_parent:
+        # build the parent sample
+
+        cumulative_zcatfile = f'/global/cfs/cdirs/desi/spectro/redux/{specprod}/zcatalog/ztile-{survey}-{program}-cumulative.fits'
+        cols = ['TARGETID', 'TILEID', 'LASTNIGHT', 'PETAL_LOC', 'Z', 'ZWARN', 'TARGET_RA',
+                'TARGET_DEC', 'ZCAT_NSPEC', 'ZCAT_PRIMARY', 'SV3_BGS_TARGET']
+        cumulative_zcat = Table(fitsio.read(cumulative_zcatfile, 'ZCATALOG', columns=cols))            
+        I = np.where(cumulative_zcat['ZCAT_PRIMARY'] * (cumulative_zcat['Z'] > 1e-3) * (cumulative_zcat['Z'] < 0.5) *
+                     (cumulative_zcat['ZWARN'] == 0) * (cumulative_zcat['ZCAT_NSPEC'] > 2) *
+                     (cumulative_zcat['SV3_BGS_TARGET'] & bgs_mask.BGS_BRIGHT != 0))[0]
+        cumulative_zcat = cumulative_zcat[I]
+        #cumulative_zcat = cumulative_zcat[cumulative_zcat['ZCAT_NSPEC'] > 5]
+        
+        #cumulative_exp = Table(fitsio.read(cumulative_zcatfile, 'EXP_FIBERMAP', columns=['TARGETID', 'NIGHT', 'EXPID', 'TILEID', 'PETAL_LOC']))        
+        #nspec = [np.sum(cumulative_exp['TARGETID'] == tid) for tid in cumulative_zcat['TARGETID']]
+        #cumulative_zcat['NSPEC'] = int(nspec)
+
+        perexp_zcatfile = f'/global/cfs/cdirs/desi/spectro/redux/{specprod}/zcatalog/ztile-{survey}-{program}-perexp.fits'
+        cols = ['TARGETID', 'Z', 'ZWARN', 'NIGHT', 'EXPID', 'TILEID', 'PETAL_LOC']
+        perexp_zcat = Table(fitsio.read(perexp_zcatfile, 'ZCATALOG', columns=cols))
+
+        # demand ZWARN==0 on the per-exposure; e.g., 39627745461799834 has 4
+        # exposures but three of them are bunk.
+        perexp_zcat = perexp_zcat[perexp_zcat['ZWARN'] == 0]
+        perexp_zcat = perexp_zcat[np.isin(perexp_zcat['TARGETID'], cumulative_zcat['TARGETID'])]
+
+        nspec = [int(np.sum(perexp_zcat['TARGETID'] == tid)) for tid in cumulative_zcat['TARGETID']]
+        cumulative_zcat['NSPEC'] = nspec
+        assert(np.sum(nspec) == len(perexp_zcat))
+
+        pdb.set_trace()
+
+        print('Writing {:,d} cumulative coadds to {}'.format(len(cumulative_zcat), parent_cumulative))
+        cumulative_zcat.write(parent_cumulative, overwrite=True)
+
+        print('Writing {:,d} perexp repeats to {}'.format(len(perexp_zcat), parent_perexp))
+        perexp_zcat.write(parent_perexp, overwrite=True)
+
+    if args.fastspec_cumulative:
+        # multiprocess the cumulative coadds
+        cumulative_zcat = Table(fitsio.read(parent_cumulative))
+        #cumulative_zcat = cumulative_zcat[cumulative_zcat['NSPEC'] > 8]
+
+        fitargs = []
+        for tileid in np.unique(cumulative_zcat['TILEID']):
+            I = np.where(tileid == cumulative_zcat['TILEID'])[0]
+            for petal in np.unique(cumulative_zcat['PETAL_LOC'][I]):
+                J = np.where(petal == cumulative_zcat['PETAL_LOC'][I])[0]
+                fitargs.append([cumulative_zcat[I][J], repeatsdir, specprod, args.overwrite])
+            
+        if args.mp > 1:
+            import multiprocessing
+            with multiprocessing.Pool(args.mp) as P:
+                P.map(_fastspec_cumulative_one, fitargs)
+        else:
+            [fastspec_cumulative_one(*_fitargs) for _fitargs in fitargs]
+
+    if args.fastspec_perexp:
+        # multiprocess the perexp coadds
+        cumulative_zcat = Table(fitsio.read(parent_cumulative))
+        perexp_zcat = Table(fitsio.read(parent_perexp))
+
+        ## temporary hack
+        #cumulative_zcat = cumulative_zcat[cumulative_zcat['NSPEC'] > 8]
+        #perexp_zcat = perexp_zcat[np.isin(perexp_zcat['TARGETID'], cumulative_zcat['TARGETID'])]
+
+        for tileid in np.unique(perexp_zcat['TILEID']):
+            I = np.where(tileid == perexp_zcat['TILEID'])[0]
+            for expid in np.unique(perexp_zcat['EXPID'][I]):
+                J = np.where(expid == perexp_zcat['EXPID'][I])[0]
+                for petal in np.unique(perexp_zcat['PETAL_LOC'][I][J]):
+                    K = np.where(petal == perexp_zcat['PETAL_LOC'][I][J])[0]
+                    indx = I[J][K]
+                    
+                    sexpid = '{:08d}'.format(expid)
+                    
+                    redrockfile = os.getenv('DESI_ROOT')+f'/spectro/redux/{specprod}/tiles/perexp/{tileid}/{sexpid}/redrock-{petal}-{tileid}-exp{sexpid}.fits'
+                    if not os.path.isfile(redrockfile):
+                        raise IOError(f'Unable to find {redrockfile}!')
+
+                    # check which exposure have no data
+                    zb = fitsio.read(redrockfile, columns=['TARGETID', 'ZWARN'])
+                    zb = zb[np.isin(zb['TARGETID'], perexp_zcat[indx]['TARGETID'])]
+                    good = np.where(zb['ZWARN'] & ZWarningMask.NODATA == 0)[0]
+                    print('Trimming to {}/{} objects with data.'.format(len(good), len(indx)))
+
+                    zcat = cumulative_zcat[np.hstack([np.where(cumulative_zcat['TARGETID'] == tid)[0] for tid in perexp_zcat[indx[good]]['TARGETID']])]
+                    #zcat = cumulative_zcat[np.isin(cumulative_zcat['TARGETID'], perexp_zcat[I][J][K]['TARGETID'])]
+                    assert(np.all(zcat['TARGETID'] == perexp_zcat[indx[good]]['TARGETID']))
+                    
+                    outdir = repeatsdir+'/'+'/'.join(redrockfile.split('/')[-6:-1])
+                    fastfile = outdir+'/'+os.path.basename(redrockfile).replace('redrock-', 'fastspec-').replace('.fits', '.fits.gz')
+
+                    targetids = ','.join(zcat['TARGETID'].astype(str))
+                    input_redshifts = ','.join(zcat['Z'].astype(str))
+        
+                    if not os.path.isfile(fastfile) or args.overwrite:
+                        cmd = f'fastspec {redrockfile} -o {fastfile} --targetids {targetids} --input-redshifts {input_redshifts} --mp {args.mp}'
+                        print(cmd)
+                        err = subprocess.call(cmd.split())
+                    else:
+                        print(f'Skipping existing {fastfile}')
+
+    if args.merge:
+        from fastspecfit.mpi import _domerge
+
+        perexp_files = glob(repeatsdir+f'/{specprod}/tiles/perexp/*/*/*.fits.gz')
+        _domerge(perexp_files, mergefile=fastspec_perexp, extname='FASTSPEC',
+                 specprod=specprod, coadd_type='perexp', mp=args.mp)
+        
+        cumulative_files = glob(repeatsdir+f'/{specprod}/tiles/cumulative/*/*/*.fits.gz')
+        _domerge(cumulative_files, mergefile=fastspec_cumulative, extname='FASTSPEC',
+                 specprod=specprod, coadd_type='cumulative', mp=args.mp)
+
+    if args.qa:
+        from fastspecfit.io import read_fastspecfit
+
+        cumulative_fast, cumulative_meta, _, _ = read_fastspecfit(fastspec_cumulative)
+        perexp_fast, perexp_meta, _, _ = read_fastspecfit(fastspec_perexp)
+
+        I = np.isin(cumulative_meta['TARGETID'], perexp_meta['TARGETID'])
+        cumulative_meta = cumulative_meta[I]
+        cumulative_fast = cumulative_fast[I]
+
+        # some cleanup code - keep
+        
+        #cumulative_zcat = Table(fitsio.read(parent_cumulative))
+        #cumulative_zcat = cumulative_zcat[cumulative_zcat['NSPEC'] > 8]
+        #cumulative_meta['PETAL'] = cumulative_meta['FIBER'] // 500
+        #I = ~np.isin(cumulative_meta['TARGETID'], cumulative_zcat['TARGETID'])
+        #ff = []
+        #for petal, tile, night in zip(cumulative_meta['PETAL'][I], cumulative_meta['TILEID'][I], cumulative_meta['NIGHT'][I]):
+        #    ff.append(repeatsdir+f'/fuji/tiles/cumulative/{tile}/{night}/'+f'fastspec-{petal}-{tile}-thru{night}.fits.gz')
+        #ff = np.unique(ff)
+        #for f in ff:
+        #    if os.path.isfile(f):
+        #        os.remove(f)
+
+        #perexp_zcat = Table(fitsio.read(parent_perexp))
+        #perexp_meta['PETAL'] = perexp_meta['FIBER'] // 500
+        #I = ~np.isin(perexp_meta['TARGETID'], perexp_zcat['TARGETID'])
+        #ff = []
+        #for petal, tile, expid in zip(perexp_meta['PETAL'][I], perexp_meta['TILEID'][I], perexp_meta['EXPID'][I]):
+        #    sexpid = '{:08d}'.format(expid)
+        #    ff.append(repeatsdir+f'/fuji/tiles/perexp/{tile}/{sexpid}/'+f'fastspec-{petal}-{tile}-exp{sexpid}.fits.gz')
+        #ff = np.unique(ff)
+        #for f in ff:
+        #    if os.path.isfile(f):
+        #        os.remove(f)
+
+        ngal = len(cumulative_fast)
+        stats = Table()
+        stats['OIII_5007_EW'] = np.zeros(ngal, 'f4')
+        stats['HALPHA_EW'] = np.zeros(ngal, 'f4')
+        stats['OIII_5007_AMP'] = np.zeros(ngal, 'f4')
+        stats['HALPHA_AMP'] = np.zeros(ngal, 'f4')
+        stats['DN4000'] = np.zeros(ngal, 'f4')
+        stats['VDISP'] = np.zeros(ngal, 'f4')
+            
+        for igal, gal in enumerate(cumulative_fast):
+            if igal % 100 == 0:
+                print(igal, len(cumulative_fast))
+            I = gal['TARGETID'] == perexp_fast['TARGETID']
+            if np.sum(I) > 1:
+                pdb.set_trace()
+                for col in stats.colnames:
+                    stats[col][igal] = (perexp_fast[I][col].data - gal[col]) * np.sqrt(gal[f'{col}_IVAR'])
+                pdb.set_trace()
+
+        #bb = np.hstack(stats['OIII_5007_EW'])
+        bb = np.hstack(stats['DN4000'])
+        plt.clf() ; _ = plt.hist(bb[I], bins=100, range=(-10, 10)) ; plt.savefig('desi-users/ioannis/tmp/junk.png')
+                
+        pdb.set_trace()
+
+if __name__ == '__main__':
+   main()
+
