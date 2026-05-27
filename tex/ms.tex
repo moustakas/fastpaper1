@@ -8,6 +8,7 @@
 \usepackage{ulem}
 \usepackage{xcolor}
 \usepackage{amsmath}
+\usepackage{mathtools}
 \usepackage{afterpage}
 \usepackage{longtable}
 
@@ -19,8 +20,16 @@
 \newcommand{\fastspecfit}{\textsc{FastSpecFit}}
 \newcommand{\fastspec}{\texttt{fastspec}}
 \newcommand{\fastphot}{\texttt{fastphot}}
+\newcommand{\kms}{\ensuremath{\mathrm{km~s}^{-1}}}
+\newcommand{\flux}{\ensuremath{\mathrm{erg~s}^{-1}~\mathrm{cm}^{-2}}}
+\newcommand{\fluxdensity}{\ensuremath{\mathrm{erg~s}^{-1}~\mathrm{cm}^{-2}~\mathrm{\AA}^{-1}}}
+\newcommand{\ivardensity}{\ensuremath{\mathrm{erg}^{-2}~\mathrm{s}^{2}~\mathrm{cm}^{4}~\mathrm{\AA}^{2}}}
+\newcommand{\ivarflux}{\ensuremath{\mathrm{erg}^{-2}~\mathrm{s}^{2}~\mathrm{cm}^{4}}}
 \newcommand{\oii}{[\ion{O}{2}]$\lambda\lambda3726,3729$}
+\newcommand{\oiidoublet}{[\ion{O}{2}]$\lambda\lambda3726,3729$}
 \newcommand{\oiii}{[\ion{O}{3}]$\lambda\lambda4959,5007$}
+\newcommand{\oiiidoublet}{[\ion{O}{3}]$\lambda\lambda4959,5007$}
+\newcommand{\oiiilam}{[\ion{O}{3}]$\lambda5007$}
 \newcommand{\ha}{H$\alpha$}
 \newcommand{\hb}{H$\beta$}
 \newcommand{\deltachisq}{{\ensuremath{\Delta\chi^2}}}
@@ -28,6 +37,9 @@
 \newcommand{\tauv}{\tau_V}
 \newcommand{\Mstar}{M_\star}
 \newcommand{\logmstar}{\log_{10}(\Mstar/\mathrm{M_\odot})}
+% macros used in table-desi.tex
+\newcommand{\shortdlis}{DESI Legacy Imaging Surveys}
+\newcommand{\shortatlas}{Legacy Survey image atlas}
 
 \graphicspath{{./}{figures/}}
 
@@ -38,8 +50,9 @@
 
 \begin{document}
 
-\title{FastSpecFit: Spectrophotometric Modeling of Extragalactic Targets
-  from the DESI Data Release 2}
+\title{FastSpecFit: Spectrophotometric Modeling of 47 Million
+  Extragalactic Targets from the Dark Energy Spectroscopic Instrument
+  Second Data Release}
 
 \correspondingauthor{John Moustakas}
 
@@ -48,8 +61,20 @@
 \affil{Department of Physics \& Astronomy, Siena University,
   515 Loudon Road, Loudonville, NY 12110, USA}
 
-%\author[]{Collaborator Name}
-%\affil{Collaborator Affiliation}
+\author[0000-0002-4159-4226]{J.~Buhler}
+\email{jbuhler@wustl.edu}
+\affiliation{Department of Computer Science and Engineering and
+  Genetics, Washington University in St. Louis, One Brookings Drive
+  St. Louis, MO 63130, USA}
+
+\author[0000-0002-6867-1244]{D.~Scholte}
+\email{dscholte@roe.ac.uk}
+\affiliation{Institute for Astronomy, University of Edinburgh, Royal
+  Observatory, Blackford Hill, Edinburgh EH9 3HJ, UK}
+
+\author{DESI Collaborators...}
+\email{desi@desi.desi}
+\affiliation{INSTITUTION, ADDRESS}
 
 \begin{abstract}
 The observed-frame optical spectrum of each extragalactic DESI target
@@ -81,11 +106,13 @@ comprising \todo{N} million extragalactic targets.
 
 \begin{itemize}
   \item DESI overview: instrument, survey goals, unprecedented spectroscopic
-    volume
+    volume \citep{desi-collaboration23a}
   \item Scientific value of spectra beyond redshifts: continuum, emission
     lines, physical properties
   \item Brief landscape of existing spectral fitting codes and their
-    trade-offs (pPXF, CIGALE, Bagpipes, Prospector, \texttt{alf}, etc.)
+    trade-offs (pPXF \citep{cappellari22a}, CIGALE, Bagpipes, Prospector,
+    \texttt{alf}, \texttt{pyspeckit} \citep{ginsburg22a},
+    \texttt{pyqsofit} \citep{guo18a}, etc.)
   \item Motivation for \fastspecfit{}: speed, joint spectrophotometric
     fitting, designed for DESI scale
   \item Summary of this paper and the DR2 VAC
@@ -96,8 +123,6 @@ comprising \todo{N} million extragalactic targets.
 \section{Data}
 \label{sec:data}
 %% ============================================================
-
-% Overview of the inputs to FastSpecFit.
 
 \subsection{DESI Spectra}
 \label{ssec:spectra}
@@ -121,6 +146,17 @@ comprising \todo{N} million extragalactic targets.
   \item Fiber photometry vs.\ total photometry; aperture correction
     motivation
 \end{itemize}
+
+Special handling of \texttt{PHOTSYS} is required because it may not match
+the value in the DESI catalogs for secondary and tertiary targets. First,
+if \texttt{PHOTSYS} is neither \texttt{N} nor \texttt{S} and
+\texttt{RELEASE} is defined, we use the \texttt{desitarget} release
+dictionary to determine \texttt{PHOTSYS}; otherwise we use a declination
+cut. Either way, all photometry is ultimately assigned \texttt{PHOTSYS}
+$=$ \texttt{N} or \texttt{S}, which uniquely associates the photometry
+with the appropriate filter curves.
+
+\input{tables/table-desi}
 
 \subsection{Sample Selection}
 \label{ssec:sample}
@@ -147,20 +183,37 @@ comprising \todo{N} million extragalactic targets.
 
 \begin{itemize}
   \item FSPS with C3K stellar library (2750--9100~\AA, $R = 3000$), MIST
-    isochrones, Chabrier IMF
+    isochrones \citep{choi16a, dotter16a}, Chabrier IMF \citep{chabrier03a}
   \item Non-parametric SFH: 5 lookback-time bins (30~Myr to 13.7~Gyr)
   \item Solar metallicity default; nebular emission included via FSPS grid
   \item Auxiliary templates: Draine \& Li (2007) dust emission, Nenkova et
     al.\ (2008) AGN torus, Vestergaard \& Wilkes (2001) Fe emission
-  \item Wavelength grid: 25~km~s$^{-1}$ pixels in 2750--9100~\AA;
-    native FSPS grid outside this range
+  \item Wavelength grid: 25~\kms\ pixels in 2750--9100~\AA; native FSPS
+    grid outside this range
 \end{itemize}
+
+For the DESI galaxy templates we use the Flexible Stellar Population
+Synthesis (\texttt{FSPS}) modeling
+code\footnote{\url{https://github.com/cconroy20/fsps}}
+\citep{conroy09a, conroy10b} via the
+\texttt{python-fsps}\footnote{\url{https://github.com/dfm/python-fsps}}
+Python interface. The code includes the option of excluding templates
+older than the age of the universe; however, by default we use all
+templates, largely because of the relatively coarse grid in mean stellar
+age \citep{leja17a, leja19a}.
+
+\begin{figure*}
+\includegraphics[width=6.5in]{figures/sps-models.png}
+\caption{Write me.\label{fig:sps}}
+\end{figure*}
+
+\input{tables/table-templates}
 
 \subsection{Dust Attenuation and Emission}
 \label{ssec:dust}
 
 \begin{itemize}
-  \item Charlot \& Fall (2000) power-law screen:
+  \item \citet{charlot00a} power-law screen:
     $k(\lambda) \propto (\lambda / 5500\,\text{\AA})^{-0.7}$
   \item Single free parameter $\tauv \in [0, 2]$
   \item Energy-balance IR emission: absorbed luminosity reprocessed through
@@ -184,15 +237,22 @@ comprising \todo{N} million extragalactic targets.
 
 \begin{itemize}
   \item Gaussian convolution on $\log\lambda$ grid
-    ($\sigma_\mathrm{pix} = \vdisp / 25\,\mathrm{km\,s^{-1}}$)
+    ($\sigma_\mathrm{pix} = \vdisp / 25\,\kms$)
   \item FFT-based convolution; pre-computed transform cache up to
-    500~km~s$^{-1}$
+    500~\kms
   \item Fitting window: 3800--6000~\AA\ rest-frame
     (Ca\,H\&K, $G$-band, Mg\,\textsc{b}, Fe)
   \item Two-stage fit: $\chi^2$ grid scan then trust-region refinement
-  \item Fallback: nominal 250~km~s$^{-1}$ when wavelength coverage is
+  \item Fallback: nominal 250~\kms\ when wavelength coverage is
     insufficient
 \end{itemize}
+
+The nominal velocity dispersion of 250~\kms\ is close to the knee of
+the velocity dispersion function at $z = 0$--$1.5$
+\citep[e.g.,][]{bezanson11a}. This value is an overestimate for the
+emission-line galaxies targeted by DESI, but the effect on the continuum
+fit is small because those targets are observed primarily in the
+rest-frame UV where stellar absorption features are less prominent.
 
 \subsection{Fitting Algorithm}
 \label{ssec:fitting}
@@ -208,6 +268,10 @@ comprising \todo{N} million extragalactic targets.
   \item Trust-region reflective (TRF) optimizer when $\vdisp$ is a free
     parameter
 \end{itemize}
+
+The aperture correction may not be perfect for QSOs, but in general our
+templates have enough flexibility to recover the shape of the broadband
+SED reasonably well \citep{leja17a, leja19a, cappellari22a}.
 
 \subsection{Smooth Continuum Correction}
 \label{ssec:smooth}
@@ -240,10 +304,17 @@ comprising \todo{N} million extragalactic targets.
 
 \begin{itemize}
   \item $>40$ lines from rest-frame UV through near-IR
+    (Table~\ref{table:emlines})
   \item Lines tied in kinematic groups (shared $v_\mathrm{shift}$,
     $\sigma$) with flexible amplitude ratios; separate broad-line group
     for AGN
+  % [NII] doublet ratio: https://ui.adsabs.harvard.edu/abs/2023AdSpR..71.1219D
+  % [OIII] doublet ratio: https://ui.adsabs.harvard.edu/abs/2007AIPC..895..313D
 \end{itemize}
+
+\input{tables/table-emlines}
+
+\clearpage
 
 \subsection{Forward Model}
 \label{ssec:emline_model}
@@ -258,15 +329,102 @@ comprising \todo{N} million extragalactic targets.
     approach for unresolved lines
 \end{itemize}
 
+After subtracting the best-fitting stellar continuum model from the data,
+we are left with a residual spectrum that may contain emission lines. We
+adopt a physically motivated forward-modeling approach to fit these
+residuals.
+
+We model the emission-line spectrum as a sum of Gaussian line profiles,
+each described by a model amplitude $A_{m}$ (in \fluxdensity), velocity
+shift $\Delta v$ (in \kms), and velocity width $\sigma$ (in \kms). The
+velocity shift, measured with respect to the Redrock redshift $z$,
+determines the redshifted wavelength of each line,
+\begin{equation}
+  \lambda_z = \lambda_{0} \left(1 + z + \frac{\Delta v}{c}\right),
+\end{equation}
+where $\lambda_{0}$ is the vacuum rest wavelength
+(Table~\ref{table:emlines}) and $c$ is the speed of light. Working in
+base-10 logarithmic wavelength space (constant-velocity pixel space), we
+construct each model emission line as
+\begin{equation}
+  \widetilde{G}(A_{m}, \Delta v, \sigma, \lambda^{\prime}) =
+  A_{m} \exp\!\left[
+    -\frac{(\log_{10}\lambda^{\prime} - \log_{10}\lambda_z)^2}
+          {2\sigma_{\log\lambda}^2}
+  \right],
+\end{equation}
+where $\sigma_{\log\lambda} = \sigma / \log_{e}(10) / c$ is the velocity
+width in $\log_{10}(\mathrm{\AA})$ and $\lambda^{\prime}$ is the model
+wavelength array before resampling onto the DESI pixel grid. The full
+emission-line model is
+\begin{equation}
+  \widetilde{\mathcal{G}} = \sum_{i=1}^{N} \widetilde{G}_i,
+\end{equation}
+where $N$ is the number of lines within the observed spectral range.
+After flux-conserving trapezoidal resampling onto the DESI pixel grid,
+we multiply by the resolution matrix $\mathcal{R}$ to obtain the final
+model,
+\begin{equation}
+  \mathcal{G}(\pmb{A_m}, \pmb{\Delta v}, \pmb{\sigma}, \lambda) =
+  \mathcal{R}\,\widetilde{\mathcal{G}}(\lambda^{\prime}\rightarrow\lambda).
+  \label{eq:gtilde}
+\end{equation}
+In practice the parameters $\pmb{A_{m}}$, $\pmb{\Delta v}$, and
+$\pmb{\sigma}$ are not all independent; physical constraints on
+amplitudes, velocity centers, and widths reduce the number of free
+parameters and improve reliability for weak or blended lines. Multiplying
+by $\mathcal{R}$ decreases each model line's amplitude by an amount that
+depends on the line width and wavelength. The observed amplitude $A$
+(peak of $\mathcal{G}_i$) is therefore recorded separately after the
+final fit, as it is the appropriate quantity for assessing line
+significance.
+
 \subsection{Fitting Algorithm and Upper Limits}
 \label{ssec:emline_fitting}
 
 \begin{itemize}
-  \item Nonlinear least-squares on continuum-subtracted residuals
-  \item Significance thresholds and upper limit computation
-  \item Equivalent widths from adjacent continuum flux densities measured
-    from the SED model
+  \item Nonlinear least-squares on continuum-subtracted residuals,
+    using the trust-region reflective algorithm
+    \citep[\texttt{scipy.optimize.least\_squares};][]{branch99a}
+  \item Significance threshold: $A\,\sqrt{I_A} > 1.5$, where $I_A$
+    is the inverse variance of the observed line amplitude
+  \item Upper limits and equivalent widths from adjacent continuum flux
+    densities measured from the SED model \citep{andrae10a}
 \end{itemize}
+
+Given the model $\mathcal{G}$, we minimize
+\begin{equation}
+  \chi^2 = \frac{1}{2} \sum_{j=1}^{n}
+  I_{j}\bigl(F_{j} - \mathcal{G}_{j}\bigr)^2,
+  \label{eq:chi2line}
+\end{equation}
+where $F_{j}$ is the observed spectrum (in \fluxdensity) and $I_{j}$ is
+the inverse-variance spectrum (in \ivardensity).
+
+To derive the Gaussian-integrated flux and its uncertainty we apply the
+matched-filtering formalism \citep[e.g.,][]{lang20a}. Let
+$P_{j} \equiv G_{j} / \sum_{j} G_{j}$ be the normalized,
+resolution-convolved line profile evaluated over the $\pm3\sigma$ pixel
+window. The statistical weight of each pixel (in \ivarflux) is
+\begin{equation}
+  w_{j} = \frac{P_{j}^{2}}{(\Delta\lambda)_{j}^{2}}\,I_{j},
+\end{equation}
+where $\Delta\lambda_{j}$ is the pixel width in \AA. The
+maximum-likelihood Gaussian-integrated flux is
+\begin{equation}
+  F_{\mathrm{Gauss}} =
+  \frac{\displaystyle\sum_{j} w_{j}\,\Delta\lambda_{j}\,G_{j} / P_{j}}
+       {\displaystyle\sum_{j} w_{j}},
+  \label{eq:gaussflux}
+\end{equation}
+with inverse variance $I_{F_\mathrm{Gauss}} = \sum_{j} w_{j}$. Both
+quantities are corrected by $\mathrm{erf}(3/\sqrt{2}) = 0.9973$ to
+account for flux outside the $\pm3\sigma$ window.
+
+\begin{figure*}
+\includegraphics[width=6.5in]{example-emlines}
+\caption{Write me.\label{fig:linefit}}
+\end{figure*}
 
 \subsection{Broad-Line AGN Model}
 \label{ssec:broadlines}
@@ -276,6 +434,36 @@ comprising \todo{N} million extragalactic targets.
   \item $\deltachisq$-based decision to retain or drop broad component
   \item Conditions for dropping: $\deltachisq > 0$; all broad amplitudes
     zero; $\sigma_\mathrm{broad} < \sigma_\mathrm{narrow}$
+\end{itemize}
+
+\begin{deluxetable}{cc}
+\tablecaption{Emission-Line Free Parameters and Bounds\label{table:priors}}
+\tablewidth{0pt}
+\tablehead{
+  \colhead{Parameter} &
+  \colhead{Bounds}
+}
+\startdata
+\multicolumn{2}{c}{\textbf{Narrow-line model}} \\
+$\sigma_{\mathrm{narrow}}$     & 1--750~\kms \\
+$(\Delta v)_{\mathrm{narrow}}$ & $\pm500$~\kms \\
+\multicolumn{2}{c}{\textbf{Broad-line model}} \\
+$\sigma_{\mathrm{narrow}}$     & 1--750~\kms \\
+$\sigma_{\mathrm{broad}}$      & 1--10,000~\kms \\
+$(\Delta v)_{\mathrm{narrow}}$ & $\pm500$~\kms \\
+$(\Delta v)_{\mathrm{broad}}$  & $\pm2500$~\kms \\
+\enddata
+\tablecomments{\todo{Expand.}}
+\end{deluxetable}
+
+\subsection{Computational Performance}
+\label{ssec:timings}
+
+\begin{itemize}
+  \item Compute time per spectrum; Perlmutter hardware description
+  \item Hybrid parallelism: MPI across nodes + multiprocessing within
+    nodes
+  \item \todo{Benchmark numbers.}
 \end{itemize}
 
 
@@ -291,8 +479,10 @@ comprising \todo{N} million extragalactic targets.
   \item Stellar mass from NNLS coefficients and FSPS surviving mass
     fractions
   \item SFR from emission lines (\ha, \oii) and/or UV continuum
-  \item $D_n(4000)$ from line-free best-fit model (Balogh et al.\ 1999
-    definition)
+  \item $D_n(4000)$ from line-free best-fit model \citep{balogh99a}
+  \item Note: stellar masses from non-parametric SFHs can be
+    $\sim$0.3--0.4~dex higher than parametric estimates
+    \citep{leja19a, leja20a}
 \end{itemize}
 
 \subsection{K-corrections and Rest-Frame Magnitudes}
@@ -300,7 +490,7 @@ comprising \todo{N} million extragalactic targets.
 
 \begin{itemize}
   \item K-corrections by comparing synthesized observer- and rest-frame
-    photometry from the best-fit SED
+    photometry from the best-fit SED \citep{hogg02a, blanton07a}
   \item Rest-frame absolute magnitudes from distance modulus +
     K-correction
   \item Monochromatic luminosities at 1450, 1500, 1700, 2800, 3000, and
@@ -314,7 +504,7 @@ comprising \todo{N} million extragalactic targets.
   \item EWs computed relative to local continuum flux densities from the
     SED model
   \item $D_n(4000)$ measured from both the best-fit model and the observed
-    spectrum
+    spectrum \citep{balogh99a}
 \end{itemize}
 
 
@@ -345,12 +535,21 @@ comprising \todo{N} million extragalactic targets.
 \label{ssec:comparisons}
 
 \begin{itemize}
-  \item Stellar masses: vs.\ CIGALE (Zou et al., Siudek et al.),
-    Prospector, \texttt{kcorrect}
-  \item Emission-line fluxes: vs.\ pPXF, DESI \texttt{emfit}, Salim et
-    al.\ (2016; SDSS overlap)
+  \item Stellar masses: vs.\ CIGALE \citep{siudek17a}, Prospector,
+    \texttt{kcorrect} \citep{blanton07a}
+  \item Emission-line fluxes: vs.\ pPXF \citep{cappellari22a}, DESI
+    \texttt{emfit}, \citet{salim16a} (SDSS overlap)
   \item Highlight \fastspecfit{}'s unique joint spectrophotometric approach
 \end{itemize}
+
+\begin{figure*}
+\includegraphics[width=6.5in]{ppxf-vdisp.png}
+\caption{Comparison of \fastspecfit{} stellar velocity dispersions with
+  those measured by \texttt{pPXF}.\label{fig:vdisp}}
+\end{figure*}
+
+% Compare with PROVABGS: https://data.desi.lbl.gov/desi/users/chahah/provabgs/edr/
+% Compare SFRs with GSWLC: https://salims.pages.iu.edu/gswlc/
 
 
 %% ============================================================
@@ -386,9 +585,16 @@ comprising \todo{N} million extragalactic targets.
 \begin{itemize}
   \item Brief recap of \fastspecfit{} capabilities and design philosophy
   \item DR2 VAC highlights
-  \item Planned future improvements: NMF-based semi-empirical templates,
-    improved AGN fitting, better aperture corrections, multiple
-    metallicities
+  \item Planned future improvements:
+  \begin{itemize}
+    \item NMF-based semi-empirical templates trained on DESI data
+    \item Improved aperture corrections
+    \item Improved fitting of QSOs and broad-line AGN
+    \item GPU acceleration
+    \item Asymmetric line profiles (e.g., [\ion{O}{3}])
+    \item Forward-model Galactic reddening attenuation
+    \item Multiple stellar metallicities
+  \end{itemize}
 \end{itemize}
 
 
@@ -416,6 +622,16 @@ Iolkam Du'ag (Kitt Peak), a mountain with particular significance to the
 Tohono O'odham Nation.
 \end{acknowledgements}
 
+\software{
+  \texttt{Astropy} \citep{astropy-collaboration22a},
+  \texttt{corner.py} \citep{corner},
+  \texttt{healpy} \citep{healpy},
+  \texttt{NumPy} \citep{harris20a},
+  \texttt{Matplotlib} \citep{hunter07a},
+  \texttt{SciPy} \citep{virtanen20a},
+  \texttt{seaborn} \citep{waskom21a}
+}
+
 
 %% ============================================================
 \begin{appendix}
@@ -433,6 +649,17 @@ Tohono O'odham Nation.
   \item Comparison figures: stellar masses and emission-line fluxes for
     EDR/DR1 vs.\ DR2
 \end{itemize}
+
+\section{Building the SPS Templates}
+\label{sec:appendix_sps}
+
+The \texttt{python-fsps} package must be compiled with the C3K stellar
+library flags before installing:
+\begin{verbatim}
+FFLAGS="-DMILES=0 -DC3K=1" python -m pip install fsps --no-binary fsps
+\end{verbatim}
+
+\todo{Highlight \fastphot{} mode and the \texttt{nophoto} option.}
 
 \end{appendix}
 
