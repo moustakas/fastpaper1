@@ -114,7 +114,7 @@ comprising \todo{N} million extragalactic targets.
     \texttt{alf}, \texttt{pyspeckit} \citep{ginsburg22a},
     \texttt{pyqsofit} \citep{guo18a}, etc.)
   \item Motivation for \fastspecfit{}: speed, joint spectrophotometric
-    fitting, designed for DESI scale
+    fitting, designed for DESI scale; spectroperfectionism.
   \item Summary of this paper and the DR2 VAC
 \end{itemize}
 
@@ -171,8 +171,8 @@ with the appropriate filter curves.
 
 
 %% ============================================================
-\section{Stellar Continuum Model}
-\label{sec:continuum}
+\section{Spectrophotometric Modeling}
+\label{sec:modeling}
 %% ============================================================
 
 \fastspecfit{} operates in two modes. \fastphot{} fits broadband spectral
@@ -183,8 +183,44 @@ share the same template library, dust model, and physical output
 quantities; they differ only in the data that enter the fit and in
 whether the stellar velocity dispersion is a free parameter.
 
-\subsection{SPS Template Library}
-\label{ssec:templates}
+The following subsections walk through the complete \fastspec{} fitting
+sequence---spectral masking, stellar continuum modeling, and emission-line
+modeling---using a concrete BGS example to illustrate each stage.
+
+\subsection{Case Study: A Low-Redshift BGS Nucleus}
+\label{ssec:casestudy}
+
+\begin{itemize}
+  \item Object: low-redshift BGS galaxy observed with the fiber centered
+    on the nucleus; high signal-to-noise stellar continuum; well-detected
+    broad Balmer emission indicative of an AGN; good optical and
+    mid-infrared photometry
+  \item Multi-panel figure: Legacy Survey $grz$ color image with fiber
+    overlay; full DESI spectrum (B, R, Z cameras); broadband SED with
+    model photometry
+  \item Each subsequent subsection returns to this object to show the
+    output of that algorithmic step
+\end{itemize}
+
+\subsection{Spectral Masking}
+\label{ssec:masking}
+
+\begin{itemize}
+  \item Emission-line windows masked prior to the stellar continuum fit,
+    based on the line list described in \S\ref{sssec:linelist}; each
+    window extends $\pm N\,\sigma_\mathrm{line}$ in velocity space around
+    the expected observed-frame wavelength
+  \item Additional masking of known sky-line residuals and pixels with
+    zero inverse variance
+  \item Show masked spectrum for the case-study object, illustrating the
+    fraction of spectral pixels available for continuum fitting
+\end{itemize}
+
+\subsection{Stellar Continuum Model}
+\label{ssec:continuum}
+
+\subsubsection{SPS Template Library}
+\label{sssec:templates}
 
 \begin{itemize}
   \item FSPS\footnote{\url{https://github.com/cconroy20/fsps}}
@@ -224,8 +260,8 @@ coarse age grid \citep{leja19a}.
 
 \input{tables/table-templates}
 
-\subsection{Dust Attenuation and Emission}
-\label{ssec:dust}
+\subsubsection{Dust Attenuation and Emission}
+\label{sssec:dust}
 
 \begin{itemize}
   \item \citet{charlot00a} power-law foreground screen with slope $-0.7$,
@@ -265,8 +301,8 @@ $U_\mathrm{min}=1.0$, $\gamma=0.01$) and contributes only to the
 photometric fit (it falls outside the DESI spectral range for most
 targets).
 
-\subsection{Redshift, IGM, and Flux Scaling}
-\label{ssec:zfactors}
+\subsubsection{Redshift, IGM, and Flux Scaling}
+\label{sssec:zfactors}
 
 \begin{itemize}
   \item \citet{inoue14a} IGM transmission $T_\mathrm{IGM}(\lambda,z)$
@@ -294,8 +330,8 @@ The scalar prefactor and IGM transmission are combined into a single
 array (\texttt{zfactors}) evaluated once at object initialization and
 reused for all template evaluations during fitting.
 
-\subsection{Velocity Dispersion}
-\label{ssec:vdisp}
+\subsubsection{Velocity Dispersion}
+\label{sssec:vdisp}
 
 \begin{itemize}
   \item Gaussian convolution on constant-velocity ($\log\lambda$) grid:
@@ -328,8 +364,8 @@ are weak. The $\vdisp$ fit uses only templates without nebular emission
 and with $\tauv = 0$, which have negligible effect on the absorption
 features used for the fit.
 
-\subsection{Fitting Algorithm}
-\label{ssec:fitting}
+\subsubsection{Fitting Algorithm}
+\label{sssec:fitting}
 
 \begin{itemize}
   \item Joint $\chi^2$ over spectral pixels and photometric bands
@@ -388,8 +424,8 @@ aperture correction may not be perfect for QSOs, but the template
 flexibility generally recovers the broadband SED shape
 \citep{cappellari22a}.
 
-\subsection{Smooth Continuum Correction}
-\label{ssec:smooth}
+\subsubsection{Smooth Continuum Correction}
+\label{sssec:smooth}
 
 \begin{itemize}
   \item Nonparametric correction for residual flux-calibration errors
@@ -411,42 +447,11 @@ best-fit, line-free SED model. The resulting smooth baseline is added
 back to the SED model so that the emission-line fitter operates on
 spectra with an accurate continuum.
 
-\subsection{Uncertainties}
-\label{ssec:continuum_uncertainties}
+\subsection{Emission-Line Model}
+\label{ssec:emlines}
 
-\begin{itemize}
-  \item Monte Carlo: $N_\mathrm{monte} = 50$ independent Gaussian
-    noise realizations of the spectra and photometry, drawn with a
-    fixed random seed (shared with the emission-line fitter)
-  \item Uncertainties reported for $\tauv$, $\vdisp$ (when fitted),
-    $D_n(4000)$, rest-frame luminosities, and observed-frame continuum
-    fluxes
-\end{itemize}
-
-Parameter uncertainties are estimated by repeating the continuum fit on
-$N_\mathrm{monte} = 50$ independent realizations of the data,
-\begin{equation}
-  f_i^{(m)} \;\sim\; \mathcal{N}\!\bigl(f_i^\mathrm{obs},\,\sigma_i^2\bigr),
-  \qquad m = 1,\ldots,N_\mathrm{monte},
-\end{equation}
-with analogous draws for the photometry. The inverse variance of each
-fitted quantity $\theta$ is then
-\begin{equation}
-  \sigma_\theta^{-2}
-  \;=\; \bigl[\mathrm{Var}(\theta^{(1)},\ldots,\theta^{(N_\mathrm{monte})})\bigr]^{-1}.
-  \label{eq:mc_unc}
-\end{equation}
-The spectral realizations are drawn once and reused for both the
-continuum and emission-line fits.
-
-
-%% ============================================================
-\section{Emission-Line Model}
-\label{sec:emlines}
-%% ============================================================
-
-\subsection{Line List and Kinematic Groups}
-\label{ssec:linelist}
+\subsubsection{Line List and Kinematic Groups}
+\label{sssec:linelist}
 
 \begin{itemize}
   \item $>40$ lines from rest-frame UV through near-IR
@@ -462,8 +467,8 @@ continuum and emission-line fits.
 
 \clearpage
 
-\subsection{Forward Model}
-\label{ssec:emline_model}
+\subsubsection{Forward Model}
+\label{sssec:emline_model}
 
 \begin{itemize}
   \item Intrinsic profile: log-Gaussian in observed wavelength with
@@ -474,8 +479,8 @@ continuum and emission-line fits.
     $\sigma_\mathrm{eff} = \sqrt{\sigma^2 + \sigma_{G,\ell}^2}$,
     where $\sigma_{G,\ell} = \sigma_G/\lambda^*$ and
     $\sigma_G = 0.5$~\AA
-  \item Analytic Jacobian with respect to $(A,\,\Delta v,\,s)$ for
-    efficient nonlinear least-squares optimization
+  \item Analytic Jacobian with respect to $(A,\,\Delta v,\,s)$ derived
+    from the forward model; see Appendix~\ref{sec:appendix_jacobian}
   \item Removes 5--30\% flux bias in earlier bin-integration approach
     for lines narrower than $\sim$1 DESI pixel
 \end{itemize}
@@ -545,24 +550,12 @@ $\mathbf{d}^\mathrm{model} = \mathbf{W}\,\mathbf{F}$, summed over all
 $N$ emission lines falling within the observed spectral range. Physical
 constraints (shared $\Delta v$ and $s$ within kinematic groups; fixed
 doublet amplitude ratios) reduce the free-parameter count and improve
-reliability for blended or weak lines.
+reliability for blended or weak lines. The analytic Jacobian of $F_j$
+with respect to the free parameters $(A,\,\Delta v,\,s)$ is given in
+Appendix~\ref{sec:appendix_jacobian}.
 
-\paragraph{Analytic Jacobian.}
-The optimizer (\texttt{scipy.optimize.least\_squares}) uses closed-form
-derivatives of $F_j$ with respect to $(A,\,\Delta v,\,s)$:
-\begin{align}
-  \frac{\partial F_j}{\partial A}      &= \frac{F_j}{A}, \\[4pt]
-  \frac{\partial F_j}{\partial \Delta v} &=
-    \frac{F_j\,x_j}{\sigma_\mathrm{eff}^2\,c\,(1+z+\Delta v/c)}, \\[4pt]
-  \frac{\partial F_j}{\partial s}      &=
-    \frac{A}{\sigma_\mathrm{eff}\,c}\,
-    e^{-x_j^2/(2\sigma_\mathrm{eff}^2)}\,
-    \Bigl[1 - \sigma^2\bigl(1 - x_j^2/\sigma_\mathrm{eff}^2\bigr)
-    /\sigma_\mathrm{eff}^2\Bigr].
-\end{align}
-
-\subsection{Fitting Algorithm and Upper Limits}
-\label{ssec:emline_fitting}
+\subsubsection{Fitting and Upper Limits}
+\label{sssec:emline_fitting}
 
 \begin{itemize}
   \item Nonlinear least-squares on continuum-subtracted residuals via
@@ -595,8 +588,8 @@ or the resolution matrix.
 \caption{Write me.\label{fig:linefit}}
 \end{figure*}
 
-\subsection{Broad-Line AGN Model}
-\label{ssec:broadlines}
+\subsubsection{Broad-Line Decomposition}
+\label{sssec:broadlines}
 
 \begin{itemize}
   \item Additional broad kinematic component for permitted lines
@@ -625,15 +618,33 @@ $(\Delta v)_{\mathrm{broad}}$  & $\pm2500$~\kms \\
 \tablecomments{\todo{Expand.}}
 \end{deluxetable}
 
-\subsection{Computational Performance}
-\label{ssec:timings}
+\subsection{Parameter Uncertainties}
+\label{ssec:uncertainties}
 
 \begin{itemize}
-  \item Compute time per spectrum; Perlmutter hardware description
-  \item Hybrid parallelism: MPI across nodes + multiprocessing within
-    nodes
-  \item \todo{Benchmark numbers.}
+  \item Monte Carlo: $N_\mathrm{monte} = 50$ independent Gaussian
+    noise realizations of the spectra and photometry, drawn with a
+    fixed random seed (shared with the emission-line fitter)
+  \item Uncertainties reported for $\tauv$, $\vdisp$ (when fitted),
+    $D_n(4000)$, rest-frame luminosities, and observed-frame continuum
+    fluxes
 \end{itemize}
+
+Parameter uncertainties are estimated by repeating the continuum fit on
+$N_\mathrm{monte} = 50$ independent realizations of the data,
+\begin{equation}
+  f_i^{(m)} \;\sim\; \mathcal{N}\!\bigl(f_i^\mathrm{obs},\,\sigma_i^2\bigr),
+  \qquad m = 1,\ldots,N_\mathrm{monte},
+\end{equation}
+with analogous draws for the photometry. The inverse variance of each
+fitted quantity $\theta$ is then
+\begin{equation}
+  \sigma_\theta^{-2}
+  \;=\; \bigl[\mathrm{Var}(\theta^{(1)},\ldots,\theta^{(N_\mathrm{monte})})\bigr]^{-1}.
+  \label{eq:mc_unc}
+\end{equation}
+The spectral realizations are drawn once and reused for both the
+continuum and emission-line fits.
 
 
 %% ============================================================
@@ -719,6 +730,19 @@ $(\Delta v)_{\mathrm{broad}}$  & $\pm2500$~\kms \\
 
 % Compare with PROVABGS: https://data.desi.lbl.gov/desi/users/chahah/provabgs/edr/
 % Compare SFRs with GSWLC: https://salims.pages.iu.edu/gswlc/
+
+
+%% ============================================================
+\section{Computational Performance}
+\label{sec:performance}
+%% ============================================================
+
+\begin{itemize}
+  \item Compute time per spectrum; Perlmutter hardware description
+  \item Hybrid parallelism: MPI across nodes + multiprocessing within
+    nodes
+  \item \todo{Benchmark numbers.}
+\end{itemize}
 
 
 %% ============================================================
@@ -829,6 +853,77 @@ FFLAGS="-DMILES=0 -DC3K=1" python -m pip install fsps --no-binary fsps
 \end{verbatim}
 
 \todo{Highlight \fastphot{} mode and the \texttt{nophoto} option.}
+
+\section{Output Data Model}
+\label{sec:appendix_datamodel}
+
+The \fastspecfit{} output is stored in a compressed FITS file
+named \texttt{fastspec-\textit{SURVEY}-\textit{PROGRAM}-\textit{HEALPIX}.fits.gz},
+where \textit{SURVEY} (e.g., \texttt{main}), \textit{PROGRAM}
+(e.g., \texttt{bright} or \texttt{dark}), and \textit{HEALPIX} identify
+the observing program and sky region. Each file contains five
+extensions:
+\begin{itemize}
+  \item \texttt{HDU0} (\texttt{PRIMARY}): empty image with processing
+    metadata keywords, including the software version, Monte Carlo
+    random seed, and boolean fitting flags.
+  \item \texttt{HDU1} (\texttt{METADATA}): target metadata mirroring
+    the DESI redshift catalog, including sky coordinates, the input
+    redshift and zwarning bitmask, targeting bits, and extinction-corrected
+    Legacy Survey photometry.
+  \item \texttt{HDU2} (\texttt{SPECPHOT}): derived spectrophotometric
+    quantities, including SFH template coefficients, stellar-population
+    parameters ($\tau_V$, $\vdisp$, age, metallicity, $\logmstar$, SFR),
+    $D_n(4000)$, synthesized photometry, K-corrections, absolute
+    magnitudes, monochromatic luminosities, and continuum flux densities
+    at key emission-line centers.
+  \item \texttt{HDU3} (\texttt{FASTSPEC}): emission-line fitting results,
+    including per-camera median S/N and smooth continuum corrections,
+    aperture correction factors, doublet line ratios, and per-line
+    measurements (amplitude, flux, equivalent width, velocity shift,
+    line width, and upper limits) for all modeled emission lines.
+  \item \texttt{HDU4} (\texttt{MODELS}): 3D image array
+    [$N_\lambda \times 3 \times N_\mathrm{obj}$] with the best-fitting
+    model spectra on a common linear wavelength grid (3600--9824\,\AA,
+    $0.8$\,\AA\,pixel$^{-1}$, vacuum wavelengths). The three planes
+    store the full spectrophotometric model, the smooth continuum
+    correction alone, and the emission-line model alone, respectively.
+\end{itemize}
+
+Table~\ref{table:datamodel} describes the key output columns in the
+\texttt{SPECPHOT} and \texttt{FASTSPEC} extensions. All integrated
+line fluxes are in units of \flux, flux densities in \fluxdensity, and
+uncertainties are stored as inverse variances (a value of zero indicates
+the parameter was not measured or the uncertainty is undefined).
+A machine-readable description of the complete data model is maintained
+in the \fastspecfit{} online
+documentation.\footnote{\url{https://fastspecfit.readthedocs.io/en/latest/fastspec.html}}
+
+\input{tables/table-datamodel}
+
+\section{Emission-Line Forward Model: Analytic Jacobian and Numba Implementation}
+\label{sec:appendix_jacobian}
+
+The optimizer (\texttt{scipy.optimize.least\_squares}) uses closed-form
+derivatives of $F_j$ (equation~\ref{eq:model}) with respect to
+$(A,\,\Delta v,\,s)$:
+\begin{align}
+  \frac{\partial F_j}{\partial A}      &= \frac{F_j}{A}, \\[4pt]
+  \frac{\partial F_j}{\partial \Delta v} &=
+    \frac{F_j\,x_j}{\sigma_\mathrm{eff}^2\,c\,(1+z+\Delta v/c)}, \\[4pt]
+  \frac{\partial F_j}{\partial s}      &=
+    \frac{A}{\sigma_\mathrm{eff}\,c}\,
+    e^{-x_j^2/(2\sigma_\mathrm{eff}^2)}\,
+    \Bigl[1 - \sigma^2\bigl(1 - x_j^2/\sigma_\mathrm{eff}^2\bigr)
+    /\sigma_\mathrm{eff}^2\Bigr].
+\end{align}
+Supplying the analytic Jacobian eliminates finite-difference gradient
+evaluations and reduces the number of model calls per optimizer iteration
+from $O(N_\mathrm{param})$ to one.
+
+\begin{itemize}
+  \item \todo{Numba JIT-compilation details and benchmarks.}
+\end{itemize}
 
 \end{appendix}
 
