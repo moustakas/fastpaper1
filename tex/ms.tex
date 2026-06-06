@@ -180,9 +180,10 @@ for the next generation of weak-lensing surveys. The DR2 value-added catalog
 presented here extends this foundation to 37 million extragalactic targets.
 
 In this paper we describe the algorithms underlying \fastspecfit{} in
-detail, using a single illustrative case study to walk through the full
-fitting sequence (\S\ref{sec:modeling}), and we document the data
-model and physical quantities the code measures (\S\ref{sec:quantities}).
+detail (\S\ref{sec:modeling}), illustrate the complete fitting sequence
+applied end-to-end to a single representative BGS target
+(\S\ref{sec:casestudy}), and document the derived physical quantities
+the code measures (\S\ref{sec:quantities}).
 We validate these measurements using repeat spectroscopic observations and
 direct comparisons to other SED-fitting codes (\S\ref{sec:validation}),
 characterize the code's computational performance
@@ -259,18 +260,10 @@ the output columns \texttt{Z\_RR} and \texttt{ZWARN\_RR}. In total, corrected
 redshifts are applied to approximately 9,100 targets in the EDR, 74,000 in DR1,
 and 169,000 in DR2.
 
-Table~\ref{table:sample} summarizes the number of \fastspecfit{} targets in
-each data release, organized by survey and observing program. The EDR VAC
-(Fuji~v3.2) comprises approximately 1.4~million targets drawn entirely from the
-DESI commissioning and survey-validation campaigns. The DR1 VAC (Iron~v3.0) adds
-the first tranche of main-survey data and totals approximately 18~million
-targets. The DR2 VAC (Loa~v1.0), the primary subject of this paper, encompasses
-the complete five-year main survey and totals approximately 38~million targets;
-the main survey alone---split between roughly 13~million BGS targets observed
-under bright conditions and 23~million LRG, ELG, and QSO targets observed under
-dark conditions---contributes 36.5~million of these.
-
-\input{tables/table-sample}
+The numbers of targets satisfying these criteria in each DESI data release,
+organized by survey and observing program, are summarized in
+Table~\ref{table:sample}; we describe the structure and content of the
+resulting value-added catalogs in \S\ref{sec:vac}.
 
 
 %% ============================================================
@@ -278,60 +271,17 @@ dark conditions---contributes 36.5~million of these.
 \label{sec:modeling}
 %% ============================================================
 
-Although no single example can illustrate the full range of fitting
-circumstances that \fastspecfit{} is designed to deal with, we have
-opted to present the code's core algorithms using a single case-study
-example. 
+We begin by describing the two primary model inputs on which the fitting
+pipeline depends: the stellar population synthesis template library
+(\S\ref{ssec:templates}) and the emission-line list (\S\ref{ssec:emlinelist}).
+We then describe the three sequential algorithmic stages of the \fastspec{}
+fit in turn: fast fitting in patches (\S\ref{ssec:patches}), stellar continuum
+modeling (\S\ref{ssec:continuum}), and emission-line modeling
+(\S\ref{ssec:emlines}). A concrete, end-to-end illustration of the complete
+sequence applied to a representative BGS target is given in \S\ref{sec:casestudy}.
 
-the example we have chosen highlights many of the algorithmic elements
-encountered when fitting low-redshift galaxies. The following
-subsections walk through the complete \fastspec{} fitting
-sequence---spectral masking, stellar continuum modeling, and
-emission-line modeling---using a single BGS example to illustrate each
-stage.
-
-In Figure~\ref{fig:example1} we.
-
-\begin{figure*}
-\includegraphics[width=6.5in]{figures/fastspec-example-39633405565996021.png}
-\caption{Write me.\label{fig:example1}}
-\end{figure*}
-
-
-\subsection{Case Study: A Low-Redshift BGS Nucleus}
-\label{ssec:casestudy}
-
-\begin{itemize}
-  \item Object: low-redshift BGS galaxy observed with the fiber centered
-    on the nucleus; high signal-to-noise stellar continuum; well-detected
-    broad Balmer emission indicative of an AGN; good optical and
-    mid-infrared photometry
-  \item Multi-panel figure: Legacy Survey $grz$ color image with fiber
-    overlay; full DESI spectrum (B, R, Z cameras); broadband SED with
-    model photometry
-  \item Each subsequent subsection returns to this object to show the
-    output of that algorithmic step
-\end{itemize}
-
-\subsection{Spectral Masking}
-\label{ssec:masking}
-
-\begin{itemize}
-  \item Emission-line windows masked prior to the stellar continuum fit,
-    based on the line list described in \S\ref{sssec:linelist}; each
-    window extends $\pm N\,\sigma_\mathrm{line}$ in velocity space around
-    the expected observed-frame wavelength
-  \item Additional masking of known sky-line residuals and pixels with
-    zero inverse variance
-  \item Show masked spectrum for the case-study object, illustrating the
-    fraction of spectral pixels available for continuum fitting
-\end{itemize}
-
-\subsection{Stellar Continuum Model}
-\label{ssec:continuum}
-
-\subsubsection{SPS Template Library}
-\label{sssec:templates}
+\subsection{SPS Template Library}
+\label{ssec:templates}
 
 \begin{itemize}
   \item FSPS\footnote{\url{https://github.com/cconroy20/fsps}}
@@ -370,6 +320,35 @@ coarse age grid \citep{leja19a}.
 \end{figure*}
 
 \input{tables/table-templates}
+
+\subsection{Emission-Line List}
+\label{ssec:emlinelist}
+
+\begin{itemize}
+  \item $>40$ lines from rest-frame UV through near-IR
+    (Table~\ref{table:emlines})
+\end{itemize}
+
+\input{tables/table-emlines}
+
+\clearpage
+
+\subsection{Fast Fitting in Patches}
+\label{ssec:patches}
+
+\begin{itemize}
+  \item Emission-line windows masked prior to the stellar continuum fit,
+    based on the line list described in \S\ref{ssec:emlinelist}; each
+    window extends $\pm N\,\sigma_\mathrm{line}$ in velocity space around
+    the expected observed-frame wavelength
+  \item Additional masking of known sky-line residuals and pixels with
+    zero inverse variance
+  \item Show masked spectrum for the case-study object, illustrating the
+    fraction of spectral pixels available for continuum fitting
+\end{itemize}
+
+\subsection{Stellar Continuum Model}
+\label{ssec:continuum}
 
 \subsubsection{Dust Attenuation and Emission}
 \label{sssec:dust}
@@ -561,22 +540,16 @@ spectra with an accurate continuum.
 \subsection{Emission-Line Model}
 \label{ssec:emlines}
 
-\subsubsection{Line List and Kinematic Groups}
-\label{sssec:linelist}
+\subsubsection{Kinematic Groups}
+\label{sssec:kinematic}
 
 \begin{itemize}
-  \item $>40$ lines from rest-frame UV through near-IR
-    (Table~\ref{table:emlines})
   \item Lines tied in kinematic groups (shared $v_\mathrm{shift}$,
     $\sigma$) with flexible amplitude ratios; separate broad-line group
     for AGN
   % [NII] doublet ratio: https://ui.adsabs.harvard.edu/abs/2023AdSpR..71.1219D
   % [OIII] doublet ratio: https://ui.adsabs.harvard.edu/abs/2007AIPC..895..313D
 \end{itemize}
-
-\input{tables/table-emlines}
-
-\clearpage
 
 \subsubsection{Forward Model}
 \label{sssec:emline_model}
@@ -769,6 +742,29 @@ quantities; they differ only in the data that enter the fit and in
 whether the stellar velocity dispersion is a free parameter.
 
 %% ============================================================
+\section{Case Study: A Low-Redshift BGS Nucleus}
+\label{sec:casestudy}
+%% ============================================================
+
+\begin{figure*}
+\includegraphics[width=6.5in]{figures/fastspec-example-39633405565996021.png}
+\caption{Write me.\label{fig:example1}}
+\end{figure*}
+
+\begin{itemize}
+  \item Object: low-redshift BGS galaxy observed with the fiber centered
+    on the nucleus; high signal-to-noise stellar continuum; well-detected
+    broad Balmer emission indicative of an AGN; good optical and
+    mid-infrared photometry
+  \item Multi-panel figure: Legacy Survey $grz$ color image with fiber
+    overlay; full DESI spectrum (B, R, Z cameras); broadband SED with
+    model photometry
+  \item Walk through the output of each algorithmic step in \S\ref{sec:modeling}
+    applied to this object
+\end{itemize}
+
+
+%% ============================================================
 \section{Derived Physical Properties}
 \label{sec:quantities}
 %% ============================================================
@@ -874,21 +870,76 @@ whether the stellar velocity dispersion is a free parameter.
 \subsection{Catalog Description and Data Format}
 \label{ssec:format}
 
-\begin{itemize}
-  \item Healpix-based file organization; merged catalogs by survey/program
-  \item FITS extensions: \texttt{FASTSPEC}/\texttt{FASTPHOT},
-    \texttt{METADATA}, \texttt{MODELS}
-  \item Public access via \url{https://data.desi.lbl.gov}
-\end{itemize}
+We run \fastspecfit{} on the HEALPix-coadded DESI spectra and organize the
+output catalogs identically to how the underlying spectra, redshift catalogs,
+and other data products are organized within DESI data releases. Each VAC
+contains two types of output: individual per-HEALPix files and merged catalogs.
+
+The per-HEALPix files are located, relative to the top-level VAC directory
+\texttt{VACDIR}, at
+
+\medskip
+\noindent\texttt{VACDIR/healpix/SURVEY/PROGRAM/HPIXGROUP/HEALPIX/}\\
+\texttt{\quad \{fastspec,fastphot\}-SURVEY-PROGRAM-HEALPIX.fits\{.gz\}}
+\medskip
+
+\noindent where \texttt{SURVEY}, \texttt{PROGRAM}, \texttt{HPIXGROUP}, and
+\texttt{HEALPIX} follow the same conventions as the DESI data products. The
+\texttt{fastspec} HEALPix catalogs are gzip-compressed because they include a
+\texttt{MODELS} extension containing the best-fitting model spectra (see
+\S\ref{sec:appendix_datamodel}); the \texttt{fastphot} catalogs are not
+compressed because no \texttt{MODELS} extension is produced.
+
+Most users will find it more convenient to work with the merged catalogs, which
+combine all per-HEALPix files for a given \texttt{SURVEY} and \texttt{PROGRAM}
+into a single file:
+
+\medskip
+\noindent\texttt{VACDIR/catalogs/\{fastspec,fastphot\}-SURVEY-PROGRAM.fits}
+\medskip
+
+\noindent The merged \texttt{fastspec} catalogs omit the \texttt{MODELS}
+extension to keep individual file sizes manageable. For large survey-program
+combinations---specifically \texttt{main-bright} and \texttt{main-dark}---the
+merged catalogs are further subdivided by \texttt{nside}~=~1 HEALPixel into
+12 files following the naming pattern
+\texttt{\{fastspec,fastphot\}-SURVEY-PROGRAM-nside1-hpNN.fits}, where
+\texttt{NN} runs from \texttt{00} to \texttt{11}. The complete output data
+model for each FITS extension is described in \S\ref{sec:appendix_datamodel},
+and all catalogs are publicly accessible via
+\url{https://data.desi.lbl.gov}.
 
 \subsection{DR2 Catalog}
 \label{ssec:dr2}
 
-\begin{itemize}
-  \item Software version, Python/dependency versions used
-  \item Number of targets by survey/program
-  \item Known caveats and limitations
-\end{itemize}
+The DR2 value-added catalog (Loa~v1.0) was produced using \fastspecfit{}
+version~3.1.4 with the \texttt{ftemplates-chabrier-2.0.0.fits} SPS template
+library (\S\ref{sec:appendix_sps}) and \texttt{desitarget}~v2.8.0 for target
+selection and masking, running on the NERSC Perlmutter supercomputer.
+Table~\ref{table:sample} summarizes the number of targets in the DR2 catalog
+alongside the companion EDR and DR1 catalogs, organized by survey and observing
+program. The EDR VAC (Fuji~v3.2, \fastspecfit{}~v2.5.0) comprises approximately
+1.4~million targets drawn entirely from the DESI commissioning and
+survey-validation campaigns and was publicly released in January~2024. The DR1
+VAC (Iron~v3.0, \fastspecfit{}~v3.1.5) adds the first tranche of main-survey
+data and totals approximately 18~million targets; it was publicly released in
+June~2025. The DR2 VAC encompasses the complete five-year main survey and totals
+approximately 38~million targets, of which the main survey---split between
+roughly 13~million BGS targets observed under bright conditions and 23~million
+LRG, ELG, and QSO targets observed under dark conditions---contributes
+36.5~million. We describe the EDR and DR1 catalogs in more detail, including
+key differences in template versions and algorithmic choices relative to DR2, in
+\S\ref{sec:appendix_vacs}.
+
+Two known issues affect the DR2 catalog. First, there are significant errors in
+the inverse-variance estimates for emission-line fluxes and equivalent widths;
+users requiring precise flux uncertainties should apply appropriate caution and
+consult the online documentation for the latest status of corrections. Second, a
+small fraction of spectra with strong emission lines suffer poor line fits due to
+a clipping error in the internal flux uncertainty routine. Both issues are fixed
+in \fastspecfit{}~v3.2.0, and updated catalogs will be released in due course.
+
+\input{tables/table-sample}
 
 
 %% ============================================================
