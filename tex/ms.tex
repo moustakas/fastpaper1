@@ -235,13 +235,42 @@ an outlook toward future improvements (\S\ref{sec:summary}).
 \subsection{Sample Selection}
 \label{ssec:sample}
 
-\begin{itemize}
-  \item All extragalactic targets with $z > 0.001$, non-sky, no
-    catastrophic data quality flags
-  \item QSO redshift corrections via QuasarNet
-  \item Summary table: number of targets by survey/program for DR2
-    (cf.\ EDR $\sim$1.4M, DR1 $\sim$18M)
-\end{itemize}
+We model all extragalactic DESI targets that satisfy three selection criteria: a
+spectroscopic redshift $z > 10^{-3}$, a non-sky target class
+(\texttt{OBJTYPE}~=~\texttt{TGT}), and a valid spectrum
+(\texttt{ZWARN}~\&~\texttt{NODATA}~=~0, where the \texttt{NODATA} bit flags
+spectra in which all extracted inverse-variance values are zero). No cuts are
+imposed on targeting bits or other redshift-warning bits, ensuring that
+\fastspecfit{} results are available for the widest possible range of objects
+across every DESI target class.
+
+For a small but astrophysically important fraction of quasar targets, the
+\texttt{Redrock} spectral classification pipeline assigns an incorrect redshift.
+We correct these using the \texttt{QuasarNet} and MgII afterburner catalogs
+distributed alongside each \texttt{Redrock} output file. For primary QSO
+targets, we replace the \texttt{Redrock} redshift when two conditions are met:
+\texttt{QuasarNet} independently classifies the object as a QSO, and the maximum
+line confidence across six diagnostic transitions (Ly$\alpha$, C\,\textsc{iv},
+C\,\textsc{iii}], Mg\,\textsc{ii}, \hb, and \ha) exceeds 0.99 for DR2 (0.95 for
+DR1 and the EDR). A broader criterion is applied to variable WISE QSO secondary
+targets; full details are documented in the online VAC documentation. The
+original \texttt{Redrock} redshift and \texttt{ZWARN} bitmask are preserved in
+the output columns \texttt{Z\_RR} and \texttt{ZWARN\_RR}. In total, corrected
+redshifts are applied to approximately 9,100 targets in the EDR, 74,000 in DR1,
+and 169,000 in DR2.
+
+Table~\ref{table:sample} summarizes the number of \fastspecfit{} targets in
+each data release, organized by survey and observing program. The EDR VAC
+(Fuji~v3.2) comprises approximately 1.4~million targets drawn entirely from the
+DESI commissioning and survey-validation campaigns. The DR1 VAC (Iron~v3.0) adds
+the first tranche of main-survey data and totals approximately 18~million
+targets. The DR2 VAC (Loa~v1.0), the primary subject of this paper, encompasses
+the complete five-year main survey and totals approximately 38~million targets;
+the main survey alone---split between roughly 13~million BGS targets observed
+under bright conditions and 23~million LRG, ELG, and QSO targets observed under
+dark conditions---contributes 36.5~million of these.
+
+\input{tables/table-sample}
 
 
 %% ============================================================

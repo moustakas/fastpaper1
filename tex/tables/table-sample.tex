@@ -1,0 +1,56 @@
+\begin{deluxetable*}{llrrr}
+\tablecaption{Summary of the \fastspecfit{} Value-Added Catalogs\label{table:sample}}
+\tablewidth{0pt}
+\tablehead{
+  \colhead{Survey} &
+  \colhead{Program} &
+  \colhead{EDR\tablenotemark{a}} &
+  \colhead{DR1\tablenotemark{b}} &
+  \colhead{DR2\tablenotemark{c}}
+}
+\startdata
+CMX         & other  &     2,771 &      2,762 &      2,765 \\
+\cutinhead{Survey Validation (SV1)}
+            & backup &     3,683 &      3,331 &      1,145 \\
+            & bright &   126,678 &    126,650 &    126,658 \\
+            & dark   &   235,942 &    233,202 &    235,821 \\
+            & other  &    34,152 &     34,112 &     34,004 \\
+SV1         & total  &   400,455 &    397,295 &    397,628 \\
+\cutinhead{Survey Validation (SV2)}
+            & backup &       107 &        105 &        107 \\
+            & bright &    46,510 &     46,486 &     46,491 \\
+            & dark   &    52,781 &     52,690 &     52,693 \\
+SV2         & total  &    99,398 &     99,281 &     99,291 \\
+\cutinhead{Survey Validation (SV3)}
+            & backup &     1,564 &      1,524 &      1,573 \\
+            & bright &   265,325 &    265,293 &    265,307 \\
+            & dark   &   592,441 &    592,191 &    592,128 \\
+SV3         & total  &   859,330 &    859,008 &    859,008 \\
+\cutinhead{Special Programs}
+            & backup &   \nodata &        552 &        512 \\
+            & bright &   \nodata &     43,261 &    105,172 \\
+            & dark   &    35,649 &     14,954 &    261,706 \\
+            & other  &   \nodata &     42,064 &    \nodata \\
+Special     & total  &    35,649 &    100,831 &    367,390 \\
+\cutinhead{Main Survey}
+            & backup &   \nodata &     15,163 &     60,372 \\
+            & bright &   \nodata &  6,445,927 & 13,185,499 \\
+            & dark   &   \nodata & 10,075,629 & 23,273,230 \\
+Main        & total  &   \nodata & 16,536,719 & 36,519,101 \\
+\tableline
+\multicolumn{2}{l}{Grand Total} & 1,397,603 & 17,995,896 & 38,245,183 \\
+\enddata
+\tablenotetext{a}{Fuji v3.2; released 2024 January.}
+\tablenotetext{b}{Iron v3.0; released 2025 June.}
+\tablenotetext{c}{Loa v1.0; to be released 2027.}
+\tablecomments{Target counts in each \fastspecfit{} \texttt{fastspec} VAC, organized
+  by DESI survey and observing program. The survey identifies the observing campaign:
+  CMX = commissioning; SV1/SV2/SV3 = survey validation (SV3 is the ``one-percent
+  survey''); Special = special programs targeting specific science cases; Main =
+  five-year main survey. The program identifies the observing conditions: bright =
+  Bright Galaxy Survey (BGS) targets; dark = LRG, ELG, and QSO targets observed
+  under dark skies; backup = filler targets observed in poor conditions. A $\cdots$
+  entry indicates that a given survey--program combination was not present in that
+  data release. The ``total'' row for each survey and the grand total include only
+  the programs shown.}
+\end{deluxetable*}
