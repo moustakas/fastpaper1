@@ -1,0 +1,112 @@
+\startlongtable
+\begin{deluxetable*}{lll}
+\tablecaption{FastSpecFit Output Data Model\label{table:datamodel}}
+\tablewidth{0pt}
+\tabletypesize{\scriptsize}
+\tablehead{
+  \colhead{Column} &
+  \colhead{Units} &
+  \colhead{Description}
+}
+\startdata
+%% ------------------------------------------------------------------
+\multicolumn{3}{c}{\textbf{METADATA Extension (HDU1)}} \\
+%% ------------------------------------------------------------------
+\texttt{TARGETID}                      & \nodata              & Unique DESI target identifier. \\
+\texttt{RA}, \texttt{DEC}              & deg                  & Right ascension and declination. \\
+\texttt{Z}                             & \nodata              & Redshift (Redrock, or QuasarNet for QSO targets). \\
+\texttt{ZWARN}                         & \nodata              & Redrock zwarning bitmask. \\
+\texttt{SPECTYPE}                      & \nodata              & Redrock spectral classification (\texttt{GALAXY}, \texttt{QSO}, \texttt{STAR}). \\
+\texttt{FLUX\_[G/R/Z/W1/W2/W3/W4]}    & nMgy                 & Total photometric flux in each band, corrected for Galactic extinction. \\
+\texttt{FLUX\_IVAR\_[G/R/Z/W1--W4]}   & nMgy$^{-2}$          & Inverse variance of \texttt{FLUX\_*}. \\
+\texttt{FIBERFLUX\_[G/R/Z]}            & nMgy                 & Fiber flux corrected for Galactic extinction. \\
+\texttt{EBV}                           & mag                  & Milky Way foreground $E(B-V)$ color excess. \\
+\texttt{MW\_TRANSMISSION\_[G--W4]}     & \nodata              & Milky Way dust transmission factor $[0,1]$ per band. \\
+%% ------------------------------------------------------------------
+\multicolumn{3}{c}{\textbf{SPECPHOT Extension (HDU2)}} \\
+%% ------------------------------------------------------------------
+\multicolumn{3}{l}{\textit{Fit quality}} \\
+\texttt{RCHI2}                         & \nodata              & Reduced $\chi^2$ of the full spectrophotometric fit. \\
+\texttt{RCHI2\_CONT}                   & \nodata              & Reduced $\chi^2$ of the stellar continuum fit. \\
+\texttt{RCHI2\_LINE}                   & \nodata              & Reduced $\chi^2$ of the emission-line fit. \\
+\texttt{RCHI2\_PHOT}                   & \nodata              & Reduced $\chi^2$ of the photometric fit. \\
+\multicolumn{3}{l}{\textit{Stellar continuum parameters}} \\
+\texttt{COEFF[5]}                      & $\mathcal{F}_0\,M_\odot^{-1}$\tablenotemark{a} & Non-negative SFH template coefficients for the five lookback-time bins. \\
+\texttt{VDISP} / \texttt{VDISP\_IVAR} & \kms                 & Stellar velocity dispersion and its inverse variance. \\
+\texttt{TAUV} / \texttt{TAUV\_IVAR}   & \nodata              & $V$-band dust optical depth ($\tau_V$) and its inverse variance. \\
+\texttt{AGE} / \texttt{AGE\_IVAR}     & Gyr                  & Light-weighted stellar age and its inverse variance. \\
+\texttt{ZZSUN} / \texttt{ZZSUN\_IVAR} & \nodata              & Logarithmic stellar metallicity relative to solar and its inverse variance. \\
+\texttt{LOGMSTAR} / \texttt{LOGMSTAR\_IVAR} & $\log(M_\odot)$ & Stellar mass ($h=1$, Chabrier IMF; eq.~\ref{eq:zfactor}) and its inverse variance. \\
+\texttt{SFR} / \texttt{SFR\_IVAR}     & $M_\odot$\,yr$^{-1}$ & Instantaneous SFR (from youngest SFH bin) and its inverse variance. \\
+\multicolumn{3}{l}{\textit{Spectral indices}} \\
+\texttt{DN4000} / \texttt{DN4000\_IVAR}  & \nodata            & $D_n(4000)$ \citep{balogh99a} from the emission-line subtracted spectrum and its inverse variance. \\
+\texttt{DN4000\_OBS}                   & \nodata              & $D_n(4000)$ measured from the observed spectrum (without emission-line subtraction). \\
+\texttt{DN4000\_MODEL} / \texttt{DN4000\_MODEL\_IVAR} & \nodata & $D_n(4000)$ from the best-fitting continuum model and its inverse variance. \\
+\multicolumn{3}{l}{\textit{Synthesized photometry}} \\
+\texttt{FLUX\_SYNTH\_[G/R/Z]}          & nMgy                 & $g$-, $r$-, $z$-band flux synthesized from the observed spectrum. \\
+\texttt{FLUX\_SYNTH\_SPECMODEL\_[G/R/Z]}  & nMgy             & $g$-, $r$-, $z$-band flux synthesized from the best-fitting spectroscopic model. \\
+\texttt{FLUX\_SYNTH\_PHOTMODEL\_[G/R/Z/W1--W4]} & nMgy       & $grz$+W1--W4 flux synthesized from the best-fitting photometric model. \\
+\multicolumn{3}{l}{\textit{Absolute magnitudes and K-corrections}\tablenotemark{b}} \\
+\texttt{ABSMAG10\_DECAM\_[G/R/Z]}      & mag                  & DECam $g$-, $r$-, $z$-band absolute magnitude band-shifted to $z=1.0$. \\
+\texttt{ABSMAG00\_[U/B/V]}             & mag                  & Johnson/Cousins $U$-, $B$-, $V$-band absolute magnitude band-shifted to $z=0$. \\
+\texttt{ABSMAG00\_TWOMASS\_J}          & mag                  & 2MASS $J$-band absolute magnitude band-shifted to $z=0$. \\
+\texttt{ABSMAG01\_SDSS\_[U/G/R/I/Z]}   & mag                  & SDSS $ugriz$ absolute magnitude band-shifted to $z=0.1$. \\
+\texttt{ABSMAG01\_W1}                  & mag                  & WISE $W1$ absolute magnitude band-shifted to $z=0.1$. \\
+\texttt{ABSMAG*\_IVAR}                 & mag$^{-2}$           & Inverse variance of the corresponding absolute magnitude. \\
+\texttt{ABSMAG*\_SYNTH}                & mag                  & Synthesized absolute magnitude from the best-fitting SED model. \\
+\texttt{KCORR10\_DECAM\_[G/R/Z]}       & mag                  & K-correction for DECam $grz$ absolute magnitudes at $z=1.0$. \\
+\texttt{KCORR00\_[U/B/V]}              & mag                  & K-correction for Johnson/Cousins $UBV$ at $z=0$. \\
+\texttt{KCORR01\_SDSS\_[U/G/R/I/Z]}    & mag                  & K-correction for SDSS $ugriz$ at $z=0.1$. \\
+\texttt{KCORR01\_W1}                   & mag                  & K-correction for WISE $W1$ at $z=0.1$. \\
+\multicolumn{3}{l}{\textit{Monochromatic luminosities}} \\
+\texttt{LOGLNU\_1500} / \texttt{LOGLNU\_1500\_IVAR} & $10^{-28}$\,erg\,s$^{-1}$\,Hz$^{-1}$ & Monochromatic luminosity at rest-frame 1500\,\AA\ and its inverse variance. \\
+\texttt{LOGLNU\_2800} / \texttt{LOGLNU\_2800\_IVAR} & $10^{-28}$\,erg\,s$^{-1}$\,Hz$^{-1}$ & Monochromatic luminosity at rest-frame 2800\,\AA\ and its inverse variance. \\
+\texttt{LOGL\_[1450/1700/3000/5100]}   & $10^{10}\,L_\odot$   & Integrated luminosity at 1450, 1700, 3000, and 5100\,\AA\ in the rest-frame. \\
+\texttt{LOGL\_[1450/1700/3000/5100]\_IVAR} & $10^{-20}\,L_\odot^{-2}$ & Inverse variance of the corresponding integrated luminosity. \\
+\multicolumn{3}{l}{\textit{Continuum flux densities at key emission-line centers}} \\
+\texttt{FLYA\_1215\_CONT} / \texttt{..\_IVAR} & \fluxdensity & Continuum flux density at Ly$\alpha$\,$\lambda$1215.67 and its inverse variance. \\
+\texttt{FOII\_3727\_CONT} / \texttt{..\_IVAR} & \fluxdensity & Continuum flux density at {[\ion{O}{2}]}\,$\lambda$3728 and its inverse variance. \\
+\texttt{FHBETA\_CONT} / \texttt{..\_IVAR}     & \fluxdensity & Continuum flux density at H$\beta$\,$\lambda$4862 and its inverse variance. \\
+\texttt{FOIII\_5007\_CONT} / \texttt{..\_IVAR} & \fluxdensity & Continuum flux density at {[\ion{O}{3}]}\,$\lambda$5007 and its inverse variance. \\
+\texttt{FHALPHA\_CONT} / \texttt{..\_IVAR}    & \fluxdensity & Continuum flux density at H$\alpha$\,$\lambda$6564 and its inverse variance. \\
+%% ------------------------------------------------------------------
+\multicolumn{3}{c}{\textbf{FASTSPEC Extension (HDU3)}} \\
+%% ------------------------------------------------------------------
+\multicolumn{3}{l}{\textit{Spectral diagnostics}} \\
+\texttt{SNR\_[B/R/Z]}                  & \nodata              & Median signal-to-noise ratio per pixel in the $B$, $R$, $Z$ cameras. \\
+\texttt{SMOOTHCORR\_[B/R/Z]}           & \%                   & Median smooth continuum correction relative to data in each camera (\S\ref{ssec:smooth}). \\
+\texttt{APERCORR}                      & \nodata              & Median aperture correction factor (\S\ref{ssec:fitting}). \\
+\texttt{APERCORR\_[G/R/Z]}             & \nodata              & Per-band aperture correction factor. \\
+\multicolumn{3}{l}{\textit{Broad-line model selection}} \\
+\texttt{DELTA\_LINECHI2}               & \nodata              & $\Delta\chi^2$ between narrow-only and narrow+broad emission-line models. \\
+\texttt{DELTA\_LINENDOF}               & \nodata              & Corresponding difference in degrees of freedom. \\
+\multicolumn{3}{l}{\textit{Doublet line ratios}} \\
+\texttt{MGII\_DOUBLET\_RATIO} / \texttt{..\_IVAR}   & \nodata & \ion{Mg}{2} 2796/2803 flux ratio and its inverse variance. \\
+\texttt{OII\_DOUBLET\_RATIO} / \texttt{..\_IVAR}    & \nodata & {[\ion{O}{2}]} 3726/3729 flux ratio and its inverse variance. \\
+\texttt{OIII\_DOUBLET\_RATIO} / \texttt{..\_IVAR}   & \nodata & {[\ion{O}{3}]} 5007/4959 flux ratio and its inverse variance. \\
+\texttt{SII\_DOUBLET\_RATIO} / \texttt{..\_IVAR}    & \nodata & {[\ion{S}{2}]} 6731/6716 flux ratio and its inverse variance. \\
+\texttt{NII\_DOUBLET\_RATIO} / \texttt{..\_IVAR}    & \nodata & {[\ion{N}{2}]} 6584/6548 flux ratio and its inverse variance. \\
+\texttt{OIIRED\_DOUBLET\_RATIO} / \texttt{..\_IVAR} & \nodata & {[\ion{O}{2}]} 7320/7330 flux ratio and its inverse variance. \\
+\multicolumn{3}{l}{\textit{Emission-line measurements (\texttt{LINENAME}\tablenotemark{c})}} \\
+\texttt{LINENAME\_MODELAMP}            & \fluxdensity         & Model line amplitude before convolution with the resolution matrix (eq.~\ref{eq:intrinsic}). \\
+\texttt{LINENAME\_AMP} / \texttt{..\_IVAR} & \fluxdensity    & Observed emission-line amplitude and its inverse variance. \\
+\texttt{LINENAME\_FLUX} / \texttt{..\_IVAR} & \flux          & Gaussian-integrated emission-line flux (eq.~\ref{eq:flux_phys}) and its inverse variance. \\
+\texttt{LINENAME\_BOXFLUX} / \texttt{..\_IVAR} & \flux       & Boxcar-integrated emission-line flux and its inverse variance. \\
+\texttt{LINENAME\_VSHIFT} / \texttt{..\_IVAR} & \kms         & Velocity shift relative to \texttt{Z} (eq.~\ref{eq:lstar}) and its inverse variance. \\
+\texttt{LINENAME\_SIGMA} / \texttt{..\_IVAR}  & \kms         & Intrinsic Gaussian line width before resolution convolution and its inverse variance. \\
+\texttt{LINENAME\_CONT} / \texttt{..\_IVAR}   & \fluxdensity & Continuum flux density at the line center and its inverse variance. \\
+\texttt{LINENAME\_EW} / \texttt{..\_IVAR}     & \AA          & Rest-frame equivalent width and its inverse variance. \\
+\texttt{LINENAME\_FLUX\_LIMIT}         & erg\,s$^{-1}$\,cm$^{-2}$ & $1\sigma$ upper limit on the emission-line flux. \\
+\texttt{LINENAME\_CHI2}                & \nodata              & Chi-squared of the line fit. \\
+\texttt{LINENAME\_NPIX}                & \nodata              & Number of pixels attributed to the emission line. \\
+\multicolumn{3}{l}{\textit{Non-parametric line moments (\texttt{LINENAME2}\tablenotemark{d})}} \\
+\texttt{LINENAME2\_MOMENT1} / \texttt{..\_IVAR} & \AA        & First moment (centroid) within $\pm5\sigma$ of the line center and its inverse variance. \\
+\texttt{LINENAME2\_MOMENT2} / \texttt{..\_IVAR} & \AA$^2$   & Second moment (variance) relative to \texttt{MOMENT1} and its inverse variance. \\
+\texttt{LINENAME2\_MOMENT3} / \texttt{..\_IVAR} & \AA$^3$   & Third moment (skewness) relative to \texttt{MOMENT1} and its inverse variance. \\
+\enddata
+\tablecomments{The \texttt{MODELS} extension (HDU4) contains a 3D image array [$N_\lambda \times 3 \times N_\mathrm{obj}$] with the best-fitting model spectra on a common linear wavelength grid (3600--9824\,\AA, $0.8$\,\AA\,pixel$^{-1}$). The three planes store the full spectrophotometric model, the smooth continuum correction alone, and the emission-line model alone, respectively. Fluxes are in units of $10^{-17}$\,erg\,s$^{-1}$\,cm$^{-2}$\,\AA$^{-1}$. Uncertainties for all parameters are stored as inverse variances; a value of zero indicates the parameter was not measured.}
+\tablenotetext{a}{$\mathcal{F}_0 = 10^{-17}$\,erg\,s$^{-1}$\,cm$^{-2}$\,\AA$^{-1}$. Template coefficients have units of $\mathcal{F}_0\,M_\odot^{-1}$, so multiplying by the template normalization mass $\mathcal{M}_0 = 10^{10}\,M_\odot$ gives $\mathcal{F}_0$, consistent with the stellar mass in eq.~(\ref{eq:zfactor}).}
+\tablenotetext{b}{Absolute magnitudes are derived from the observed-frame bandpass nearest in wavelength to the desired rest-frame band, provided $\mathrm{S/N} > 2$. If no photometry satisfies this criterion, the magnitude is synthesized from the best-fitting model and its inverse variance is set to zero.}
+\tablenotetext{c}{\texttt{LINENAME} represents each of the \todo{N} emission lines modeled by \fastspecfit{}, including broad Balmer components; see Table~\ref{table:emlines}.}
+\tablenotetext{d}{\texttt{LINENAME2} represents the subset of four lines for which non-parametric moments are computed: \ion{C}{4}\,$\lambda$1549, \ion{Mg}{2}\,$\lambda$2800, H$\beta$, and {[\ion{O}{3}]}\,$\lambda$5007.}
+\end{deluxetable*}

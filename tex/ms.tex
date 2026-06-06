@@ -106,7 +106,7 @@ comprising \todo{N} million extragalactic targets.
 
 \begin{itemize}
   \item DESI overview: instrument, survey goals, unprecedented spectroscopic
-    volume \citep{desi-collaboration23a}
+    volume \citep{desi-collaboration26a}
   \item Scientific value of spectra beyond redshifts: continuum, emission
     lines, physical properties
   \item Brief landscape of existing spectral fitting codes and their
@@ -120,11 +120,11 @@ comprising \todo{N} million extragalactic targets.
 
 
 %% ============================================================
-\section{Data}
+\section{Spectroscopic and Photometric Data}
 \label{sec:data}
 %% ============================================================
 
-\subsection{DESI Spectra}
+\subsection{DESI Spectroscopy}
 \label{ssec:spectra}
 
 \begin{itemize}
@@ -142,21 +142,21 @@ comprising \todo{N} million extragalactic targets.
 
 \begin{itemize}
   \item Legacy Survey DR9/DR10: $grz$ optical + WISE $W1$--$W4$ mid-IR
-  \item \texttt{PHOTSYS} (N/S) handling and filter curves
+  \item \texttt{PHOTSYS} (N/S) handling and filter curves; speclite.
   \item Fiber photometry vs.\ total photometry; aperture correction
-    motivation
+    motivation (point to relevant future section).
 \end{itemize}
 
-Special handling of \texttt{PHOTSYS} is required because it may not match
-the value in the DESI catalogs for secondary and tertiary targets. First,
-if \texttt{PHOTSYS} is neither \texttt{N} nor \texttt{S} and
-\texttt{RELEASE} is defined, we use the \texttt{desitarget} release
-dictionary to determine \texttt{PHOTSYS}; otherwise we use a declination
-cut. Either way, all photometry is ultimately assigned \texttt{PHOTSYS}
-$=$ \texttt{N} or \texttt{S}, which uniquely associates the photometry
-with the appropriate filter curves.
+%Special handling of \texttt{PHOTSYS} is required because it may not match
+%the value in the DESI catalogs for secondary and tertiary targets. First,
+%if \texttt{PHOTSYS} is neither \texttt{N} nor \texttt{S} and
+%\texttt{RELEASE} is defined, we use the \texttt{desitarget} release
+%dictionary to determine \texttt{PHOTSYS}; otherwise we use a declination
+%cut. Either way, all photometry is ultimately assigned \texttt{PHOTSYS}
+%$=$ \texttt{N} or \texttt{S}, which uniquely associates the photometry
+%with the appropriate filter curves.
 
-\input{tables/table-desi}
+%\input{tables/table-desi}
 
 \subsection{Sample Selection}
 \label{ssec:sample}
@@ -175,17 +175,25 @@ with the appropriate filter curves.
 \label{sec:modeling}
 %% ============================================================
 
-\fastspecfit{} operates in two modes. \fastphot{} fits broadband spectral
-energy distributions (SEDs) to Legacy Survey DR9/DR10 photometry with no
-spectroscopic data. \fastspec{} jointly fits spectra from all three DESI
-cameras (B, R, Z) and broadband photometry simultaneously. Both modes
-share the same template library, dust model, and physical output
-quantities; they differ only in the data that enter the fit and in
-whether the stellar velocity dispersion is a free parameter.
+Although no single example can illustrate the full range of fitting
+circumstances that \fastspecfit{} is designed to deal with, we have
+opted to present the code's core algorithms using a single case-study
+example. 
 
-The following subsections walk through the complete \fastspec{} fitting
-sequence---spectral masking, stellar continuum modeling, and emission-line
-modeling---using a concrete BGS example to illustrate each stage.
+the example we have chosen highlights many of the algorithmic elements
+encountered when fitting low-redshift galaxies. The following
+subsections walk through the complete \fastspec{} fitting
+sequence---spectral masking, stellar continuum modeling, and
+emission-line modeling---using a single BGS example to illustrate each
+stage.
+
+In Figure~\ref{fig:example1} we.
+
+\begin{figure*}
+\includegraphics[width=6.5in]{figures/fastspec-example-39633405565996021.png}
+\caption{Write me.\label{fig:example1}}
+\end{figure*}
+
 
 \subsection{Case Study: A Low-Redshift BGS Nucleus}
 \label{ssec:casestudy}
@@ -646,9 +654,19 @@ fitted quantity $\theta$ is then
 The spectral realizations are drawn once and reused for both the
 continuum and emission-line fits.
 
+\subsection{Additional Fitting Modes}
+\label{sec:modes}
+
+\fastspecfit{} operates in two modes. \fastphot{} fits broadband spectral
+energy distributions (SEDs) to Legacy Survey DR9/DR10 photometry with no
+spectroscopic data. \fastspec{} jointly fits spectra from all three DESI
+cameras (B, R, Z) and broadband photometry simultaneously. Both modes
+share the same template library, dust model, and physical output
+quantities; they differ only in the data that enter the fit and in
+whether the stellar velocity dispersion is a free parameter.
 
 %% ============================================================
-\section{Derived Physical Quantities}
+\section{Derived Physical Properties}
 \label{sec:quantities}
 %% ============================================================
 
@@ -715,7 +733,7 @@ continuum and emission-line fits.
 \label{ssec:comparisons}
 
 \begin{itemize}
-  \item Stellar masses: vs.\ CIGALE \citep{siudek17a}, Prospector,
+  \item Stellar masses: vs.\ CIGALE \citep{siudek24a}, Prospector,
     \texttt{kcorrect} \citep{blanton07a}
   \item Emission-line fluxes: vs.\ pPXF \citep{cappellari22a}, DESI
     \texttt{emfit}, \citet{salim16a} (SDSS overlap)
@@ -787,6 +805,7 @@ continuum and emission-line fits.
     \item Asymmetric line profiles (e.g., [\ion{O}{3}])
     \item Forward-model Galactic reddening attenuation
     \item Multiple stellar metallicities
+    \item fastqso fitting mode
   \end{itemize}
 \end{itemize}
 
@@ -818,7 +837,7 @@ Tohono O'odham Nation.
 \software{
   \texttt{Astropy} \citep{astropy-collaboration22a},
   \texttt{corner.py} \citep{corner},
-  \texttt{healpy} \citep{healpy},
+  \texttt{healpy} \citep{zonca19a},
   \texttt{NumPy} \citep{harris20a},
   \texttt{Matplotlib} \citep{hunter07a},
   \texttt{SciPy} \citep{virtanen20a},
