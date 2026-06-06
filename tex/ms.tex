@@ -283,36 +283,60 @@ sequence applied to a representative BGS target is given in \S\ref{sec:casestudy
 \subsection{SPS Template Library}
 \label{ssec:templates}
 
-\begin{itemize}
-  \item FSPS\footnote{\url{https://github.com/cconroy20/fsps}}
-    \citep{conroy09a, conroy10b} via
-    \texttt{python-fsps}\footnote{\url{https://github.com/dfm/python-fsps}}
-    with C3K stellar library (2750--9100~\AA, $R = 3000$), MIST
-    isochrones \citep{choi16a, dotter16a}, Chabrier IMF
-    \citep{chabrier03a}
-  \item Non-parametric SFH: 5 constant-SFR lookback-time bins spanning
-    30~Myr to 13.7~Gyr, with bin boundaries following the continuity
-    prescription of \citet{leja17a}
-  \item Solar metallicity default; separate template sets with and without
-    nebular emission (via FSPS photoionization grid)
-  \item Auxiliary templates: \citet{draine07a} dust emission,
-    \citet{nenkova08a} AGN torus, \citet{vestergaard01a} UV/optical Fe
-    emission for broad-line AGN fitting
-  \item Wavelength grid: 25~\kms\ pixels in 2750--9100~\AA\ (constant
-    $\Delta\ln\lambda$, enabling Gaussian $\vdisp$ convolution via a
-    fixed-width log-space kernel); native FSPS grid outside this range
-\end{itemize}
+We represent the stellar continuum as a non-negative linear superposition of
+simple stellar population (SPS) templates generated with
+FSPS\footnote{\url{https://github.com/cconroy20/fsps}}
+\citep[Flexible Stellar Population Synthesis;][]{conroy09a,conroy10b}
+via the \texttt{python-fsps}\footnote{\url{https://github.com/dfm/python-fsps}}
+interface, adopting the C3K empirical stellar spectral library (spanning
+2750--9100~\AA\ at $R \equiv \lambda/\mathrm{FWHM} \approx 3000$, or
+${\approx}42$~\kms), MIST stellar isochrones \citep{choi16a,dotter16a},
+and a Chabrier \citep{chabrier03a} initial mass function (IMF).
 
-Each template spectrum is normalized so that one solar mass of stars
-formed at the tabulated age produces the stored flux at 10\,pc,
-$F_\lambda\,[\mathrm{erg\,s^{-1}\,cm^{-2}\,\text{\AA}^{-1}\,M_\odot^{-1}}]
-= L_\odot/(4\pi(10\,\mathrm{pc})^2) \cdot L_\lambda/L_\odot$.
-This normalization means the fitted non-negative template coefficients
-$\mathbf{c} \geq 0$ have units of $M_\odot$ (up to a mass normalization
-factor $\mathcal{M}_0 = 10^{10}\,M_\odot$). The code includes the option
-to exclude templates older than the age of the universe at the object's
-redshift; by default all templates are used because of the relatively
-coarse age grid \citep{leja19a}.
+We model the star-formation history (SFH) nonparametrically as a
+piecewise-constant function over five lookback-time bins, following the
+continuity-SFH prescription of \citet{leja17a}: the two youngest bins span
+0--30~Myr and 30--100~Myr (with fixed widths of $\Delta\log_{10}(t/\mathrm{yr})
+= 7.48$ and $8.0$, respectively), while the three older bins are
+logarithmically spaced from 0.1~Gyr to $0.85\,t_\mathrm{univ}$,
+corresponding approximately to 0.1--1.1~Gyr, 1.1--11.6~Gyr, and
+11.6--13.7~Gyr at $z = 0$. We compute templates at solar metallicity
+($\log_{10}Z/Z_\odot = 0$) in two parallel variants---one including and one
+excluding nebular emission (continuum and lines) from the FSPS built-in
+photoionization grid---so that we can control the nebular contribution
+independently during the fitting. Although templates older than the age of
+the universe at the target's redshift are, in principle, unphysical, we
+include all five age bins by default because the coarse age sampling makes
+the exclusion boundary poorly defined \citep{leja19a}.
+
+We normalize each template to the flux density produced at 10~pc by one solar
+mass of stars formed at the tabulated lookback time,
+\begin{equation}
+  F_\lambda\,\bigl[\mathrm{erg\,s^{-1}\,cm^{-2}\,\text{\AA}^{-1}\,M_\odot^{-1}}\bigr]
+  \;=\; \frac{L_\odot}{4\pi(10\,\mathrm{pc})^2}\,\frac{L_\lambda}{L_\odot},
+  \label{eq:fnorm}
+\end{equation}
+so that the fitted non-negative coefficients $\mathbf{c} \geq 0$ carry units
+of $M_\odot$, up to an overall mass normalization $\mathcal{M}_0 =
+10^{10}\,M_\odot$ that sets the internal dynamic range.
+
+We store templates on a hybrid wavelength grid in which pixels span
+$\Delta v = 25$~\kms\ in velocity (constant $\Delta\ln\lambda$) over
+2750--9100~\AA; outside this range we retain the native, nonuniform FSPS
+wavelength grid. The constant-velocity core enables stellar velocity-dispersion
+broadening via a fixed-width Gaussian kernel in $\ln\lambda$ space, which we
+apply efficiently via FFT, as we describe in \S\ref{sssec:vdisp}.
+
+We additionally include three auxiliary emission components in the template
+library: infrared dust emission following the \citet{draine07a} interstellar
+dust model, which we normalize to unit bolometric luminosity and scale during
+fitting by the absorbed stellar luminosity to enforce energy balance
+(\S\ref{sssec:dust}); a \citet{nenkova08a} clumpy AGN torus template,
+parameterized by optical depth, which we apply optionally when fitting AGN
+host galaxies; and the \citet{vestergaard01a} empirical UV/optical iron
+emission template for broad-line AGN. We incorporate all three within the same
+non-negative coefficient framework as the SPS templates. Table~\ref{table:templates}
+summarizes the full template grid.
 
 \begin{figure*}
 \includegraphics[width=6.5in]{figures/sps-models.png}
