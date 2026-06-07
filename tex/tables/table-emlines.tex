@@ -1,14 +1,14 @@
-%\startlongtable
+\startlongtable
 \begin{deluxetable}{lccc}
 %\tabletypesize{\footnotesize}
 \tablecaption{Emission Lines\label{table:emlines}}
 \tablewidth{0pt}
 \tablehead{
-\colhead{Line} & 
+\colhead{Line} &
 \colhead{Rest Wavelength\tablenotemark{a}} &
-\colhead{Fitting} & 
+\colhead{Fitting} &
 \colhead{} \\
-\colhead{Name} & 
+\colhead{Name} &
 \colhead{(\AA)} &
 \colhead{Category} &
 \colhead{Comments}
@@ -56,3 +56,85 @@ H$\alpha$                         & 6564.613   &  narrow; broad  &  \nodata \\
 %\tablecomments{Write me.}
 \tablenotemark{a}{All wavelengths are as measured in a vacuum.}
 \end{deluxetable}
+
+
+
+
+
+
+
+%%\startlongtable
+%\begin{deluxetable*}{lrl}
+%\tablecaption{Emission Lines Modeled by \fastspecfit\label{table:emlines}}
+%\tablecolumns{3}
+%\tablewidth{0pt}
+%\tabletypesize{\scriptsize}
+%\tablehead{
+%  \colhead{Species} &
+%  \colhead{$\lambda_\mathrm{vac}$ (\AA)} &
+%  \colhead{Notes}
+%}
+%\startdata
+%\multicolumn{3}{c}{UV and AGN broad lines} \\
+%Ly$\alpha$                           & 1215.670 &  \\
+%\ion{N}{5}~$\lambda$1240             & 1240.14  &  \\
+%\ion{O}{1}~$\lambda$1304             & 1304.35  &  \\
+%\ion{Si}{4}~$\lambda$1396            & 1396.76  &  \\
+%\ion{C}{4}~$\lambda$1549             & 1549.06  &  \\
+%\ion{He}{2}~$\lambda$1640            & 1640.42  &  \\
+%\ion{Al}{3}~$\lambda$1857            & 1857.40  &  \\
+%\ion{Si}{3}]~$\lambda$1892           & 1892.03  &  \\
+%\ion{C}{3}]~$\lambda$1908            & 1908.73  &  \\
+%\ion{Mg}{2}~$\lambda$2796            & 2796.352 & Free doublet ratio \\
+%\ion{Mg}{2}~$\lambda$2803            & 2803.530 &  \\
+%\ion{He}{2}~$\lambda$4686            & 4687.02  &  \\
+%\multicolumn{3}{c}{Balmer and helium} \\
+%H6~$\lambda$3890                     & 3890.166 &  \\
+%H$\epsilon$~$\lambda$3970            & 3971.198 &  \\
+%H$\delta$~$\lambda$4102              & 4102.892 &  \\
+%H$\gamma$~$\lambda$4341              & 4341.692 &  \\
+%\ion{He}{1}~$\lambda$4471            & 4472.735 &  \\
+%H$\beta$~$\lambda$4862               & 4862.71  &  \\
+%%\ion{He}{1}~$\lambda$5876            & 5877.249 &  \\
+%%H$\alpha$~$\lambda$6565              & 6564.60  &  \\
+%%\cutinhead{Forbidden}
+%%[\ion{Ne}{5}]~$\lambda$3346          & 3346.79  &  \\
+%%[\ion{Ne}{5}]~$\lambda$3426          & 3426.85  &  \\
+%%[\ion{O}{2}]~$\lambda$3726           & 3727.10  & Free doublet ratio \\
+%%[\ion{O}{2}]~$\lambda$3729           & 3729.86  &  \\
+%%[\ion{Ne}{3}]~$\lambda$3869          & 3869.86  &  \\
+%%[\ion{O}{3}]~$\lambda$4363           & 4364.436 &  \\
+%%[\ion{O}{3}]~$\lambda$4959           & 4960.295 & Fixed: $A_{4959}/A_{5007} = 0.337$ \\
+%%[\ion{O}{3}]~$\lambda$5007           & 5008.240 &  \\
+%%[\ion{N}{2}]~$\lambda$5755           & 5756.191 &  \\
+%%[\ion{O}{1}]~$\lambda$6300           & 6302.046 &  \\
+%%[\ion{S}{3}]~$\lambda$6312           & 6313.81  &  \\
+%%[\ion{N}{2}]~$\lambda$6548           & 6549.861 & Fixed: $A_{6548}/A_{6584} = 0.330$ \\
+%%[\ion{N}{2}]~$\lambda$6584           & 6585.273 &  \\
+%%[\ion{S}{2}]~$\lambda$6716           & 6718.294 & Free doublet ratio \\
+%%[\ion{S}{2}]~$\lambda$6731           & 6732.674 &  \\
+%%[\ion{Ar}{3}]~$\lambda$7135          & 7137.77  &  \\
+%%[\ion{O}{2}]~$\lambda$7320           & 7321.94  &  \\
+%%[\ion{O}{2}]~$\lambda$7330           & 7332.21  & Fixed: $A_{7330}/A_{7320} = 0.816$ \\
+%%[\ion{S}{3}]~$\lambda$9069           & 9071.1   &  \\
+%[\ion{S}{3}]~$\lambda$9532           & 9533.2   &  \\
+%\enddata
+%\tablecomments{All wavelengths are vacuum rest-frame values.  The six Balmer
+%  lines (H6 through H$\alpha$) are modeled with independent narrow and broad
+%  kinematic components; the \ion{He}{1}~$\lambda\lambda$4471, 5876 lines
+%  receive a narrow component only.  Wavelengths for the Balmer series, the
+%  \ion{He}{1} lines, \ion{Mg}{2}~$\lambda\lambda$2796,2803, and most
+%  forbidden transitions are from the NIST Atomic Spectra Database
+%  (\url{https://physics.nist.gov/PhysRefData/ASD/lines_form.html}); UV
+%  broad-line wavelengths follow \citet{vandenberk01a}; and wavelengths for
+%  [\ion{N}{2}]~$\lambda\lambda$6548,84, [\ion{O}{3}]~$\lambda$4363, and
+%  [\ion{O}{3}]~$\lambda\lambda$4959,5007 come from the CHIANTI atomic
+%  database (\url{https://db.chiantidatabase.org}).  The fixed amplitude
+%  ratios encode the theoretical flux ratios ([\ion{O}{3}]~$\lambda$4959/5007
+%  $= 2.99$; [\ion{N}{2}]~$\lambda$6548/6584 $= 3.03$; [\ion{O}{2}]
+%  $\lambda$7330/7320 $= 1.22$) corrected to velocity-space amplitudes.
+%  The three free doublet ratios ([\ion{O}{2}]~$\lambda\lambda$3726,29;
+%  \ion{Mg}{2}~$\lambda\lambda$2796,2803; [\ion{S}{2}]~$\lambda\lambda$6716,31)
+%  are fitted as free parameters bounded in $[0,2]$, $[0,10]$, and $[0,2]$,
+%  respectively.}
+%\end{deluxetable*}
