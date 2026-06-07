@@ -33,8 +33,8 @@
 \newcommand{\ha}{H$\alpha$}
 \newcommand{\hb}{H$\beta$}
 \newcommand{\deltachisq}{{\ensuremath{\Delta\chi^2}}}
-\newcommand{\vdisp}{\sigma_\star}
-\newcommand{\tauv}{\tau_V}
+\newcommand{\vdisp}{\ensuremath{\sigma_\star}}
+\newcommand{\tauv}{\ensuremath{\tau_V}}
 \newcommand{\Mstar}{M_\star}
 \newcommand{\logmstar}{\log_{10}(\Mstar/\mathrm{M_\odot})}
 % macros used in table-desi.tex
@@ -202,34 +202,74 @@ an outlook toward future improvements (\S\ref{sec:summary}).
 \subsection{DESI Spectroscopy}
 \label{ssec:spectra}
 
-\begin{itemize}
-  \item DESI instrument \citep{abareshi22a}: 3-camera spectrograph (B/R/Z),
-    wavelength coverage 3600--9824~\AA, spectral resolution $R \sim
-    2000$--$5500$
-  \item Spectra delivered as flux-calibrated 1D arrays with resolution
-    matrices encoding the wavelength-dependent LSF
-  \item Brief description of healpix-based data organization and redshift
-    catalogs (Redrock)
-\end{itemize}
+DESI \citep{abareshi22a} is a highly multiplexed fiber spectrograph
+mounted on the Mayall 4-m telescope at Kitt Peak National Observatory.
+Its 5000 robotically actuated fibers subtend a 3.2-deg-diameter field
+of view and feed ten three-arm spectrographs covering 3600--9824\,\AA\
+in the observed frame \citep{guy23a}. The three cameras sense blue (B:
+3600--5930\,\AA), red (R: 5600--7720\,\AA), and near-infrared (Z:
+7470--9824\,\AA) light, with a spectral resolution that rises from
+$R \approx 2000$ in the blue to $R \approx 5500$ in the near-infrared.
+
+The spectroscopic pipeline \citep{guy23a} delivers flux-calibrated,
+sky-subtracted 1D spectra for all targets on a common linear wavelength
+grid with 0.8\,\AA\,pixel$^{-1}$ steps. The optimal spectral
+extraction \citep[following][]{bolton10a} encodes the wavelength-dependent
+line-spread function (LSF) for each fiber in a sparse resolution matrix,
+which \fastspecfit{} uses to convolve model spectra before comparing
+them to the data (\S\ref{ssec:emlines}).
+
+Wavelength calibration proceeds in three steps: an initial solution
+from arc-lamp spectra, a per-exposure PSF and trace refinement, and a
+final adjustment via cross-correlation with sky emission lines and an
+external high-resolution sky atlas. The residual wavelength
+calibration uncertainty after this correction is typically
+$\epsilon_\lambda \approx 0.025$\,\AA\ per sky line---roughly 3\%
+of a CCD pixel, or $\sim$1\,\kms\ at 7000\,\AA\ \citep{guy23a}.
+
+Flux calibration uses approximately ten F-type standard stars per
+spectrograph petal, selected from the Legacy Survey imaging catalogs
+on the basis of their $g-r$ and $r-z$ colors \citep{dey19a}. The
+pipeline fits stellar spectral models to the standard-star spectra and
+derives a wavelength-dependent throughput correction per camera.
+Comparison of the calibrated spectra against hydrogen-atmosphere white
+dwarf models shows that the residuals are constrained to within
+$\pm2\%$ over most of the 3600--9800\,\AA\ wavelength range
+\citep{guy23a}.
 
 \subsection{Broadband Photometry}
 \label{ssec:photometry}
 
-\begin{itemize}
-  \item Legacy Survey DR9/DR10: $grz$ optical + WISE $W1$--$W4$ mid-IR
-  \item \texttt{PHOTSYS} (N/S) handling and filter curves; speclite.
-  \item Fiber photometry vs.\ total photometry; aperture correction
-    motivation (point to relevant future section).
-\end{itemize}
+\fastspecfit{} uses broadband photometry from the DESI Legacy Imaging
+Surveys \citep[hereafter Legacy Survey;][]{dey19a}, which cover the
+full DESI footprint using two complementary imaging systems: DECam on
+the Blanco 4-m telescope at CTIO in the south, and the Mosaic-3
+($z$-band) and 90Prime ($g$- and $r$-band) cameras on the Mayall and
+Bok telescopes in the north. Both systems deliver photometry in $g$,
+$r$, and $z$ bands. We track the imaging system for each target via
+the \texttt{PHOTSYS} flag (\texttt{N} or \texttt{S}) to assign the
+appropriate filter curves; \fastspecfit{} uses DR9 or DR10 photometry
+depending on availability.
 
-%Special handling of \texttt{PHOTSYS} is required because it may not match
-%the value in the DESI catalogs for secondary and tertiary targets. First,
-%if \texttt{PHOTSYS} is neither \texttt{N} nor \texttt{S} and
-%\texttt{RELEASE} is defined, we use the \texttt{desitarget} release
-%dictionary to determine \texttt{PHOTSYS}; otherwise we use a declination
-%cut. Either way, all photometry is ultimately assigned \texttt{PHOTSYS}
-%$=$ \texttt{N} or \texttt{S}, which uniquely associates the photometry
-%with the appropriate filter curves.
+The Legacy Survey catalogs also include forced photometry in all four
+WISE bands---$W1$ (3.4\,\micron), $W2$ (4.6\,\micron), $W3$
+(12\,\micron), and $W4$ (22\,\micron)---derived from unWISE coadds of
+the full WISE and NEOWISE mission imaging \citep{wright10a,
+meisner21a}. \fastspecfit{} incorporates all four WISE bands in the
+spectrophotometric fit; fluxes in bands where the source is
+undetected enter the fit as $1\sigma$ upper limits.
+
+The Legacy Survey catalogs provide two distinct photometric
+measurements for each source: \emph{total} photometry, which
+integrates the full surface brightness profile, and \emph{fiber}
+photometry, which estimates the flux a 1.5\arcsec-diameter fiber
+would collect at 1\arcsec\ FWHM seeing. \fastspecfit{} fits the
+total photometry jointly with the DESI fiber spectrum, but must
+reconcile the fact that the fiber samples only the central region of
+an extended source. We apply an aperture correction to place the
+fiber spectrum on the same flux scale as the total broadband
+photometry before the joint fit; we describe this step in
+\S\ref{ssec:continuum}.
 
 %\input{tables/table-desi}
 
@@ -378,16 +418,51 @@ database.\footnote{\url{https://db.chiantidatabase.org}}
 \subsection{Fast Fitting in Patches}
 \label{ssec:patches}
 
-\begin{itemize}
-  \item Emission-line windows masked prior to the stellar continuum fit,
-    based on the line list described in \S\ref{ssec:emlinelist}; each
-    window extends $\pm N\,\sigma_\mathrm{line}$ in velocity space around
-    the expected observed-frame wavelength
-  \item Additional masking of known sky-line residuals and pixels with
-    zero inverse variance
-  \item Show masked spectrum for the case-study object, illustrating the
-    fraction of spectral pixels available for continuum fitting
-\end{itemize}
+Before fitting the stellar continuum, we run a lightweight pre-fitting
+pass---the \emph{line masker}---that measures empirical line widths and
+velocity shifts for each kinematic population and constructs per-line
+pixel masks that the continuum fitter uses to exclude
+emission-line-contaminated regions.
+
+We organize the 40 emission lines (\S\ref{ssec:emlinelist}) into 23
+spectrally adjacent \emph{patches}, pre-assigned in the configuration
+file \texttt{data/emlines.ecsv}. Each patch groups lines whose
+wavelength windows overlap or nearly touch; for example, one patch
+contains \hb\ together with [O\,\textsc{iii}]~$\lambda\lambda$4959,5007,
+and another groups \ha\ with [N\,\textsc{ii}]~$\lambda\lambda$6548,6584.
+Only patches with at least one line in the observed spectral range are
+activated for a given spectrum. Each line carries an \texttt{isstrong}
+flag identifying the subset with typical fluxes reliable enough to
+measure kinematics; the patch-fitting steps use only strong lines, while
+the full list enters the final mask.
+
+The algorithm proceeds in three steps. First, we fit all strong lines
+with the narrow-only kinematic model. For each line, we define a pixel
+window of $\pm2.5\,\sigma_\mathrm{line}$ centered on the expected
+observed-frame wavelength---with a minimum floor of 50~\kms---and
+identify local continuum pixels from a surrounding window that we
+iteratively expand until at least 11 unmasked pixels are available.
+Within each patch we jointly fit line amplitudes and a linear local
+continuum; we run two iterations, updating the line-pixel windows with
+the best-fit velocity shifts and widths before the second pass. Second,
+if any broad Balmer line falls within the observed spectral range, we
+repeat the procedure with the narrow+broad model, initializing the broad
+Balmer width at 1000~\kms; if any broad Balmer line reaches $S/N > 1.5$
+we adopt the broad-model kinematics for masking, and otherwise retain
+the narrow-only widths. Third, we rebuild the pixel mask over the full
+line list using the converged kinematic parameters, widening the
+exclusion window to $\pm5\,\sigma$ to conservatively exclude all
+line-contaminated pixels from the continuum fit; weak non-strong lines
+with $S/N < 3.5$ are omitted from the final mask to avoid
+over-masking. We additionally mask pixels flagged as sky-line residuals
+and pixels with zero inverse variance.
+
+The line masker is intentionally fast and approximate: it fits a simple
+linear local continuum per patch rather than the full SPS template, uses
+only strong lines, and runs for just two iterations with loose
+convergence tolerances. Its sole purpose is to supply accurate-enough
+pixel masks and kinematic initial guesses for the main continuum and
+emission-line fits that follow.
 
 \subsection{Stellar Continuum Model}
 \label{ssec:continuum}
@@ -571,31 +646,62 @@ spectra with an accurate continuum level.
 \subsubsection{Kinematic Groups}
 \label{sssec:kinematic}
 
-\begin{itemize}
-  \item Lines tied in kinematic groups (shared $v_\mathrm{shift}$,
-    $\sigma$) with flexible amplitude ratios; separate broad-line group
-    for AGN
-  % [NII] doublet ratio: https://ui.adsabs.harvard.edu/abs/2023AdSpR..71.1219D
-  % [OIII] doublet ratio: https://ui.adsabs.harvard.edu/abs/2007AIPC..895..313D
-\end{itemize}
+We reduce the dimensionality of the emission-line fit by grouping lines
+into \emph{kinematic groups}, within which all members share a common
+velocity shift $\Delta v$ and line width $s$. Eight UV and broad AGN
+permitted lines carry independently free kinematics in both fitting
+models: Ly$\alpha$, [N\,\textsc{v}]~$\lambda$1240,
+O\,\textsc{i}~$\lambda$1304, Si\,\textsc{iv}~$\lambda$1396,
+C\,\textsc{iv}~$\lambda$1549, He\,\textsc{ii}~$\lambda$1640,
+Al\,\textsc{iii}~$\lambda$1857, and He\,\textsc{ii}~$\lambda$4686.
+Two doublet pairs are treated as global kinematic anchors in both
+models: Si\,\textsc{iii}]~$\lambda$1892 is tied to
+C\,\textsc{iii}]~$\lambda$1908, and Mg\,\textsc{ii}~$\lambda\lambda$2796,2803
+shares a single kinematic solution with a free amplitude ratio.
+
+We fit two profile models whose kinematic structure depends on whether a
+significant broad Balmer component is present
+(\S\ref{sssec:broadlines}). The \emph{narrow-only} model
+(\texttt{linemodel\_nobroad}) places all forbidden lines in a single
+group anchored to [O\,\textsc{iii}]~$\lambda$5007, and groups the
+narrow Balmer series together with He\,\textsc{i} lines in a second
+group anchored to H$\alpha$; all broad Balmer amplitudes are fixed to
+zero. The \emph{narrow+broad} model (\texttt{linemodel\_broad})
+collapses all narrow lines---Balmer, He\,\textsc{i}, and
+forbidden---into a single group anchored to narrow H$\alpha$, retains a
+separate kinematic group for [O\,\textsc{iii}]~$\lambda\lambda$4959,5007,
+and adds a third group for broad Balmer emission anchored to broad
+H$\alpha$. Narrow-line bounds are $1 < s < 750$~\kms\ and
+$|\Delta v| < 500$~\kms; broad-line bounds are
+$1 < s < 10{,}000$~\kms\ and $|\Delta v| < 2{,}500$~\kms. We load all
+kinematic constraints, amplitude ratios, and optimizer bounds at startup
+from the bundled configuration file
+\texttt{data/emline-constraints.yaml}.
+
+Several line pairs carry additional constraints on their relative
+amplitudes. We fix three doublet ratios to theoretical atomic
+emissivities: [N\,\textsc{ii}]~$\lambda$6548/$\lambda$6584 $= 1/3.033$,
+[O\,\textsc{iii}]~$\lambda$4959/$\lambda$5007 $= 1/2.964$, and
+[O\,\textsc{ii}]~$\lambda$7330/$\lambda$7320 $= 1/1.225$. Three
+density-sensitive doublets---[O\,\textsc{ii}]~$\lambda\lambda$3726,3729;
+[S\,\textsc{ii}]~$\lambda\lambda$6716,6731; and
+Mg\,\textsc{ii}~$\lambda\lambda$2796,2803---carry free amplitude ratios
+that encode the electron density.
+
+After the primary constrained fit, \fastspecfit{} runs a second
+optimization pass in which individual velocity shifts are freed for each
+narrow line, allowing it to absorb small wavelength-calibration
+residuals; line widths remain shared within each kinematic group.
+Doublet-constrained pairs retain their kinematic ties during the relaxed
+pass, since releasing transitions from the same upper level individually
+would allow unphysical offsets between their velocity shifts. We adopt
+the relaxed solution only when the global $\chi^2$ improvement exceeds
+the number of additional free parameters; otherwise we retain the
+primary result. Monte Carlo realizations (\S\ref{ssec:uncertainties})
+inherit the model structure of the nominal fit.
 
 \subsubsection{Forward Model}
 \label{sssec:emline_model}
-
-\begin{itemize}
-  \item Intrinsic profile: log-Gaussian in observed wavelength with
-    amplitude $A$, line center $\lambda^*$, and width $\sigma = s/c$
-    (where $s$ is the velocity width in \kms)
-  \item DESI resolution matrix applied via a pre-convolved representation
-    with effective width
-    $\sigma_\mathrm{eff} = \sqrt{\sigma^2 + \sigma_{G,\ell}^2}$,
-    where $\sigma_{G,\ell} = \sigma_G/\lambda^*$ and
-    $\sigma_G = 0.5$~\AA
-  \item Analytic Jacobian with respect to $(A,\,\Delta v,\,s)$ derived
-    from the forward model; see Appendix~\ref{sec:appendix_jacobian}
-  \item Removes 5--30\% flux bias in earlier bin-integration approach
-    for lines narrower than $\sim$1 DESI pixel
-\end{itemize}
 
 After subtracting the best-fitting stellar continuum model from the data,
 we fit the residual spectrum using a forward model based on log-Gaussian
@@ -662,38 +768,71 @@ $\mathbf{d}^\mathrm{model} = \mathbf{W}\,\mathbf{F}$, summed over all
 $N$ emission lines falling within the observed spectral range. Physical
 constraints (shared $\Delta v$ and $s$ within kinematic groups; fixed
 doublet amplitude ratios) reduce the free-parameter count and improve
-reliability for blended or weak lines. The analytic Jacobian of $F_j$
-with respect to the free parameters $(A,\,\Delta v,\,s)$ is given in
-Appendix~\ref{sec:appendix_jacobian}.
+reliability for blended or weak lines.
 
-\subsubsection{Fitting and Upper Limits}
-\label{sssec:emline_fitting}
+\paragraph{Analytic Jacobian.}
+We supply \texttt{scipy.optimize.least\_squares} with closed-form first
+derivatives of $F_j$ (equation~\ref{eq:model}) with respect to each
+free parameter. Because $F_j$ is linear in $A$, the amplitude gradient
+is simply
+\begin{equation}
+  \frac{\partial F_j}{\partial A} \;=\; \frac{F_j}{A}.
+  \label{eq:dF_dA}
+\end{equation}
+The velocity-shift gradient follows from the dependence of
+$\ln\lambda^* = \ln[\lambda_\mathrm{rest}(1 + z + \Delta v/c)]$ on
+$\Delta v$:
+\begin{equation}
+  \frac{\partial F_j}{\partial \Delta v}
+  \;=\;
+  \frac{F_j\,x_j}{\sigma_\mathrm{eff}^2\,c\,(1+z+\Delta v/c)}.
+  \label{eq:dF_dv}
+\end{equation}
+Using $1/c$ in place of $1/[c\,(1+z+\Delta v/c)]$ would introduce a
+fractional error of order $z$ at all redshifts and must be avoided. The
+line-width gradient accounts for the dependence of both the amplitude
+factor $\sigma/\sigma_\mathrm{eff}$ and the exponent on $\sigma = s/c$:
+\begin{equation}
+  \frac{\partial F_j}{\partial s}
+  \;=\;
+  \frac{A}{\sigma_\mathrm{eff}\,c}\,
+  e^{-x_j^2/(2\sigma_\mathrm{eff}^2)}\,
+  \Bigl[1 - \sigma^2\bigl(1 - x_j^2/\sigma_\mathrm{eff}^2
+  \bigr)/\sigma_\mathrm{eff}^2\Bigr].
+  \label{eq:dF_ds}
+\end{equation}
+This form evaluates to a finite limit as $\sigma \to 0$, unlike
+equivalent expressions containing an explicit $1/\sigma$. Supplying
+these analytic derivatives eliminates finite-difference gradient
+evaluations and reduces the number of forward-model calls per optimizer
+iteration from $\mathcal{O}(N_\mathrm{param})$ to one.
 
-\begin{itemize}
-  \item Nonlinear least-squares on continuum-subtracted residuals via
-    the trust-region reflective algorithm
-    \citep[\texttt{scipy.optimize.least\_squares};][]{branch99a}
-  \item Line fluxes computed analytically from fitted parameters via
-    equation~\eqref{eq:flux_phys}; independent of pixel grid and
-    resolution matrix
-  \item Significance threshold: $A\,\sqrt{I_A} > 1.5$, where $I_A$ is
-    the inverse variance of the observed peak amplitude
-  \item Upper limits and equivalent widths from adjacent continuum flux
-    densities measured from the SED model
-\end{itemize}
+\paragraph{Numba implementation.}
+We implement the forward model and Jacobian using Numba JIT compilation
+\citep[v\,\todo{X.Y};][]{lam15a}, which compiles the pixel-level
+evaluation loops to native machine code at first invocation.
+\todo{Benchmark: X ms/spectrum, Y$\times$ faster than NumPy.}
 
-Given the model $\mathbf{d}^\mathrm{model}$, we minimize
+\paragraph{Fitting.}
+We minimize
 \begin{equation}
   \chi^2 = \sum_{j} I_{j}\bigl(d_j - d_j^\mathrm{model}\bigr)^2,
   \label{eq:chi2line}
 \end{equation}
 where $d_j$ is the continuum-subtracted observed flux (in \fluxdensity)
-and $I_j$ is the corresponding inverse variance (in \ivardensity).
-Parameter uncertainties are estimated from the diagonal of the covariance
-matrix returned by the optimizer \citep{andrae10a}. Line fluxes and their
-uncertainties are computed analytically from the fitted $(A,\,\lambda^*,\,s)$
-via equation~\eqref{eq:flux_phys}, without reference to the pixel sampling
-or the resolution matrix.
+and $I_j$ is the corresponding inverse variance (in \ivardensity), using
+the trust-region reflective algorithm
+\citep[\texttt{scipy.optimize.least\_squares};][]{branch99a}. Parameter
+uncertainties are estimated from the diagonal of the covariance matrix
+returned by the optimizer \citep{andrae10a}. Line fluxes and their
+uncertainties are computed analytically from the fitted
+$(A,\,\lambda^*,\,s)$ via equation~\eqref{eq:flux_phys}, without
+reference to the pixel sampling or the resolution matrix. We flag a line
+as a significant detection when $A\,\sqrt{I_A} > 1.5$, where $I_A$ is
+the inverse variance of the observed flux density at the line center;
+lines falling below this threshold are reported as $1\sigma$ upper
+limits, with continuum flux densities interpolated from the best-fitting
+SED model. Equivalent widths use the same SED-interpolated continuum.
 
 \begin{figure*}
 \includegraphics[width=6.5in]{example-emlines}
@@ -703,12 +842,48 @@ or the resolution matrix.
 \subsubsection{Broad-Line Decomposition}
 \label{sssec:broadlines}
 
-\begin{itemize}
-  \item Additional broad kinematic component for permitted lines
-  \item $\deltachisq$-based decision to retain or drop broad component
-  \item Conditions for dropping: $\deltachisq > 0$; all broad amplitudes
-    zero; $\sigma_\mathrm{broad} < \sigma_\mathrm{narrow}$
-\end{itemize}
+\fastspecfit{} fits every spectrum with both the narrow-only and
+narrow+broad models simultaneously, then selects the preferred solution
+based on four conditions that must all be satisfied. First, the
+reduction in $\chi^2$ over the pixels spanning the broad Balmer lines
+must exceed the corresponding reduction in degrees of freedom,
+\begin{equation}
+  \Delta\chi^2_\mathrm{Balmer} \;>\; \Delta N_\mathrm{dof,\,Balmer},
+  \label{eq:broadchi2}
+\end{equation}
+where $\Delta\chi^2 = \chi^2_\mathrm{narrow} - \chi^2_\mathrm{broad}$
+and $\Delta N_\mathrm{dof}$ counts the additional free parameters
+introduced by the broad-Balmer group, evaluated only over pixels within
+$\pm N_\sigma$ of the non-helium broad Balmer lines. Second, the fitted
+velocity dispersion of the broad \ha\ component must exceed
+$\sigma_\mathrm{broad}(\ha) > 250$~\kms, excluding spurious broad fits
+driven by noise or continuum residuals. Third, the broad component must
+be wider than the narrow component,
+$\sigma_\mathrm{broad}(\ha) > \sigma_\mathrm{narrow}(\ha)$, ensuring a
+physical hierarchy between the two kinematic components. Fourth, at
+least one of the two brightest broad Balmer lines in the spectral range
+must satisfy $S/N_\mathrm{broad} > 2.5$, where the noise is estimated
+robustly from the interquartile range of the fit residuals in the
+Balmer-line pixels after subtracting the full broad model. If any
+condition fails, we retain the narrow-only result. The pixel-level
+$\chi^2$ comparison is recorded in the output columns
+\texttt{DELTA\_LINECHI2} and \texttt{DELTA\_LINENDOF}.
+
+After the broad/narrow model selection, \fastspecfit{} runs the
+optional kinematic relaxation pass described in
+\S\ref{sssec:kinematic}. For the narrow-only model, individual velocity
+shifts are freed within a $\pm100$~\kms\ window around each line's
+primary best-fit value, while line widths remain tied; this
+configuration accommodates galaxies with forbidden-line outflows, where
+the forbidden and Balmer lines often settle at slightly different
+systemic velocities. For the narrow+broad model, no kinematic parameters
+are relaxed: the three-group structure already absorbs most residual
+complexity through the broad Balmer component, and freeing kinematics in
+that model risks over-fitting. In both cases we adopt the relaxed
+solution only when the $\chi^2$ improvement weighted by the degrees of
+freedom exceeds the degrees of freedom added by the relaxation;
+otherwise we retain the primary result. We record this comparison in the
+output columns \texttt{DELTA\_KINECHI2} and \texttt{DELTA\_KINENDOF}.
 
 \begin{deluxetable}{cc}
 \tablecaption{Emission-Line Free Parameters and Bounds\label{table:priors}}
@@ -727,36 +902,33 @@ $\sigma_{\mathrm{broad}}$      & 1--10,000~\kms \\
 $(\Delta v)_{\mathrm{narrow}}$ & $\pm500$~\kms \\
 $(\Delta v)_{\mathrm{broad}}$  & $\pm2500$~\kms \\
 \enddata
-\tablecomments{\todo{Expand.}}
+\tablecomments{Optimizer bounds for the free kinematic parameters in
+  the narrow-only and narrow+broad emission-line models
+  (\S\ref{sssec:kinematic}). Broad-line UV and AGN permitted lines use
+  the broad-line bounds.}
 \end{deluxetable}
 
 \subsection{Parameter Uncertainties}
 \label{ssec:uncertainties}
 
-\begin{itemize}
-  \item Monte Carlo: $N_\mathrm{monte} = 50$ independent Gaussian
-    noise realizations of the spectra and photometry, drawn with a
-    fixed random seed (shared with the emission-line fitter)
-  \item Uncertainties reported for $\tauv$, $\vdisp$ (when fitted),
-    $D_n(4000)$, rest-frame luminosities, and observed-frame continuum
-    fluxes
-\end{itemize}
-
-Parameter uncertainties are estimated by repeating the continuum fit on
-$N_\mathrm{monte} = 50$ independent realizations of the data,
+We estimate parameter uncertainties by repeating the continuum fit on
+$N_\mathrm{monte} = 50$ independent Gaussian realizations of the
+observed spectra and photometry,
 \begin{equation}
   f_i^{(m)} \;\sim\; \mathcal{N}\!\bigl(f_i^\mathrm{obs},\,\sigma_i^2\bigr),
   \qquad m = 1,\ldots,N_\mathrm{monte},
 \end{equation}
-with analogous draws for the photometry. The inverse variance of each
-fitted quantity $\theta$ is then
+drawn with a fixed random seed and reused for both the continuum and
+emission-line fits. The inverse variance of each fitted quantity
+$\theta$ is then
 \begin{equation}
   \sigma_\theta^{-2}
   \;=\; \bigl[\mathrm{Var}(\theta^{(1)},\ldots,\theta^{(N_\mathrm{monte})})\bigr]^{-1}.
   \label{eq:mc_unc}
 \end{equation}
-The spectral realizations are drawn once and reused for both the
-continuum and emission-line fits.
+We report Monte Carlo uncertainties for \tauv, \vdisp\ (when fitted),
+$D_n(4000)$, rest-frame luminosities, and observed-frame continuum flux
+densities.
 
 \subsection{Additional Fitting Modes}
 \label{sec:modes}
@@ -1101,30 +1273,6 @@ in the \fastspecfit{} online
 documentation.\footnote{\url{https://fastspecfit.readthedocs.io/en/latest/fastspec.html}}
 
 \input{tables/table-datamodel}
-
-\section{Emission-Line Forward Model: Analytic Jacobian and Numba Implementation}
-\label{sec:appendix_jacobian}
-
-The optimizer (\texttt{scipy.optimize.least\_squares}) uses closed-form
-derivatives of $F_j$ (equation~\ref{eq:model}) with respect to
-$(A,\,\Delta v,\,s)$:
-\begin{align}
-  \frac{\partial F_j}{\partial A}      &= \frac{F_j}{A}, \\[4pt]
-  \frac{\partial F_j}{\partial \Delta v} &=
-    \frac{F_j\,x_j}{\sigma_\mathrm{eff}^2\,c\,(1+z+\Delta v/c)}, \\[4pt]
-  \frac{\partial F_j}{\partial s}      &=
-    \frac{A}{\sigma_\mathrm{eff}\,c}\,
-    e^{-x_j^2/(2\sigma_\mathrm{eff}^2)}\,
-    \Bigl[1 - \sigma^2\bigl(1 - x_j^2/\sigma_\mathrm{eff}^2\bigr)
-    /\sigma_\mathrm{eff}^2\Bigr].
-\end{align}
-Supplying the analytic Jacobian eliminates finite-difference gradient
-evaluations and reduces the number of model calls per optimizer iteration
-from $O(N_\mathrm{param})$ to one.
-
-\begin{itemize}
-  \item \todo{Numba JIT-compilation details and benchmarks.}
-\end{itemize}
 
 \end{appendix}
 
