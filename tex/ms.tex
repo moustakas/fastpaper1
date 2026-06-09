@@ -20,6 +20,7 @@
 \newcommand{\fastspecfit}{\texttt{FastSpecFit}}
 \newcommand{\fastspec}{\texttt{fastspec}}
 \newcommand{\fastphot}{\texttt{fastphot}}
+\newcommand{\stackfit}{\texttt{stackfit}}
 \newcommand{\kms}{\ensuremath{\mathrm{km~s}^{-1}}}
 \newcommand{\flux}{\ensuremath{\mathrm{erg~s}^{-1}~\mathrm{cm}^{-2}}}
 \newcommand{\fluxdensity}{\ensuremath{\mathrm{erg~s}^{-1}~\mathrm{cm}^{-2}~\mathrm{\AA}^{-1}}}
@@ -316,23 +317,26 @@ Galaxy \citep[ELG, $0.6 < z \lesssim 1.6$;][]{raichoor23a}, and Quasar
 under dark conditions. Secondary and tertiary targets supplement these primary
 classes for bespoke science programs and can be assigned to any program.
 
-Spectroscopic redshifts and spectral classifications are determined by Redrock
-\citep{anand24a}, a principal component analysis (PCA) template-fitting code
-that independently fits templates for stars (\texttt{SPECTYPE=STAR}), galaxies
-(\texttt{SPECTYPE=GALAXY}), and quasars (\texttt{SPECTYPE=QSO}) over a
-type-dependent grid of trial redshifts \citep{guy23a}. The two primary
-redshift-quality diagnostics reported by Redrock are \texttt{ZWARN}, a
-per-object warning bitmask where \texttt{ZWARN=0} signals no known hardware,
-data-quality, or redshift-fitting problems, and \texttt{DELTACHI2}, the
-difference in $\chi^2$ between the best and second-best fits across all
-spectral classes---a value of \texttt{DELTACHI2}~$\geq 25$ corresponds roughly
+Spectroscopic redshifts and spectral classifications are determined by
+Redrock (S.~Bailey et~al., in preparation; \citealt{anand24a}), a
+principal component analysis (PCA) template-fitting code that
+independently fits templates for stars (\texttt{SPECTYPE=STAR}),
+galaxies (\texttt{SPECTYPE=GALAXY}), and quasars
+(\texttt{SPECTYPE=QSO}) over a type-dependent grid of trial redshifts
+\citep{guy23a}. The two primary redshift-quality diagnostics reported
+by Redrock are \texttt{ZWARN}, a per-object warning bitmask where
+\texttt{ZWARN=0} signals no known hardware, data-quality, or
+redshift-fitting problems, and \texttt{DELTACHI2}, the difference in
+$\chi^2$ between the best and second-best fits across all spectral
+classes---a value of \texttt{DELTACHI2}~$\geq 25$ corresponds roughly
 to $5\sigma$ confidence \citep{desi-collaboration24d}. Three
-\textit{after-burner} processing steps follow Redrock: an emission-line fitter
-(\texttt{emlinefit}; \citealt{raichoor23a}) used to validate ELG redshifts; a
-Mg\,\textsc{ii}~$\lambda\lambda$2796,2803 doublet fitter \citep{chaussidon23a};
-and the \texttt{QuasarNET} neural-network QSO classifier \citep{busca18a}. The
-latter two are essential for correctly classifying and measuring accurate
-redshifts for QSOs; \fastspecfit{} uses their outputs to correct Redrock
+\textit{after-burner} processing steps follow Redrock: an
+emission-line fitter (\texttt{emlinefit}; \citealt{raichoor23a}) used
+to validate ELG redshifts; a Mg\,\textsc{ii}~$\lambda\lambda$2796,2803
+doublet fitter \citep{chaussidon23a}; and the \texttt{QuasarNET}
+neural-network QSO classifier \citep{busca18a}. The latter two are
+essential for correctly classifying and measuring accurate redshifts
+for QSOs; \fastspecfit{} uses their outputs to correct Redrock
 redshifts for a subset of QSO targets (\S\ref{ssec:zqso}).
 
 %% ============================================================
@@ -517,22 +521,26 @@ after the primary fit, before the spectrum is passed to the emission-line fitter
 \subsubsection{Dust Attenuation and Emission}
 \label{sssec:dust}
 
-We model stellar continuum attenuation as a uniform foreground screen,
+We model the attenuation of the stellar continuum as a uniform foreground screen,
 \begin{equation}
   f_\lambda^\mathrm{att}(\lambda)
   \;=\; f_\lambda(\lambda)\,\exp\!\bigl(-\tauv\,k(\lambda)\bigr),
-  \qquad
-  k(\lambda) \;=\; \left(\frac{\lambda}{5500\,\text{\AA}}\right)^{-0.7},
   \label{eq:atten}
 \end{equation}
-where $f_\lambda$ is the unattenuated template flux and $\tauv \in [0,2]$
-is the single free parameter, the $V$-band optical depth. The power-law
-index $-0.7$ is the \citet{charlot00a} birth-cloud slope, consistent with
-the \citet{calzetti00a} attenuation law shortward of $\sim$6000~\AA.
-Absorbed photons are re-emitted in the infrared following energy balance:
-we scale the \citet{draine07a} dust emission template
-$f_\lambda^\mathrm{dust}$ (normalized to unit bolometric luminosity) by
-the absorbed luminosity,
+\noindent where
+\begin{equation}
+  k(\lambda) \;=\; \left(\frac{\lambda}{5500\,\text{\AA}}\right)^{-0.7},
+  \label{eq:kl}
+\end{equation}
+
+\noindent $f_\lambda$ is the unattenuated template flux, and $\tauv
+\in [0,2]$ is the single free parameter, the $V$-band optical
+depth. The power-law index $-0.7$ is the \citet{charlot00a}
+birth-cloud slope, consistent with the \citet{calzetti00a} attenuation
+law shortward of $\sim$6000~\AA.  Absorbed photons are re-emitted in
+the infrared following energy balance: we scale the \citet{draine07a}
+dust emission template $f_\lambda^\mathrm{dust}$ (normalized to unit
+bolometric luminosity) by the absorbed luminosity,
 \begin{equation}
   L_\mathrm{abs}
   \;=\; \int_0^\infty f_\lambda(\lambda)
@@ -1006,6 +1014,10 @@ share the same template library, dust model, and physical output
 quantities; they differ only in the data that enter the fit and in
 whether the stellar velocity dispersion is a free parameter.
 
+\todo{Mention \texttt{stackfit}}.
+
+\todo{Mention the \texttt{nophoto} option}.
+
 %% ============================================================
 \section{Illustrative Examples}
 \label{sec:casestudy}
@@ -1368,7 +1380,7 @@ between classes; note any redshift evolution within each class.}
 Figure~\ref{fig:bpt} shows the \citet{baldwin81a} BPT diagram---[\ion{O}{3}]~$\lambda5007$/\hb\
 versus [\ion{N}{2}]~$\lambda6584$/\ha---for BGS targets at $z \lesssim 0.4$
 with well-detected lines in all four diagnostics. The demarcation curves of
-\citet{kewley01a} and \citet{kauffmann03a} separate the star-forming sequence,
+\citet{kewley01a} and \citet{kauffmann03c} separate the star-forming sequence,
 composite systems, and AGN hosts; the density distribution of the DR2 BGS
 sample across these regions encodes the mix of nuclear activity in the
 low-redshift galaxy population. \fastspecfit{}'s joint spectrophotometric fit
@@ -1414,6 +1426,9 @@ from SDSS and other surveys.}
     \item Forward-model Galactic reddening attenuation
     \item Multiple stellar metallicities
     \item fastqso fitting mode
+    \item The emission lines in the full continuum modeling and within
+      the DESI spectrum are inconsistent, as are the line-ratios (cite
+      Ashod's paper as a possible way forward).
   \end{itemize}
 \end{itemize}
 
@@ -1457,32 +1472,7 @@ Tohono O'odham Nation.
 %% ============================================================
 \begin{appendix}
 
-\section{EDR and DR1 Value-Added Catalogs}
-\label{sec:appendix_vacs}
-
-\begin{itemize}
-  \item Fuji (EDR): $\sim$1.4M targets, \fastspecfit{} v2.5.0, released
-    December 2023
-  \item Iron (DR1): $\sim$18M targets, \fastspecfit{} v2.5.0/2.5.1,
-    released January 2024
-  \item Key differences from DR2 VAC: template versions, known issues
-    resolved
-  \item Comparison figures: stellar masses and emission-line fluxes for
-    EDR/DR1 vs.\ DR2
-\end{itemize}
-
-\section{Building the SPS Templates}
-\label{sec:appendix_sps}
-
-The \texttt{python-fsps} package must be compiled with the C3K stellar
-library flags before installing:
-\begin{verbatim}
-FFLAGS="-DMILES=0 -DC3K=1" python -m pip install fsps --no-binary fsps
-\end{verbatim}
-
-\todo{Highlight \fastphot{} mode and the \texttt{nophoto} option.}
-
-\section{Output Data Model}
+\section{DR2 VAC Data Model}
 \label{sec:appendix_datamodel}
 
 The \fastspecfit{} output is stored in a compressed FITS file
@@ -1528,6 +1518,86 @@ in the \fastspecfit{} online
 documentation.\footnote{\url{https://fastspecfit.readthedocs.io/en/latest/fastspec.html}}
 
 \input{tables/table-datamodel}
+
+\section{Pipeline Diagnostics}
+\label{sec:appendix_diagnostics}
+
+One of the dividends of fitting every DESI spectrum with a physically
+motivated forward model is that the residuals carry information about
+the quality of the underlying data reduction. In this appendix we use
+\fastspecfit{} measurements to characterize two classes of residual
+systematic error in the DR2 pipeline: wavelength-solution errors
+revealed by per-camera emission-line velocity shifts
+(\S\ref{ssec:waveresid}), and spectrophotometric calibration residuals
+revealed by the difference between synthesized and observed broadband
+photometry as a function of magnitude, redshift, and target class
+(\S\ref{ssec:fluxresid}).
+
+\subsection{Wavelength Calibration Residuals}
+\label{ssec:waveresid}
+
+\fastspecfit{} fits each of the three DESI cameras (B, R, Z) separately
+and records the median emission-line velocity shift per camera for every
+spectrum in which emission lines are detected. For a perfectly calibrated
+wavelength solution, this per-camera shift should be consistent with zero
+and with the global redshift measured by Redrock. Systematic offsets or
+trends with wavelength, fiber position, or observing conditions indicate
+residual errors in the arc-lamp or sky-line wavelength calibration.
+
+\begin{figure*}
+%\includegraphics[width=6.5in]{figures/wave-residuals.png}
+\caption{Per-camera median emission-line velocity shifts as a function of
+  wavelength and target class for a representative subset of the DR2
+  sample. Each panel shows one DESI camera (B, R, Z); the dashed line
+  marks zero offset. \todo{Generate figure.}\label{fig:wave_resid}}
+\end{figure*}
+
+Figure~\ref{fig:wave_resid} shows the distribution of per-camera velocity
+shifts for emission-line targets across the full DR2 footprint as a
+function of \todo{relevant variable: fiber number, focal-plane position,
+observing date?}. \todo{Describe findings: are the residuals consistent
+with zero? Any trends with target class, S/N, or observing conditions?}
+
+\subsection{Spectrophotometric Calibration Residuals}
+\label{ssec:fluxresid}
+
+\fastspecfit{} simultaneously fits the DESI spectra and the Legacy Survey
+broadband photometry (\S\ref{ssec:photometry}), so the difference between
+the synthesized and observed photometry is a direct measure of residual
+spectrophotometric calibration errors in the reduced spectra. We quantify
+these residuals as $\Delta m = m_\mathrm{synth} - m_\mathrm{obs}$ in each
+Legacy Survey band and examine their dependence on apparent magnitude,
+redshift, and target class.
+
+\begin{figure*}
+%\includegraphics[width=6.5in]{figures/fluxcal-residuals.png}
+\caption{Residual spectrophotometric calibration ($\Delta m =
+  m_\mathrm{synth} - m_\mathrm{obs}$) as a function of apparent magnitude
+  and redshift for BGS, LRG, and ELG targets. Each column corresponds to
+  a Legacy Survey band ($g$, $r$, $z$); rows separate target class. Dashed
+  lines mark zero offset; contours enclose 68 and 95 per cent of the
+  sample. \todo{Generate figure.}\label{fig:fluxcal_resid}}
+\end{figure*}
+
+Figure~\ref{fig:fluxcal_resid} shows $\Delta m$ as a function of
+\todo{magnitude and/or redshift} for the three primary extragalactic
+target classes. \todo{Describe findings: systematic offsets? Magnitude
+or color dependence? Variation across target classes?}
+
+%% ============================================================
+\section{EDR and DR1 Value-Added Catalogs}
+\label{sec:appendix_vacs}
+
+\begin{itemize}
+  \item Fuji (EDR): $\sim$1.4M targets, \fastspecfit{} v2.5.0, released
+    December 2023
+  \item Iron (DR1): $\sim$18M targets, \fastspecfit{} v2.5.0/2.5.1,
+    released January 2024
+  \item Key differences from DR2 VAC: template versions, known issues
+    resolved
+  \item Comparison figures: stellar masses and emission-line fluxes for
+    EDR/DR1 vs.\ DR2
+\end{itemize}
 
 \end{appendix}
 
