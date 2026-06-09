@@ -15,7 +15,7 @@ from astropy.table import vstack, join
 
 import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from util import read_fastspec, read_fastphot, plot_style
+from util import read_fastspec, read_fastphot, plot_style, DEFAULT_SPECPROD
 
 REPODIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIGDIR  = os.path.join(REPODIR, 'tex', 'figures')
@@ -105,7 +105,7 @@ def mstar_corner(cat, labels, mstarlim=(6, 13)):
     return fig
 
 
-def compare_mstar(verbose=False):
+def compare_mstar(specprod=DEFAULT_SPECPROD, verbose=False):
     """Corner plot: fastspec vs fastphot stellar masses (main survey, all targets).
 
     Both VACs store LOGMSTAR with h=1 (Planck 2018 cosmology, Chabrier IMF),
@@ -116,10 +116,12 @@ def compare_mstar(verbose=False):
     # --- read main-bright (BGS) and main-dark (LRG/ELG/QSO) for each VAC ---
     spec_chunks, phot_chunks = [], []
     for program in ('bright', 'dark'):
-        s = read_fastspec('main', program, columns=['LOGMSTAR'], verbose=verbose)
+        s = read_fastspec('main', program, specprod=specprod,
+                          columns=['LOGMSTAR'], verbose=verbose)
         spec_chunks.append(s[good_galaxies(s)])
 
-        p = read_fastphot('main', program, columns=['LOGMSTAR'], verbose=verbose)
+        p = read_fastphot('main', program, specprod=specprod,
+                          columns=['LOGMSTAR'], verbose=verbose)
         phot_chunks.append(p[p['LOGMSTAR'] > 0])
 
     cat_spec = vstack(spec_chunks)
@@ -159,6 +161,8 @@ def main():
     )
     parser.add_argument('--compare-mstar', action='store_true',
                         help='Stellar mass comparison: fastspec vs fastphot.')
+    parser.add_argument('--specprod', default=DEFAULT_SPECPROD,
+                        help='Spectroscopic production name.')
     parser.add_argument('--verbose', action='store_true',
                         help='Print progress while reading catalogs.')
     args = parser.parse_args()
@@ -166,7 +170,7 @@ def main():
     os.makedirs(FIGDIR, exist_ok=True)
 
     if args.compare_mstar:
-        compare_mstar(verbose=args.verbose)
+        compare_mstar(specprod=args.specprod, verbose=args.verbose)
 
 
 if __name__ == '__main__':

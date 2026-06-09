@@ -8,32 +8,58 @@ Cosmology note: LOGMSTAR and SFR in the FastSpecFit VACs are stored with h=1
 +2*log10(1/0.7) ~ +0.31 dex; to Planck 2018 (h=0.674) adds ~+0.34 dex.
 Comparisons across catalogs must use a consistent h; each read_* function
 documents which convention it returns.
-"""
 
+"""
 import os
 import numpy as np
 from glob import glob
 from astropy.table import Table, hstack, vstack
 import fitsio
 
-# DR2 / Loa v1.0 VAC roots on NERSC
-_FASTSPEC_VACDIR = '/global/cfs/cdirs/desi/vac/dr2/fastspecfit/loa/v1.0/catalogs'
-_FASTPHOT_VACDIR = '/global/cfs/cdirs/desi/vac/dr2/fastphot/loa/v1.0/catalogs'
+_DESI_VAC = '/global/cfs/cdirs/desi/vac'
+
+# Per-specprod catalog directory paths.  Add entries here as new specprods
+# are released; set a value to None when the path is not yet known.
+_SPECPROD_CONFIG = {
+    'loa': {
+        'fastspec': f'{_DESI_VAC}/dr2/fastspecfit/loa/v1.0/catalogs',
+        'fastphot': f'{_DESI_VAC}/dr2/fastphot/loa/v1.0/catalogs',
+    },
+    'iron': {
+        'fastspec': None,  # TBD (DR1)
+        'fastphot': None,  # TBD (DR1)
+    },
+    'fuji': {
+        'fastspec': None,  # TBD (EDR)
+        'fastphot': None,  # TBD (EDR)
+    },
+}
+
+DEFAULT_SPECPROD = 'loa'
 
 # survey+program combinations split into 12 nside=1 healpix files
 _SPLIT_COMBOS = {('main', 'bright'), ('main', 'dark')}
 
 
-def _catfiles(vacdir, vactype, survey, program):
-    """Return sorted list of catalog paths for a survey/program combination."""
+def _catfiles(specprod, vactype, survey, program):
+    """Return sorted list of catalog paths for a specprod/survey/program combination."""
+    cfg = _SPECPROD_CONFIG.get(specprod)
+    if cfg is None:
+        raise ValueError(f'Unknown specprod {specprod!r}. '
+                         f'Known specprods: {list(_SPECPROD_CONFIG)}')
+    vacdir = cfg[vactype]
+    if vacdir is None:
+        raise ValueError(f'VAC path not yet configured for specprod={specprod!r}, '
+                         f'vactype={vactype!r}')
+
+    basename = f'{vactype}-{specprod}-{survey}-{program}'
     if (survey, program) in _SPLIT_COMBOS:
-        pattern = os.path.join(vacdir, f'{vactype}-{survey}-{program}-nside1-hp??.fits')
+        pattern = os.path.join(vacdir, f'{basename}-nside1-hp??.fits')
         files = sorted(glob(pattern))
         if not files:
-            raise FileNotFoundError(
-                f'No {vactype} files found matching {pattern}')
+            raise FileNotFoundError(f'No files found matching {pattern}')
         return files
-    path = os.path.join(vacdir, f'{vactype}-{survey}-{program}.fits')
+    path = os.path.join(vacdir, f'{basename}.fits')
     if not os.path.isfile(path):
         raise FileNotFoundError(path)
     return [path]
@@ -87,9 +113,9 @@ def _read_extensions(filepath, extensions, columns=None):
     return hstack(parts) if len(parts) > 1 else parts[0]
 
 
-def _read_vac(vacdir, vactype, extensions, survey, program, columns, verbose):
+def _read_vac(specprod, vactype, extensions, survey, program, columns, verbose):
     """Internal driver: read and vstack all catalog files for a survey/program."""
-    files = _catfiles(vacdir, vactype, survey, program)
+    files = _catfiles(specprod, vactype, survey, program)
     chunks = []
     for f in files:
         if verbose:
@@ -105,8 +131,9 @@ def _read_vac(vacdir, vactype, extensions, survey, program, columns, verbose):
 # Public read functions
 # ---------------------------------------------------------------------------
 
-def read_fastspec(survey='main', program='dark', columns=None, verbose=False):
-    """Read the fastspec DR2/Loa v1.0 VAC for a given survey and program.
+def read_fastspec(survey='main', program='dark', specprod=DEFAULT_SPECPROD,
+                  columns=None, verbose=False):
+    """Read the fastspec VAC for a given specprod, survey, and program.
 
     Joins the METADATA, SPECPHOT, and FASTSPEC extensions into a single Table.
     For main-bright and main-dark the 12 nside=1 healpix files are stacked
@@ -118,6 +145,9 @@ def read_fastspec(survey='main', program='dark', columns=None, verbose=False):
         Survey name: 'main', 'sv1', 'sv2', 'sv3', or 'special'.
     program : str
         Program name: 'bright', 'dark', or 'backup'.
+    specprod : str
+        Spectroscopic production name (default: 'loa'). Must be a key in
+        _SPECPROD_CONFIG.
     columns : list of str, optional
         Columns to load from SPECPHOT and FASTSPEC. METADATA is always read
         in full. If None, all columns from all three extensions are returned.
@@ -133,7 +163,7 @@ def read_fastspec(survey='main', program='dark', columns=None, verbose=False):
         DN4000. From FASTSPEC: emission-line fluxes, EWs, kinematics.
     """
     return _read_vac(
-        _FASTSPEC_VACDIR, 'fastspec',
+        specprod, 'fastspec',
         ['METADATA', 'SPECPHOT', 'FASTSPEC'],
         survey, program, columns, verbose,
     )
@@ -161,8 +191,9 @@ def plot_style(talk=True, font_scale=1.0):
     return sns, sns.color_palette()
 
 
-def read_fastphot(survey='main', program='dark', columns=None, verbose=False):
-    """Read the fastphot DR2/Loa v1.0 VAC for a given survey and program.
+def read_fastphot(survey='main', program='dark', specprod=DEFAULT_SPECPROD,
+                  columns=None, verbose=False):
+    """Read the fastphot VAC for a given specprod, survey, and program.
 
     Joins the METADATA and SPECPHOT extensions into a single Table.
     For main-bright and main-dark the 12 nside=1 healpix files are stacked
@@ -174,6 +205,9 @@ def read_fastphot(survey='main', program='dark', columns=None, verbose=False):
         Survey name: 'main', 'sv1', 'sv2', 'sv3', or 'special'.
     program : str
         Program name: 'bright', 'dark', or 'backup'.
+    specprod : str
+        Spectroscopic production name (default: 'loa'). Must be a key in
+        _SPECPROD_CONFIG.
     columns : list of str, optional
         Columns to load from SPECPHOT. METADATA is always read in full.
         If None, all columns are returned.
@@ -189,7 +223,7 @@ def read_fastphot(survey='main', program='dark', columns=None, verbose=False):
         DN4000.
     """
     return _read_vac(
-        _FASTPHOT_VACDIR, 'fastphot',
+        specprod, 'fastphot',
         ['METADATA', 'SPECPHOT'],
         survey, program, columns, verbose,
     )
