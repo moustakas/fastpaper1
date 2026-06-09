@@ -172,7 +172,7 @@ def read_fastspec(survey='main', program='dark', specprod=DEFAULT_SPECPROD,
 def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
                 titles=None, unity=False, diag_ylabel='N',
                 contour_levels=None, contour_lw=1.5, smooth=1.0,
-                cmap='Blues', show_residuals=True,
+                cmap='Blues', show_residuals=True, groups=None,
                 figsize=None, suptitle='', subplots_adjust=None):
     """Corner-style N×N plot: histograms on the diagonal, Hess+contours on the lower triangle.
 
@@ -183,7 +183,7 @@ def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
     Parameters
     ----------
     plotdata : array_like, shape (nsamples, ndim)
-        Data array, one column per parameter.
+        Data array, one column per parameter. Ignored when ``groups`` is provided.
     labels : list of str
         Axis labels, one per parameter.
     ranges : list of (lo, hi) tuples
@@ -192,7 +192,7 @@ def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
         Number of bins along each axis for the 2D histogram and diagonal histograms.
     truths : list of float or None
         Reference values: vertical lines on diagonal, crosshairs on off-diagonal.
-        Skipped if None.
+        Skipped if None. Not used in groups mode.
     sigmas : list of float or None
         1-sigma uncertainties drawn as dashed lines on the diagonal.
         Only used when truths is not None.
@@ -211,10 +211,17 @@ def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
         Gaussian smoothing sigma (in bins) applied to the 2D histogram before
         computing contour levels. Set to 0 to disable.
     cmap : str
-        Colormap for the Hess diagram.
+        Colormap for the Hess diagram (single-group mode only).
     show_residuals : bool
         If True, annotate each off-diagonal panel with Δ = col_y − col_x
-        statistics: median, mean ± std.
+        statistics.  In single-group mode: one-line text annotation.  In
+        groups mode: a per-group legend with colored Line2D handles.
+    groups : list of dict or None
+        When provided, overrides ``plotdata`` and switches to multi-group mode.
+        Each dict must have keys ``'data'`` (array shape (n, ndim)), ``'color'``
+        (str), and ``'label'`` (str).  Off-diagonal panels show per-group
+        contours (no Hess background); diagonal panels show per-group
+        step histograms.
     figsize : tuple of (float, float) or None
         Figure size in inches as (width, height). Default is (3*ndim, 3*ndim),
         minimum 6×6.
@@ -229,12 +236,17 @@ def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
     """
     import matplotlib.pyplot as plt
     from matplotlib.colors import LogNorm
+    from scipy.ndimage import gaussian_filter
 
     if contour_levels is None:
         contour_levels = [0.5, 0.75, 0.95, 0.995]
 
-    plotdata = np.asarray(plotdata)
-    ndim = plotdata.shape[1]
+    use_groups = groups is not None and len(groups) > 0
+    ndim = len(labels)
+
+    if not use_groups:
+        plotdata = np.asarray(plotdata)
+
     if figsize is None:
         _size = max(3 * ndim, 6)
         figsize = (_size, _size)
@@ -252,13 +264,18 @@ def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
             lo_y, hi_y = ranges[yi]
 
             if xi == yi:
-                a.hist(plotdata[:, xi], bins=bins, range=(lo_x, hi_x),
-                       color='gray', alpha=0.75, edgecolor='k')
-                if truths is not None:
-                    a.axvline(truths[xi], color='C0', lw=2, ls='-')
-                    if sigmas is not None:
-                        a.axvline(truths[xi] + sigmas[xi], color='C0', lw=1, ls='--')
-                        a.axvline(truths[xi] - sigmas[xi], color='C0', lw=1, ls='--')
+                if use_groups:
+                    for grp in groups:
+                        a.hist(grp['data'][:, xi], bins=bins, range=(lo_x, hi_x),
+                               color=grp['color'], histtype='step', lw=2)
+                else:
+                    a.hist(plotdata[:, xi], bins=bins, range=(lo_x, hi_x),
+                           color='gray', alpha=0.75, edgecolor='k')
+                    if truths is not None:
+                        a.axvline(truths[xi], color='C0', lw=2, ls='-')
+                        if sigmas is not None:
+                            a.axvline(truths[xi] + sigmas[xi], color='C0', lw=1, ls='--')
+                            a.axvline(truths[xi] - sigmas[xi], color='C0', lw=1, ls='--')
                 if titles is not None:
                     a.set_title(titles[xi], fontsize=8)
                 a.set_xlim(lo_x, hi_x)
@@ -267,59 +284,83 @@ def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
                 else:
                     a.tick_params(labelleft=False)
             else:
-                # 2D histogram
-                H, xedges, yedges = np.histogram2d(
-                    plotdata[:, xi], plotdata[:, yi],
-                    bins=bins, range=[[lo_x, hi_x], [lo_y, hi_y]],
-                )
-                xc = 0.5 * (xedges[:-1] + xedges[1:])
-                yc = 0.5 * (yedges[:-1] + yedges[1:])
-
-                # Hess diagram: log-stretched 2D histogram
-                a.pcolormesh(xedges, yedges, H.T,
-                             norm=LogNorm(vmin=1), cmap=cmap)
-
-                # Smooth a copy for contour level computation
-                if smooth > 0:
-                    from scipy.ndimage import gaussian_filter
-                    Hs = gaussian_filter(H, smooth)
+                if use_groups:
+                    # Per-group contours (no Hess background)
+                    for grp in groups:
+                        H, xedges, yedges = np.histogram2d(
+                            grp['data'][:, xi], grp['data'][:, yi],
+                            bins=bins, range=[[lo_x, hi_x], [lo_y, hi_y]],
+                        )
+                        xc = 0.5 * (xedges[:-1] + xedges[1:])
+                        yc = 0.5 * (yedges[:-1] + yedges[1:])
+                        Hs = gaussian_filter(H, smooth) if smooth > 0 else H
+                        flat = np.sort(Hs.flatten())[::-1]
+                        cumsum = np.cumsum(flat)
+                        total = cumsum[-1]
+                        if total > 0 and contour_levels:
+                            lvls = []
+                            for frac in contour_levels:
+                                idx = np.searchsorted(cumsum, frac * total)
+                                lvls.append(flat[min(idx, len(flat) - 1)])
+                            lvls = sorted(v for v in set(lvls) if v > 0)
+                            if lvls:
+                                a.contour(xc, yc, Hs.T, levels=lvls,
+                                          colors=grp['color'], linewidths=contour_lw)
+                    if show_residuals:
+                        from matplotlib.lines import Line2D
+                        handles = []
+                        for grp in groups:
+                            resid = grp['data'][:, yi] - grp['data'][:, xi]
+                            med = np.median(resid)
+                            mu  = np.mean(resid)
+                            sig = np.std(resid)
+                            lbl = (f"{grp['label']}: "
+                                   f"$\\Delta={med:+.3f}\\,({mu:+.3f}\\pm{sig:.3f})$")
+                            handles.append(Line2D([0], [0], color=grp['color'],
+                                                  lw=2, label=lbl))
+                        a.legend(handles=handles, loc='upper left',
+                                 fontsize='x-small', framealpha=0.75,
+                                 handlelength=1.5)
                 else:
-                    Hs = H
+                    # Hess diagram: log-stretched 2D histogram
+                    H, xedges, yedges = np.histogram2d(
+                        plotdata[:, xi], plotdata[:, yi],
+                        bins=bins, range=[[lo_x, hi_x], [lo_y, hi_y]],
+                    )
+                    xc = 0.5 * (xedges[:-1] + xedges[1:])
+                    yc = 0.5 * (yedges[:-1] + yedges[1:])
+                    a.pcolormesh(xedges, yedges, H.T, norm=LogNorm(vmin=1), cmap=cmap)
+                    Hs = gaussian_filter(H, smooth) if smooth > 0 else H
+                    flat = np.sort(Hs.flatten())[::-1]
+                    cumsum = np.cumsum(flat)
+                    total = cumsum[-1]
+                    if total > 0 and contour_levels:
+                        lvls = []
+                        for frac in contour_levels:
+                            idx = np.searchsorted(cumsum, frac * total)
+                            lvls.append(flat[min(idx, len(flat) - 1)])
+                        lvls = sorted(v for v in set(lvls) if v > 0)
+                        if lvls:
+                            a.contour(xc, yc, Hs.T, levels=lvls,
+                                      colors='k', linewidths=contour_lw)
+                    if truths is not None:
+                        a.axvline(truths[xi], color='C0', lw=1, ls='-', alpha=0.75)
+                        a.axhline(truths[yi], color='C0', lw=1, ls='-', alpha=0.75)
+                    if show_residuals:
+                        resid = plotdata[:, yi] - plotdata[:, xi]
+                        med = np.median(resid)
+                        mu  = np.mean(resid)
+                        sig = np.std(resid)
+                        txt = f'$\\Delta={med:+.3f}\\,({mu:+.3f}\\pm{sig:.3f})$'
+                        a.text(0.04, 0.96, txt, transform=a.transAxes,
+                               fontsize='x-small', va='top', ha='left',
+                               bbox=dict(facecolor='white', edgecolor='none',
+                                         alpha=0.75, pad=2))
 
-                # Convert cumulative enclosed fractions → histogram value thresholds
-                flat = np.sort(Hs.flatten())[::-1]
-                cumsum = np.cumsum(flat)
-                total = cumsum[-1]
-                if total > 0 and contour_levels:
-                    lvls = []
-                    for frac in contour_levels:
-                        idx = np.searchsorted(cumsum, frac * total)
-                        lvls.append(flat[min(idx, len(flat) - 1)])
-                    lvls = sorted(v for v in set(lvls) if v > 0)
-                    if lvls:
-                        a.contour(xc, yc, Hs.T, levels=lvls,
-                                  colors='k', linewidths=contour_lw)
-
-                if truths is not None:
-                    a.axvline(truths[xi], color='C0', lw=1, ls='-', alpha=0.75)
-                    a.axhline(truths[yi], color='C0', lw=1, ls='-', alpha=0.75)
                 if unity:
                     lo = max(lo_x, lo_y)
                     hi = min(hi_x, hi_y)
                     a.plot([lo, hi], [lo, hi], color='k', lw=1, ls='--')
-
-                # Residual statistics annotation: Δ = col_y − col_x
-                if show_residuals:
-                    resid = plotdata[:, yi] - plotdata[:, xi]
-                    med = np.median(resid)
-                    mu  = np.mean(resid)
-                    sig = np.std(resid)
-                    txt = (f'med $= {med:+.3f}$\n'
-                           f'$\\mu = {mu:+.3f}$, $\\sigma = {sig:.3f}$')
-                    a.text(0.04, 0.96, txt, transform=a.transAxes,
-                           fontsize='x-small', va='top', ha='left',
-                           bbox=dict(facecolor='white', edgecolor='none',
-                                     alpha=0.75, pad=2))
 
                 a.set_xlim(lo_x, hi_x)
                 a.set_ylim(lo_y, hi_y)

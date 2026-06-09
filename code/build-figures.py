@@ -37,7 +37,40 @@ def good_galaxies(cat):
 # compare-mstar
 # ---------------------------------------------------------------------------
 
-def mstar_corner(cat, labels, mstarlim=(6, 13), figsize=(10, 6)):
+def target_class_groups(cat):
+    """Return a list of corner_plot group dicts split by DESI target class.
+
+    Uses desitarget.targets.main_cmx_or_sv to auto-detect the survey flavor
+    (main vs. SV3 etc.) and choose the correct bitmask column and values.
+
+    Parameters
+    ----------
+    cat : astropy.table.Table
+        Must include the survey-appropriate targeting bitmask column(s).
+
+    Returns
+    -------
+    list of dict with keys 'label', 'color', 'mask' (boolean array).
+    """
+    from desitarget.targets import main_cmx_or_sv
+    tcols, masks, _ = main_cmx_or_sv(cat)
+    desi_col = tcols[0]
+    desi_m   = masks[0]
+
+    is_bgs   = (cat[desi_col] & int(desi_m['BGS_ANY'])) != 0
+    is_lrg   = (cat[desi_col] & int(desi_m['LRG']))     != 0
+    is_elg   = (cat[desi_col] & int(desi_m['ELG']))     != 0
+    is_other = ~(is_bgs | is_lrg | is_elg)
+
+    return [
+        {'label': 'BGS',   'color': 'darkgreen', 'mask': is_bgs},
+        {'label': 'LRG',   'color': 'darkred',   'mask': is_lrg},
+        {'label': 'ELG',   'color': 'darkblue',  'mask': is_elg},
+        {'label': 'Other', 'color': 'black',      'mask': is_other},
+    ]
+
+
+def mstar_corner(cat, labels, groups=None, mstarlim=(6, 13), figsize=(10, 8)):
     """Corner plot comparing log stellar masses from N catalogs.
 
     Parameters
@@ -46,6 +79,10 @@ def mstar_corner(cat, labels, mstarlim=(6, 13), figsize=(10, 6)):
         One column per catalog, in the same order as labels.
     labels : list of str
         Axis label for each mass column.
+    groups : list of dict or None
+        If provided (from target_class_groups), render per-class colored
+        contours instead of the all-combined Hess diagram.  Each dict must
+        have keys 'label', 'color', and 'mask' (boolean index into cat).
     mstarlim : tuple
         (min, max) plot range in log10(M/Msun).
     figsize : tuple of (float, float) or None
@@ -64,10 +101,18 @@ def mstar_corner(cat, labels, mstarlim=(6, 13), figsize=(10, 6)):
     n = len(labels)
     Xdata = np.column_stack([cat[c] for c in cat.colnames])
 
+    corner_groups = None
+    if groups is not None:
+        corner_groups = [
+            {'label': g['label'], 'color': g['color'],
+             'data': Xdata[g['mask']]}
+            for g in groups
+        ]
+
     fig = corner_plot(
         Xdata, labels=labels, ranges=[mstarlim] * n,
         bins=60, unity=True, diag_ylabel='Number of Galaxies',
-        figsize=figsize,
+        groups=corner_groups, figsize=figsize,
     )
 
     # --- y-axis normalization on diagonal panels ---
@@ -108,17 +153,24 @@ def mstar_corner(cat, labels, mstarlim=(6, 13), figsize=(10, 6)):
     return fig
 
 
-def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD, verbose=False):
-    """Corner plot: fastspec vs fastphot stellar masses, all targets.
+def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD,
+                  all_targets=False, verbose=False):
+    """Corner plot: fastspec vs fastphot stellar masses.
 
     Both VACs store LOGMSTAR with h=1 (Planck 2018 cosmology, Chabrier IMF),
     so no cosmological correction is needed for this internal comparison.
+
+    By default, contours are split by DESI target class (BGS/LRG/ELG/Other).
+    Pass ``all_targets=True`` to show all objects combined as a Hess diagram.
 
     Parameters
     ----------
     survey : str
         'sv3' (default, single catalog files) or 'main' (split nside=1 files,
         much larger).
+    all_targets : bool
+        If True, show all targets combined (Hess + black contours).
+        If False (default), split by target class with per-class colored contours.
     """
     mstarlim = (6, 13)
 
@@ -151,9 +203,18 @@ def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD, verbose=False):
     # pass only the mass columns to the corner function
     mass_cat = cat['LOGMSTAR_FASTSPEC', 'LOGMSTAR_FASTPHOT']
 
-    fig = mstar_corner(mass_cat, labels, mstarlim=mstarlim)
+    if all_targets:
+        groups = None
+        suffix = '-all'
+    else:
+        groups = target_class_groups(cat)
+        for g in groups:
+            print(f"  {g['label']}: {g['mask'].sum():,d} galaxies")
+        suffix = ''
 
-    outfile = os.path.join(FIGDIR, f'compare-mstar-{survey}.png')
+    fig = mstar_corner(mass_cat, labels, groups=groups, mstarlim=mstarlim)
+
+    outfile = os.path.join(FIGDIR, f'compare-mstar-{survey}{suffix}.png')
     fig.savefig(outfile, bbox_inches='tight', dpi=150)
     print(f'Wrote {outfile}')
     plt.close(fig)
@@ -174,6 +235,8 @@ def main():
                         help='Spectroscopic production name.')
     parser.add_argument('--main', action='store_true',
                         help='Use main-survey catalogs instead of sv3 (default).')
+    parser.add_argument('--all-targets', action='store_true',
+                        help='Show all targets combined (default: split by target class).')
     parser.add_argument('--verbose', action='store_true',
                         help='Print progress while reading catalogs.')
     args = parser.parse_args()
@@ -182,7 +245,8 @@ def main():
     os.makedirs(FIGDIR, exist_ok=True)
 
     if args.compare_mstar:
-        compare_mstar(survey=survey, specprod=args.specprod, verbose=args.verbose)
+        compare_mstar(survey=survey, specprod=args.specprod,
+                      all_targets=args.all_targets, verbose=args.verbose)
 
 
 if __name__ == '__main__':
