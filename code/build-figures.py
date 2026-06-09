@@ -37,7 +37,7 @@ def good_galaxies(cat):
 # compare-mstar
 # ---------------------------------------------------------------------------
 
-def mstar_corner(cat, labels, mstarlim=(6, 13), figsize=(12, 6)):
+def mstar_corner(cat, labels, mstarlim=(6, 13), figsize=(10, 6)):
     """Corner plot comparing log stellar masses from N catalogs.
 
     Parameters

@@ -171,11 +171,14 @@ def read_fastspec(survey='main', program='dark', specprod=DEFAULT_SPECPROD,
 
 def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
                 titles=None, unity=False, diag_ylabel='N',
+                contour_levels=None, contour_lw=1.5, smooth=1.0,
+                cmap='Blues', show_residuals=True,
                 figsize=None, suptitle='', subplots_adjust=None):
-    """Corner-style N×N plot: histograms on the diagonal, 2D density on the lower triangle.
+    """Corner-style N×N plot: histograms on the diagonal, Hess+contours on the lower triangle.
 
     Adapted from fastspecfit.qa._corner_plot for catalog-scale datasets.
-    Off-diagonal panels use hexbin density maps instead of scatter plots.
+    Off-diagonal panels show a log-stretched 2D histogram (Hess diagram) with
+    smoothed density contours at specified cumulative enclosed fractions overlaid.
 
     Parameters
     ----------
@@ -186,7 +189,7 @@ def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
     ranges : list of (lo, hi) tuples
         Axis limits for each parameter.
     bins : int
-        Number of histogram bins on the diagonal.
+        Number of bins along each axis for the 2D histogram and diagonal histograms.
     truths : list of float or None
         Reference values: vertical lines on diagonal, crosshairs on off-diagonal.
         Skipped if None.
@@ -196,9 +199,22 @@ def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
     titles : list of str or None
         Titles above each diagonal histogram. Skipped if None.
     unity : bool
-        Draw a 1:1 reference line on each off-diagonal panel.
+        Draw a dashed 1:1 reference line on each off-diagonal panel.
     diag_ylabel : str
         Y-axis label on the leftmost diagonal histogram.
+    contour_levels : list of float or None
+        Cumulative enclosed fractions at which to draw contour lines, e.g.
+        [0.5, 0.75, 0.95, 0.995]. Default: [0.5, 0.75, 0.95, 0.995].
+    contour_lw : float
+        Line width for contours.
+    smooth : float
+        Gaussian smoothing sigma (in bins) applied to the 2D histogram before
+        computing contour levels. Set to 0 to disable.
+    cmap : str
+        Colormap for the Hess diagram.
+    show_residuals : bool
+        If True, annotate each off-diagonal panel with Δ = col_y − col_x
+        statistics: median, mean ± std.
     figsize : tuple of (float, float) or None
         Figure size in inches as (width, height). Default is (3*ndim, 3*ndim),
         minimum 6×6.
@@ -212,6 +228,10 @@ def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
     matplotlib.figure.Figure
     """
     import matplotlib.pyplot as plt
+    from matplotlib.colors import LogNorm
+
+    if contour_levels is None:
+        contour_levels = [0.5, 0.75, 0.95, 0.995]
 
     plotdata = np.asarray(plotdata)
     ndim = plotdata.shape[1]
@@ -247,9 +267,39 @@ def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
                 else:
                     a.tick_params(labelleft=False)
             else:
-                a.hexbin(plotdata[:, xi], plotdata[:, yi], gridsize=50,
-                         bins='log', cmap='Blues', mincnt=1,
-                         extent=(lo_x, hi_x, lo_y, hi_y))
+                # 2D histogram
+                H, xedges, yedges = np.histogram2d(
+                    plotdata[:, xi], plotdata[:, yi],
+                    bins=bins, range=[[lo_x, hi_x], [lo_y, hi_y]],
+                )
+                xc = 0.5 * (xedges[:-1] + xedges[1:])
+                yc = 0.5 * (yedges[:-1] + yedges[1:])
+
+                # Hess diagram: log-stretched 2D histogram
+                a.pcolormesh(xedges, yedges, H.T,
+                             norm=LogNorm(vmin=1), cmap=cmap)
+
+                # Smooth a copy for contour level computation
+                if smooth > 0:
+                    from scipy.ndimage import gaussian_filter
+                    Hs = gaussian_filter(H, smooth)
+                else:
+                    Hs = H
+
+                # Convert cumulative enclosed fractions → histogram value thresholds
+                flat = np.sort(Hs.flatten())[::-1]
+                cumsum = np.cumsum(flat)
+                total = cumsum[-1]
+                if total > 0 and contour_levels:
+                    lvls = []
+                    for frac in contour_levels:
+                        idx = np.searchsorted(cumsum, frac * total)
+                        lvls.append(flat[min(idx, len(flat) - 1)])
+                    lvls = sorted(v for v in set(lvls) if v > 0)
+                    if lvls:
+                        a.contour(xc, yc, Hs.T, levels=lvls,
+                                  colors='k', linewidths=contour_lw)
+
                 if truths is not None:
                     a.axvline(truths[xi], color='C0', lw=1, ls='-', alpha=0.75)
                     a.axhline(truths[yi], color='C0', lw=1, ls='-', alpha=0.75)
@@ -257,6 +307,20 @@ def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
                     lo = max(lo_x, lo_y)
                     hi = min(hi_x, hi_y)
                     a.plot([lo, hi], [lo, hi], color='k', lw=1, ls='--')
+
+                # Residual statistics annotation: Δ = col_y − col_x
+                if show_residuals:
+                    resid = plotdata[:, yi] - plotdata[:, xi]
+                    med = np.median(resid)
+                    mu  = np.mean(resid)
+                    sig = np.std(resid)
+                    txt = (f'med $= {med:+.3f}$\n'
+                           f'$\\mu = {mu:+.3f}$, $\\sigma = {sig:.3f}$')
+                    a.text(0.04, 0.96, txt, transform=a.transAxes,
+                           fontsize='x-small', va='top', ha='left',
+                           bbox=dict(facecolor='white', edgecolor='none',
+                                     alpha=0.75, pad=2))
+
                 a.set_xlim(lo_x, hi_x)
                 a.set_ylim(lo_y, hi_y)
                 if xi == 0:
