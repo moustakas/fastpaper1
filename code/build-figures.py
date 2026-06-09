@@ -55,10 +55,10 @@ def target_class_groups(cat, survey):
     list of dict with keys 'label', 'color', 'mask' (boolean array).
     """
     if survey == 'sv3':
-        from desitarget.sv3.sv3_targetmask import sv3_desi_mask as desi_mask
+        from desitarget.sv3.sv3_targetmask import desi_mask
         desi_col, bgs_col = 'SV3_DESI_TARGET', 'SV3_BGS_TARGET'
     elif survey == 'sv1':
-        from desitarget.sv1.sv1_targetmask import sv1_desi_mask as desi_mask
+        from desitarget.sv1.sv1_targetmask import desi_mask
         desi_col, bgs_col = 'SV1_DESI_TARGET', 'SV1_BGS_TARGET'
     elif survey in ('main', 'special'):
         from desitarget.targets import desi_mask
