@@ -248,8 +248,8 @@ def main():
                         help='Spectroscopic production name.')
     parser.add_argument('--main', action='store_true',
                         help='Use main-survey catalogs instead of sv3 (default).')
-    parser.add_argument('--split-contours', action='store_true',
-                        help='Split off-diagonal contours by target class (default: all-objects Hess).')
+    parser.add_argument('--no-split-contours', dest='split_contours', action='store_false',
+                        help='Do not split off-diagonal contours by target class.')
     parser.add_argument('--verbose', action='store_true',
                         help='Print progress while reading catalogs.')
     args = parser.parse_args()
