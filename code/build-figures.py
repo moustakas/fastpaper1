@@ -222,7 +222,8 @@ def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD,
     groups = target_class_groups(cat, survey)
     for g in groups:
         print(f"  {g['label']}: {g['mask'].sum():,d} galaxies")
-    suffix = '-split' if split_contours else ''
+    #suffix = '-split' if split_contours else ''
+    suffix = ''
 
     fig = mstar_corner(mass_cat, labels, groups=groups,
                        split_contours=split_contours, mstarlim=mstarlim)
