@@ -367,7 +367,7 @@ def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
                 if unity:
                     lo = max(lo_x, lo_y)
                     hi = min(hi_x, hi_y)
-                    a.plot([lo, hi], [lo, hi], color='k', lw=1, ls='--')
+                    a.plot([lo, hi], [lo, hi], color='k', lw=1, ls='-')
 
                 a.set_xlim(lo_x, hi_x)
                 a.set_ylim(lo_y, hi_y)

@@ -228,7 +228,7 @@ def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD,
     fig = mstar_corner(mass_cat, labels, groups=groups,
                        split_contours=split_contours, mstarlim=mstarlim)
 
-    outfile = os.path.join(FIGDIR, f'compare-mstar-{survey}{suffix}.png')
+    outfile = os.path.join(FIGDIR, f'compare-mstar-{specprod}-{survey}{suffix}.png')
     fig.savefig(outfile, bbox_inches='tight', dpi=150)
     print(f'Wrote {outfile}')
     plt.close(fig)
