@@ -22,23 +22,23 @@ python code/build-figures.py --help
 
 Compares `LOGMSTAR` from the fastspec and fastphot VACs. Default uses the sv3 (SV3/one-percent) catalogs, which are compact single files. Pass `--main` to use the full main-survey catalogs (larger, split into 12 nside=1 healpix files). All masses use **h=1, Chabrier IMF (0.1–100 M☉)**.
 
-By default the figure splits objects by DESI target class (BGS/LRG/ELG/Other) with colored contours. Use `--all-targets` for the all-combined Hess diagram.
+Diagonal panels always show per-target-class colored histograms (BGS/LRG/ELG/Other). Off-diagonal panels default to the all-objects Hess diagram; use `--split-contours` to also split the contours by target class.
 
 ```bash
-# default: sv3, split by target class
+# default: sv3, all-objects Hess + per-class diagonal histograms
 python code/build-figures.py --compare-mstar [--specprod loa] [--verbose]
 
-# all targets combined
-python code/build-figures.py --compare-mstar --all-targets [--specprod loa] [--verbose]
+# per-class contours on off-diagonal panels too
+python code/build-figures.py --compare-mstar --split-contours [--specprod loa] [--verbose]
 
 # full main survey
 python code/build-figures.py --compare-mstar --main [--specprod loa] [--verbose]
 ```
 
 Outputs:
-- `tex/figures/compare-mstar-sv3.png` — by target class (default)
-- `tex/figures/compare-mstar-sv3-all.png` — all targets combined (`--all-targets`)
-- `tex/figures/compare-mstar-main.png` / `compare-mstar-main-all.png` (with `--main`)
+- `tex/figures/compare-mstar-sv3.png` — default (per-class diagonal, all-objects Hess)
+- `tex/figures/compare-mstar-sv3-split.png` — per-class contours (`--split-contours`)
+- `tex/figures/compare-mstar-main.png` / `compare-mstar-main-split.png` (with `--main`)
 
 ---
 

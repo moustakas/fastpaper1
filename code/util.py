@@ -173,6 +173,7 @@ def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
                 titles=None, unity=False, diag_ylabel='N',
                 contour_levels=None, contour_lw=1.5, smooth=1.0,
                 cmap='Blues', show_residuals=True, groups=None,
+                split_contours=False,
                 figsize=None, suptitle='', subplots_adjust=None):
     """Corner-style N×N plot: histograms on the diagonal, Hess+contours on the lower triangle.
 
@@ -217,11 +218,15 @@ def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
         statistics.  In single-group mode: one-line text annotation.  In
         groups mode: a per-group legend with colored Line2D handles.
     groups : list of dict or None
-        When provided, overrides ``plotdata`` and switches to multi-group mode.
-        Each dict must have keys ``'data'`` (array shape (n, ndim)), ``'color'``
-        (str), and ``'label'`` (str).  Off-diagonal panels show per-group
-        contours (no Hess background); diagonal panels show per-group
-        step histograms.
+        When provided, diagonal panels show per-group step histograms instead
+        of a single gray histogram.  Each dict must have keys ``'data'``
+        (array shape (n, ndim)), ``'color'`` (str), and ``'label'`` (str).
+        Off-diagonal behavior is controlled by ``split_contours``.
+    split_contours : bool
+        Only meaningful when ``groups`` is provided.  If False (default),
+        off-diagonal panels show the all-data Hess diagram (requires valid
+        ``plotdata``).  If True, off-diagonal panels show per-group contours
+        with no Hess background.
     figsize : tuple of (float, float) or None
         Figure size in inches as (width, height). Default is (3*ndim, 3*ndim),
         minimum 6×6.
@@ -242,9 +247,11 @@ def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
         contour_levels = [0.5, 0.75, 0.95, 0.995]
 
     use_groups = groups is not None and len(groups) > 0
+    use_groups_offdiag = use_groups and split_contours
     ndim = len(labels)
 
-    if not use_groups:
+    # plotdata is needed for off-diagonal Hess whenever split_contours is False
+    if not use_groups or not split_contours:
         plotdata = np.asarray(plotdata)
 
     if figsize is None:
@@ -284,7 +291,7 @@ def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
                 else:
                     a.tick_params(labelleft=False)
             else:
-                if use_groups:
+                if use_groups_offdiag:
                     # Per-group contours (no Hess background)
                     for grp in groups:
                         H, xedges, yedges = np.histogram2d(

@@ -80,7 +80,8 @@ def target_class_groups(cat, survey):
     ]
 
 
-def mstar_corner(cat, labels, groups=None, mstarlim=(6, 13), figsize=(10, 8)):
+def mstar_corner(cat, labels, groups=None, split_contours=False,
+                 mstarlim=(6, 13), figsize=(10, 8)):
     """Corner plot comparing log stellar masses from N catalogs.
 
     Parameters
@@ -90,9 +91,13 @@ def mstar_corner(cat, labels, groups=None, mstarlim=(6, 13), figsize=(10, 8)):
     labels : list of str
         Axis label for each mass column.
     groups : list of dict or None
-        If provided (from target_class_groups), render per-class colored
-        contours instead of the all-combined Hess diagram.  Each dict must
-        have keys 'label', 'color', and 'mask' (boolean index into cat).
+        If provided (from target_class_groups), diagonal panels show per-class
+        colored step histograms.  Each dict must have keys 'label', 'color',
+        and 'mask' (boolean index into cat).
+    split_contours : bool
+        If False (default), off-diagonal panels show the all-objects Hess
+        diagram regardless of ``groups``.  If True, off-diagonal panels show
+        per-class colored contours.
     mstarlim : tuple
         (min, max) plot range in log10(M/Msun).
     figsize : tuple of (float, float) or None
@@ -122,7 +127,7 @@ def mstar_corner(cat, labels, groups=None, mstarlim=(6, 13), figsize=(10, 8)):
     fig = corner_plot(
         Xdata, labels=labels, ranges=[mstarlim] * n,
         bins=60, unity=True, diag_ylabel='Number of Galaxies',
-        groups=corner_groups, figsize=figsize,
+        groups=corner_groups, split_contours=split_contours, figsize=figsize,
     )
 
     # --- y-axis normalization on diagonal panels ---
@@ -164,23 +169,24 @@ def mstar_corner(cat, labels, groups=None, mstarlim=(6, 13), figsize=(10, 8)):
 
 
 def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD,
-                  all_targets=False, verbose=False):
+                  split_contours=False, verbose=False):
     """Corner plot: fastspec vs fastphot stellar masses.
 
     Both VACs store LOGMSTAR with h=1 (Planck 2018 cosmology, Chabrier IMF),
     so no cosmological correction is needed for this internal comparison.
 
-    By default, contours are split by DESI target class (BGS/LRG/ELG/Other).
-    Pass ``all_targets=True`` to show all objects combined as a Hess diagram.
+    Diagonal panels always show per-target-class colored histograms.
+    Off-diagonal panels show the all-objects Hess diagram by default; pass
+    ``split_contours=True`` to show per-class colored contours instead.
 
     Parameters
     ----------
     survey : str
         'sv3' (default, single catalog files) or 'main' (split nside=1 files,
         much larger).
-    all_targets : bool
-        If True, show all targets combined (Hess + black contours).
-        If False (default), split by target class with per-class colored contours.
+    split_contours : bool
+        If False (default), off-diagonal panels show the all-objects Hess
+        diagram.  If True, off-diagonal panels show per-class colored contours.
     """
     mstarlim = (6, 13)
 
@@ -213,16 +219,13 @@ def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD,
     # pass only the mass columns to the corner function
     mass_cat = cat['LOGMSTAR_FASTSPEC', 'LOGMSTAR_FASTPHOT']
 
-    if all_targets:
-        groups = None
-        suffix = '-all'
-    else:
-        groups = target_class_groups(cat, survey)
-        for g in groups:
-            print(f"  {g['label']}: {g['mask'].sum():,d} galaxies")
-        suffix = ''
+    groups = target_class_groups(cat, survey)
+    for g in groups:
+        print(f"  {g['label']}: {g['mask'].sum():,d} galaxies")
+    suffix = '-split' if split_contours else ''
 
-    fig = mstar_corner(mass_cat, labels, groups=groups, mstarlim=mstarlim)
+    fig = mstar_corner(mass_cat, labels, groups=groups,
+                       split_contours=split_contours, mstarlim=mstarlim)
 
     outfile = os.path.join(FIGDIR, f'compare-mstar-{survey}{suffix}.png')
     fig.savefig(outfile, bbox_inches='tight', dpi=150)
@@ -245,8 +248,8 @@ def main():
                         help='Spectroscopic production name.')
     parser.add_argument('--main', action='store_true',
                         help='Use main-survey catalogs instead of sv3 (default).')
-    parser.add_argument('--all-targets', action='store_true',
-                        help='Show all targets combined (default: split by target class).')
+    parser.add_argument('--split-contours', action='store_true',
+                        help='Split off-diagonal contours by target class (default: all-objects Hess).')
     parser.add_argument('--verbose', action='store_true',
                         help='Print progress while reading catalogs.')
     args = parser.parse_args()
@@ -256,7 +259,7 @@ def main():
 
     if args.compare_mstar:
         compare_mstar(survey=survey, specprod=args.specprod,
-                      all_targets=args.all_targets, verbose=args.verbose)
+                      split_contours=args.split_contours, verbose=args.verbose)
 
 
 if __name__ == '__main__':
