@@ -37,29 +37,39 @@ def good_galaxies(cat):
 # compare-mstar
 # ---------------------------------------------------------------------------
 
-def target_class_groups(cat):
+def target_class_groups(cat, survey):
     """Return a list of corner_plot group dicts split by DESI target class.
 
-    Uses desitarget.targets.main_cmx_or_sv to auto-detect the survey flavor
-    (main vs. SV3 etc.) and choose the correct bitmask column and values.
+    Loads the survey-appropriate targetmask module explicitly so that bit names
+    and column names match the actual catalog columns.
 
     Parameters
     ----------
     cat : astropy.table.Table
-        Must include the survey-appropriate targeting bitmask column(s).
+        Must include the survey-appropriate targeting bitmask columns.
+    survey : str
+        DESI survey flavor: 'sv1', 'sv3', 'main', or 'special'.
 
     Returns
     -------
     list of dict with keys 'label', 'color', 'mask' (boolean array).
     """
-    from desitarget.targets import main_cmx_or_sv
-    tcols, masks, _ = main_cmx_or_sv(cat)
-    desi_col = tcols[0]
-    desi_m   = masks[0]
+    if survey == 'sv3':
+        from desitarget.sv3.sv3_targetmask import sv3_desi_mask as desi_mask
+        desi_col, bgs_col = 'SV3_DESI_TARGET', 'SV3_BGS_TARGET'
+    elif survey == 'sv1':
+        from desitarget.sv1.sv1_targetmask import sv1_desi_mask as desi_mask
+        desi_col, bgs_col = 'SV1_DESI_TARGET', 'SV1_BGS_TARGET'
+    elif survey in ('main', 'special'):
+        from desitarget.targets import desi_mask
+        desi_col, bgs_col = 'DESI_TARGET', 'BGS_TARGET'
+    else:
+        raise ValueError(f'Unknown survey {survey!r}; expected sv1, sv3, main, or special.')
 
-    is_bgs   = (cat[desi_col] & int(desi_m['BGS_ANY'])) != 0
-    is_lrg   = (cat[desi_col] & int(desi_m['LRG']))     != 0
-    is_elg   = (cat[desi_col] & int(desi_m['ELG']))     != 0
+    # BGS: use the dedicated BGS_TARGET column; sv3_desi_mask has no BGS_ANY summary bit
+    is_bgs   = cat[bgs_col] != 0
+    is_lrg   = (cat[desi_col] & int(desi_mask['LRG'])) != 0
+    is_elg   = (cat[desi_col] & int(desi_mask['ELG'])) != 0
     is_other = ~(is_bgs | is_lrg | is_elg)
 
     return [
@@ -207,7 +217,7 @@ def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD,
         groups = None
         suffix = '-all'
     else:
-        groups = target_class_groups(cat)
+        groups = target_class_groups(cat, survey)
         for g in groups:
             print(f"  {g['label']}: {g['mask'].sum():,d} galaxies")
         suffix = ''
