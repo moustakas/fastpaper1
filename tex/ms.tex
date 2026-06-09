@@ -30,8 +30,8 @@
 \newcommand{\oiii}{[\ion{O}{3}]$\lambda\lambda4959,5007$}
 \newcommand{\oiiidoublet}{[\ion{O}{3}]$\lambda\lambda4959,5007$}
 \newcommand{\oiiilam}{[\ion{O}{3}]$\lambda5007$}
-\newcommand{\ha}{H$\alpha$}
-\newcommand{\hb}{H$\beta$}
+\newcommand{\ha}{H\ensuremath{\alpha}}
+\newcommand{\hb}{H\ensuremath{\beta}}
 \newcommand{\deltachisq}{{\ensuremath{\Delta\chi^2}}}
 \newcommand{\vdisp}{\ensuremath{\sigma_\star}}
 \newcommand{\tauv}{\ensuremath{\tau_V}}
@@ -154,7 +154,20 @@ emission-line model additionally supports independent narrow and broad
 kinematic components, enabling \fastspecfit{} to characterize the
 broad Balmer-line emission that distinguishes type~1 AGN and to measure
 the broad wings that can arise in the Balmer lines of star-forming
-galaxies and other objects. \fastspecfit{} is also engineered for
+galaxies and other objects. More broadly, \fastspecfit{} imposes only
+the physical constraints the data strictly require---non-negative stellar
+population coefficients, an energy-conserving dust model, and kinematic
+bounds wide enough to accommodate the full spectral diversity of DESI
+targets---and otherwise allows the data to determine the best-fitting
+model. Unlike codes designed for a specific target class or spectral
+type, it applies the same fitting machinery uniformly to every spectrum,
+without prior assumptions about whether the object is a quiescent
+elliptical, a star-forming disk galaxy, or an AGN host. This
+assumption-minimal design philosophy minimizes classification-driven
+selection effects and maximizes the discovery potential of a dataset as
+large and heterogeneous as DESI: unusual or physically ambiguous objects
+emerge naturally from the fit, rather than requiring special-case
+handling or targeted reanalysis. \fastspecfit{} is also engineered for
 speed: the code fits a typical DESI spectrum in a few seconds on a
 single CPU core, making it practical to process the full DR2
 dataset---and to refit it as the data-reduction pipeline and stellar
@@ -184,13 +197,11 @@ detail (\S\ref{sec:modeling}), including the spectrophotometric and
 physical quantities the code derives (\S\ref{ssec:quantities}), and
 illustrate the complete fitting sequence applied end-to-end to a single
 representative BGS target (\S\ref{sec:casestudy}).
-We validate these measurements using repeat spectroscopic observations and
-direct comparisons to other SED-fitting codes (\S\ref{sec:validation}),
-characterize the code's computational performance
-(\S\ref{sec:performance}), and present the \fastspecfit{} value-added
-catalog for DESI Data Release 2, comprising 37 million extragalactic targets,
-along with updated catalogs for the Early Data Release and Data Release 1
-(\S\ref{sec:vac}). We conclude with a summary and
+We then present the \fastspecfit{} value-added catalog for DESI Data Release 2,
+comprising 37 million extragalactic targets, along with updated catalogs for
+the Early Data Release and Data Release 1 (\S\ref{sec:vac}); this section also
+documents the code's computational performance (\S\ref{ssec:performance}) and
+validates the measurements against independent codes (\S\ref{ssec:validation}). We conclude with a summary and
 an outlook toward future improvements (\S\ref{sec:summary}).
 
 
@@ -1107,63 +1118,6 @@ use to targets where the host-galaxy continuum dominates.
 
 
 %% ============================================================
-\section{Validation}
-\label{sec:validation}
-%% ============================================================
-
-\subsection{Repeat Observations}
-\label{ssec:repeats}
-
-\begin{itemize}
-  \item DESI repeat exposures of the same targets (BGS; Fuji specprod)
-  \item Repeatability of emission-line fluxes, stellar masses, and
-    $\vdisp$
-\end{itemize}
-
-\subsection{Flux Uncertainty Characterization}
-\label{ssec:fluxivar}
-
-\begin{itemize}
-  \item Monte Carlo simulations at fixed S/N (5, 10) with known input
-    fluxes
-  \item Demonstrate flux accuracy and uncertainty reliability vs.\ S/N
-\end{itemize}
-
-\subsection{Comparison to Other Codes}
-\label{ssec:comparisons}
-
-\begin{itemize}
-  \item Stellar masses: vs.\ CIGALE \citep{siudek24a}, Prospector,
-    \texttt{kcorrect} \citep{blanton07a}
-  \item Emission-line fluxes: vs.\ pPXF \citep{cappellari22a}, DESI
-    \texttt{emfit}, \citet{salim16a} (SDSS overlap)
-  \item Highlight \fastspecfit{}'s unique joint spectrophotometric approach
-\end{itemize}
-
-\begin{figure*}
-\includegraphics[width=6.5in]{ppxf-vdisp.png}
-\caption{Comparison of \fastspecfit{} stellar velocity dispersions with
-  those measured by \texttt{pPXF}.\label{fig:vdisp}}
-\end{figure*}
-
-% Compare with PROVABGS: https://data.desi.lbl.gov/desi/users/chahah/provabgs/edr/
-% Compare SFRs with GSWLC: https://salims.pages.iu.edu/gswlc/
-
-
-%% ============================================================
-\section{Computational Performance}
-\label{sec:performance}
-%% ============================================================
-
-\begin{itemize}
-  \item Compute time per spectrum; Perlmutter hardware description
-  \item Hybrid parallelism: MPI across nodes + multiprocessing within
-    nodes
-  \item \todo{Benchmark numbers.}
-\end{itemize}
-
-
-%% ============================================================
 \section{Value-Added Catalogs}
 \label{sec:vac}
 %% ============================================================
@@ -1277,6 +1231,169 @@ the online documentation for the latest status of corrections. Second, a small
 fraction of spectra with strong emission lines suffer poor line fits due to a
 clipping error in the internal flux uncertainty routine. We fix both issues in
 \fastspecfit{}~v3.2.0, and we will release updated catalogs in due course.
+
+
+\subsection{Computational Performance}
+\label{ssec:performance}
+
+We run \fastspecfit{} on the NERSC Perlmutter supercomputer, whose regular CPU
+nodes each provide two AMD EPYC 7763 (Milan) processors with 64 cores each.
+The code fits a typical DESI spectrum in approximately \todo{X}~seconds on a
+single core, exploiting a hybrid parallelism model to process the full DR2
+sample efficiently: we use MPI to distribute independent groups of HEALPix
+pixels across nodes, and Python multiprocessing to parallelize the
+per-spectrum fits across all available cores within each node. Processing the
+complete DR2 catalog of approximately 38~million spectra required approximately
+\todo{X}~node-hours on Perlmutter. \todo{Add benchmark breakdown: seconds per
+spectrum by target class, total wall-clock time, etc.}
+
+\subsection{Validation}
+\label{ssec:validation}
+
+We validate the \fastspecfit{} measurements by comparing them against
+independent codes applied to overlapping subsets of the DR2 sample. For each
+comparison we select targets with reliable measurements in both catalogs and
+quantify systematic offsets and scatter as a function of signal-to-noise ratio,
+redshift, and target class. \todo{Add summary of overall agreement and key
+findings.}
+
+\textit{Stellar velocity dispersions.}---Figure~\ref{fig:vdisp} compares
+\fastspecfit{} $\vdisp$ measurements against those from \texttt{pPXF}
+\citep{cappellari22a} for a matched sample of BGS galaxies with high
+signal-to-noise stellar continua. \todo{Quantify agreement: rms, bias.}
+
+\begin{figure*}
+\includegraphics[width=6.5in]{ppxf-vdisp.png}
+\caption{Comparison of \fastspecfit{} stellar velocity dispersions with
+  those from \texttt{pPXF} \citep{cappellari22a} for a matched BGS
+  sample.\label{fig:vdisp}}
+\end{figure*}
+
+\textit{Stellar masses.}---We compare \fastspecfit{} stellar masses against
+independent estimates from CIGALE \citep{siudek24a}, Prospector
+\citep{johnson21a}, \texttt{kcorrect} \citep{blanton07a}, and PROVABGS
+\citep{hahn24a}. \todo{Describe agreement; highlight systematic offsets from
+non-parametric vs.\ parametric SFH choices.}
+
+\textit{Emission-line fluxes and star-formation rates.}---We compare
+emission-line fluxes against \texttt{pPXF} \citep{cappellari22a}, the DESI
+\texttt{emlinefit} afterburner \citep{raichoor23a}, and the GSWLC catalog of
+\citet{salim16a} for targets in the SDSS footprint. \todo{Describe agreement
+and key diagnostics compared (H$\alpha$, [\ion{O}{2}]).}
+
+
+%% ============================================================
+\section{Discussion}
+\label{sec:discussion}
+%% ============================================================
+
+The \fastspecfit{} DR2 catalog provides simultaneous measurements of stellar
+continuum, emission-line, and broadband SED properties for approximately
+38~million extragalactic targets spanning four decades in stellar mass and
+nearly two decades in redshift. In this section we illustrate the scientific
+reach of these measurements with five representative figures: the distribution
+of stellar mass with redshift across the three primary galaxy target classes
+(\S\ref{ssec:mz}); the star-forming main sequence and the EW(\oii)--$D_n(4000)$
+diagram (\S\ref{ssec:sfms}); and the optical emission-line and broad-line
+diagnostics that \fastspecfit{} uses to identify and characterize AGN
+(\S\ref{ssec:agn}).
+
+\subsection{Galaxy Stellar Populations}
+\label{ssec:mz}
+
+\begin{figure*}
+%\includegraphics[width=6.5in]{figures/mstar-redshift.png}
+\caption{Write me.\label{fig:mstar_z}}
+\end{figure*}
+
+Figure~\ref{fig:mstar_z} shows the stellar mass--redshift distribution for
+BGS, LRG, and ELG targets in the DR2 main survey. The three target classes
+trace complementary regions of this plane: BGS spans the widest mass range at
+$z \lesssim 0.6$, capturing galaxies from well below the knee of the stellar
+mass function to the most massive systems in the local universe; LRGs select
+the most massive, passively evolving galaxies over $0.4 \lesssim z \lesssim
+1.1$; and ELGs preferentially identify low-to-intermediate mass star-forming
+systems at $0.6 \lesssim z \lesssim 1.6$. Together these three samples provide
+near-continuous coverage of the galaxy population from $z \approx 0$ to $z
+\approx 1.6$, making the DR2 catalog a uniquely comprehensive resource for
+studies of galaxy evolution over the past $\sim$10~Gyr.
+
+\subsection{Star Formation}
+\label{ssec:sfms}
+
+\begin{figure*}
+%\includegraphics[width=6.5in]{figures/sfr-mstar-bgs.png}
+\caption{Write me.\label{fig:sfr_mstar}}
+\end{figure*}
+
+Figure~\ref{fig:sfr_mstar} shows the H$\alpha$-based star-formation rate as a
+function of stellar mass for BGS targets at $z \lesssim 0.4$, where H$\alpha$
+falls within the DESI spectral window. We convert H$\alpha$ luminosities to
+SFRs following \citet{kennicutt98a}, correcting for dust attenuation using the
+Balmer decrement (H$\alpha$/H$\beta$) and adopting a Chabrier IMF. The
+star-forming main sequence emerges clearly as a tight ridge, with a scatter of
+\todo{X}~dex and a normalization consistent with published measurements at
+comparable redshifts \todo{(cite)}. The population of passive galaxies below
+the sequence and AGN hosts scattered above it are also clearly visible, together
+illustrating \fastspecfit{}'s ability to characterize the full diversity of
+galaxy activity from a uniform, simultaneous fit to spectra and photometry.
+
+\begin{figure*}
+%\includegraphics[width=6.5in]{figures/ew-dn4000.png}
+\caption{Write me.\label{fig:ew_dn4000}}
+\end{figure*}
+
+Figure~\ref{fig:ew_dn4000} shows EW(\oii) as a function of $D_n(4000)$ for
+all three galaxy target classes. The two quantities are complementary tracers
+of the same underlying physical progression: $D_n(4000)$ encodes the
+luminosity-weighted mean stellar age, rising steeply as a galaxy transitions
+from active star formation to quiescence, while EW(\oii) traces the
+instantaneous ionizing photon budget relative to the continuum. Star-forming
+galaxies occupy the low-$D_n(4000)$, high-EW corner; quiescent systems cluster
+at high $D_n(4000)$ and low EW; and the three target classes carve out distinct
+but overlapping loci that directly reflect their photometric selection
+functions. LRGs dominate the quiescent sequence, ELGs concentrate along the
+star-forming locus, and BGS galaxies span the full range, including the
+transition region of recently quenched systems. \todo{Quantify separation
+between classes; note any redshift evolution within each class.}
+
+\subsection{Active Galactic Nuclei}
+\label{ssec:agn}
+
+\begin{figure*}
+%\includegraphics[width=6.5in]{figures/bpt-diagram.png}
+\caption{Write me.\label{fig:bpt}}
+\end{figure*}
+
+Figure~\ref{fig:bpt} shows the \citet{baldwin81a} BPT diagram---[\ion{O}{3}]~$\lambda5007$/\hb\
+versus [\ion{N}{2}]~$\lambda6584$/\ha---for BGS targets at $z \lesssim 0.4$
+with well-detected lines in all four diagnostics. The demarcation curves of
+\citet{kewley01a} and \citet{kauffmann03a} separate the star-forming sequence,
+composite systems, and AGN hosts; the density distribution of the DR2 BGS
+sample across these regions encodes the mix of nuclear activity in the
+low-redshift galaxy population. \fastspecfit{}'s joint spectrophotometric fit
+enables construction of this diagram for \todo{X}~million BGS galaxies in a
+single, homogeneous analysis---a nearly tenfold increase over the SDSS
+spectroscopic sample \todo{(cite)}. \todo{Quantify AGN, composite, and
+star-forming fractions; note redshift or mass dependence.}
+
+\begin{figure*}
+%\includegraphics[width=6.5in]{figures/broad-line-fraction.png}
+\caption{Write me.\label{fig:broad_fraction}}
+\end{figure*}
+
+Figure~\ref{fig:broad_fraction} shows the fraction of BGS galaxies whose
+H$\alpha$ profile requires a significant broad component, as determined by the
+selection criterion described in \S\ref{sssec:broadlines}, as a function of
+stellar mass. The broad-line fraction rises steeply toward high stellar mass,
+reaching \todo{X}\% at $\logmstar \gtrsim 11$, consistent with the well-known
+increase in AGN incidence and black-hole mass toward more massive galaxies
+\todo{(cite)}. Because \fastspecfit{} fits the narrow+broad model to every
+spectrum uniformly---without any prior AGN selection---this fraction provides a
+nearly complete census of type~1 AGN in the low-redshift universe accessible
+to DESI, free of the heterogeneous targeting and spectral quality cuts that
+affect targeted AGN surveys. \todo{Compare with published type~1 AGN fractions
+from SDSS and other surveys.}
 
 
 %% ============================================================
