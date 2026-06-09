@@ -180,10 +180,10 @@ for the next generation of weak-lensing surveys. The DR2 value-added catalog
 presented here extends this foundation to 37 million extragalactic targets.
 
 In this paper we describe the algorithms underlying \fastspecfit{} in
-detail (\S\ref{sec:modeling}), illustrate the complete fitting sequence
-applied end-to-end to a single representative BGS target
-(\S\ref{sec:casestudy}), and document the derived physical quantities
-the code measures (\S\ref{sec:quantities}).
+detail (\S\ref{sec:modeling}), including the spectrophotometric and
+physical quantities the code derives (\S\ref{ssec:quantities}), and
+illustrate the complete fitting sequence applied end-to-end to a single
+representative BGS target (\S\ref{sec:casestudy}).
 We validate these measurements using repeat spectroscopic observations and
 direct comparisons to other SED-fitting codes (\S\ref{sec:validation}),
 characterize the code's computational performance
@@ -273,38 +273,56 @@ photometry before the joint fit; we describe this step in
 
 %\input{tables/table-desi}
 
-\subsection{Sample Selection}
-\label{ssec:sample}
+\subsection{DESI Target Classes and Redshifts}
+\label{ssec:targets}
 
-We model all extragalactic DESI targets that satisfy three selection criteria: a
-spectroscopic redshift $z > 10^{-3}$, a non-sky target class
-(\texttt{OBJTYPE}~=~\texttt{TGT}), and a valid spectrum
-(\texttt{ZWARN}~\&~\texttt{NODATA}~=~0, where the \texttt{NODATA} bit flags
-spectra in which all extracted inverse-variance values are zero). No cuts are
-imposed on targeting bits or other redshift-warning bits, ensuring that
-\fastspecfit{} results are available for the widest possible range of objects
-across every DESI target class.
+DESI observations are organized by \textit{survey} and
+\textit{program} \citep{schlafly23a}. The primary five-year program is
+the \textit{main survey}, which began on 2021 May 14; it was preceded
+by three survey-validation (SV) phases---Target Selection Validation
+(SV1), Operations Development (SV2), and the One-Percent Survey (SV3),
+the last of which covered roughly 1\% of the final DESI footprint to
+high spectroscopic completeness---documented in detail in the DESI
+Early Data Release
+\citep[EDR;][]{desi-collaboration24d,desi-collaboration24e}. A
+\textit{special} survey accommodates tertiary targets observed on
+dedicated tiles outside the standard survey strategy. Within each
+survey, observations are assigned to one of three programs on the
+basis of sky conditions: the \textit{bright} program (observations
+taken in the presence of moonlight or reduced transparency), the
+\textit{dark} program (nominal dark-sky conditions), and the
+\textit{backup} program (twilight and poor-weather time, devoted
+exclusively to stellar targets).
 
-For a small but astrophysically important fraction of quasar targets, the
-\texttt{Redrock} spectral classification pipeline assigns an incorrect redshift.
-We correct these using the \texttt{QuasarNet} and MgII afterburner catalogs
-distributed alongside each \texttt{Redrock} output file. For primary QSO
-targets, we replace the \texttt{Redrock} redshift when two conditions are met:
-\texttt{QuasarNet} independently classifies the object as a QSO, and the maximum
-line confidence across six diagnostic transitions (Ly$\alpha$, C\,\textsc{iv},
-C\,\textsc{iii}], Mg\,\textsc{ii}, \hb, and \ha) exceeds 0.99 for DR2 (0.95 for
-DR1 and the EDR). A broader criterion is applied to variable WISE QSO secondary
-targets; full details are documented in the online VAC documentation. The
-original \texttt{Redrock} redshift and \texttt{ZWARN} bitmask are preserved in
-the output columns \texttt{Z\_RR} and \texttt{ZWARN\_RR}. In total, corrected
-redshifts are applied to approximately 9,100 targets in the EDR, 74,000 in DR1,
-and 169,000 in DR2.
+Primary extragalactic targets are photometrically selected from the Legacy
+Surveys \citep{dey19a} and organized into four classes spanning complementary
+redshift ranges \citep{myers23a}: the Bright Galaxy Survey
+\citep[BGS, $0 < z \lesssim 0.6$;][]{hahn23a}, which targets galaxies to
+$r \lesssim 20.2$~mag, is observed under bright conditions; and the Luminous
+Red Galaxy \citep[LRG, $0.4 < z \lesssim 1.1$;][]{zhou23a}, Emission-Line
+Galaxy \citep[ELG, $0.6 < z \lesssim 1.6$;][]{raichoor23a}, and Quasar
+\citep[QSO, $0.9 < z \lesssim 4$;][]{chaussidon23a} samples are all observed
+under dark conditions. Secondary and tertiary targets supplement these primary
+classes for bespoke science programs and can be assigned to any program.
 
-The numbers of targets satisfying these criteria in each DESI data release,
-organized by survey and observing program, are summarized in
-Table~\ref{table:sample}; we describe the structure and content of the
-resulting value-added catalogs in \S\ref{sec:vac}.
-
+Spectroscopic redshifts and spectral classifications are determined by Redrock
+\citep{anand24a}, a principal component analysis (PCA) template-fitting code
+that independently fits templates for stars (\texttt{SPECTYPE=STAR}), galaxies
+(\texttt{SPECTYPE=GALAXY}), and quasars (\texttt{SPECTYPE=QSO}) over a
+type-dependent grid of trial redshifts \citep{guy23a}. The two primary
+redshift-quality diagnostics reported by Redrock are \texttt{ZWARN}, a
+per-object warning bitmask where \texttt{ZWARN=0} signals no known hardware,
+data-quality, or redshift-fitting problems, and \texttt{DELTACHI2}, the
+difference in $\chi^2$ between the best and second-best fits across all
+spectral classes---a value of \texttt{DELTACHI2}~$\geq 25$ corresponds roughly
+to $5\sigma$ confidence \citep{desi-collaboration24d}. Three
+\textit{after-burner} processing steps follow Redrock: an emission-line fitter
+(\texttt{emlinefit}; \citealt{raichoor23a}) used to validate ELG redshifts; a
+Mg\,\textsc{ii}~$\lambda\lambda$2796,2803 doublet fitter \citep{chaussidon23a};
+and the \texttt{QuasarNET} neural-network QSO classifier \citep{busca18a}. The
+latter two are essential for correctly classifying and measuring accurate
+redshifts for QSOs; \fastspecfit{} uses their outputs to correct Redrock
+redshifts for a subset of QSO targets (\S\ref{ssec:zqso}).
 
 %% ============================================================
 \section{Spectrophotometric Modeling}
@@ -383,7 +401,7 @@ summarizes the full template grid.
 \caption{Write me.\label{fig:sps}}
 \end{figure*}
 
-\input{tables/table-templates}
+%\input{tables/table-templates}
 
 \subsection{Emission-Line List}
 \label{ssec:emlinelist}
@@ -423,6 +441,11 @@ pass---the \emph{line masker}---that measures empirical line widths and
 velocity shifts for each kinematic population and constructs per-line
 pixel masks that the continuum fitter uses to exclude
 emission-line-contaminated regions.
+
+\begin{figure*}
+\includegraphics[width=6.5in]{example-emlines}
+\caption{Write me.\label{fig:linefit}}
+\end{figure*}
 
 We organize the 40 emission lines (\S\ref{ssec:emlinelist}) into 23
 spectrally adjacent \emph{patches}, pre-assigned in the configuration
@@ -756,10 +779,8 @@ effective width $\sigma_\mathrm{eff} = \sqrt{\sigma^2 + \sigma_{G,\ell}^2}$
 (where $\sigma_{G,\ell} = \sigma_G/\lambda^*$), the pre-convolved profile
 at pixel center $\lambda_j$ is
 \begin{equation}
-  \boxed{
   F_j \;=\; A\,\frac{\sigma}{\sigma_\mathrm{eff}}
     \exp\!\left(-\frac{x_j^2}{2\sigma_\mathrm{eff}^2}\right).
-  }
   \label{eq:model}
 \end{equation}
 The amplitude factor $\sigma/\sigma_\mathrm{eff} \leq 1$ accounts for
@@ -834,11 +855,6 @@ lines falling below this threshold are reported as $1\sigma$ upper
 limits, with continuum flux densities interpolated from the best-fitting
 SED model. Equivalent widths use the same SED-interpolated continuum.
 
-\begin{figure*}
-\includegraphics[width=6.5in]{example-emlines}
-\caption{Write me.\label{fig:linefit}}
-\end{figure*}
-
 \subsubsection{Broad-Line Decomposition}
 \label{sssec:broadlines}
 
@@ -908,6 +924,44 @@ $(\Delta v)_{\mathrm{broad}}$  & $\pm2500$~\kms \\
   the broad-line bounds.}
 \end{deluxetable}
 
+\subsection{Spectrophotometric and Physical Properties}
+\label{ssec:quantities}
+
+We derive several physical quantities from the best-fitting continuum model and
+report them in the output catalog (\S\ref{sec:appendix_datamodel}). We compute
+the stellar mass as the sum of the NNLS template coefficients $\mathbf{c}$,
+which we weight by the FSPS surviving-mass fractions that account for the mass
+stellar evolution returns to the ISM via winds and supernovae. We caution that
+non-parametric SFH models can yield stellar masses that are systematically
+higher---by $\sim$0.3--0.4~dex on average---than parametric estimates, because
+a flexible SFH can accommodate more mass in old, low-luminosity stellar
+populations \citep{leja19a,leja20a}. We estimate the instantaneous
+star-formation rate (SFR) from the coefficient of the youngest age bin
+(0--30~Myr), dividing by the width of that bin to obtain the mean SFR averaged
+over the most recent 30~Myr of star-formation history. Although \fastspecfit{}
+measures both the H$\alpha$ luminosity and the rest-frame UV continuum---each of
+which serves as an independent SFR diagnostic---we do not currently convert
+either quantity to a SFR within the code.
+
+We compute K-corrections by comparing synthesized observer-frame and rest-frame
+photometry from the best-fit SED model \citep{hogg02a,blanton07a}, and we derive
+rest-frame absolute magnitudes in each Legacy Survey band via the standard
+distance-modulus relation. We additionally report monochromatic luminosities at
+1450, 1500, 1700, 2800, 3000, and 5100~\AA, which we interpolate from the
+best-fit model and which are especially useful for UV-selected samples and AGN
+host-galaxy studies.
+
+We compute equivalent widths (EWs) for all modeled emission lines as the ratio
+of the integrated line flux to the local continuum flux density, which we
+interpolate from the best-fit SED model; this choice ensures that EW estimates
+remain insensitive to continuum-subtraction noise in the observed spectrum. We
+measure the $4000$~\AA\ break strength $D_n(4000)$ \citep{balogh99a} in two
+complementary ways: from the best-fit model alone, which is noise-free but
+sensitive to template mismatch, and directly from the observed spectrum after
+subtracting the best-fit emission-line model, which is noisy but
+model-independent. We report both estimates, which together provide a
+consistency check on the stellar population fit.
+
 \subsection{Parameter Uncertainties}
 \label{ssec:uncertainties}
 
@@ -961,47 +1015,6 @@ whether the stellar velocity dispersion is a free parameter.
     model photometry
   \item Walk through the output of each algorithmic step in \S\ref{sec:modeling}
     applied to this object
-\end{itemize}
-
-
-%% ============================================================
-\section{Derived Physical Properties}
-\label{sec:quantities}
-%% ============================================================
-
-\subsection{Stellar Masses and Star-Formation Rates}
-\label{ssec:mstar_sfr}
-
-\begin{itemize}
-  \item Stellar mass from NNLS coefficients and FSPS surviving mass
-    fractions
-  \item SFR from emission lines (\ha, \oii) and/or UV continuum
-  \item $D_n(4000)$ from line-free best-fit model \citep{balogh99a}
-  \item Note: stellar masses from non-parametric SFHs can be
-    $\sim$0.3--0.4~dex higher than parametric estimates
-    \citep{leja19a, leja20a}
-\end{itemize}
-
-\subsection{K-corrections and Rest-Frame Magnitudes}
-\label{ssec:kcorr}
-
-\begin{itemize}
-  \item K-corrections by comparing synthesized observer- and rest-frame
-    photometry from the best-fit SED \citep{hogg02a, blanton07a}
-  \item Rest-frame absolute magnitudes from distance modulus +
-    K-correction
-  \item Monochromatic luminosities at 1450, 1500, 1700, 2800, 3000, and
-    5100~\AA
-\end{itemize}
-
-\subsection{Spectral Indices and Equivalent Widths}
-\label{ssec:indices}
-
-\begin{itemize}
-  \item EWs computed relative to local continuum flux densities from the
-    SED model
-  \item $D_n(4000)$ measured from both the best-fit model and the observed
-    spectrum \citep{balogh99a}
 \end{itemize}
 
 
@@ -1067,6 +1080,41 @@ whether the stellar velocity dispersion is a free parameter.
 \label{sec:vac}
 %% ============================================================
 
+\subsection{Sample Selection}
+\label{ssec:sample}
+
+We model all extragalactic DESI targets that satisfy three selection criteria: a
+spectroscopic redshift $z > 10^{-3}$, a non-sky target class
+(\texttt{OBJTYPE}~=~\texttt{TGT}), and a valid spectrum
+(\texttt{ZWARN}~\&~\texttt{NODATA}~=~0, where the \texttt{NODATA} bit flags
+spectra in which all extracted inverse-variance values are zero). No cuts are
+imposed on targeting bits or other redshift-warning bits, ensuring that
+\fastspecfit{} results are available for the widest possible range of objects
+across every DESI target class.
+
+\subsection{Updated QSO Redshifts}
+\label{ssec:zqso}
+
+For a small but astrophysically important fraction of quasar targets, the
+\texttt{Redrock} spectral classification pipeline assigns an incorrect redshift.
+We correct these using the \texttt{QuasarNet} and MgII afterburner catalogs
+distributed alongside each \texttt{Redrock} output file. For primary QSO
+targets, we replace the \texttt{Redrock} redshift when two conditions are met:
+\texttt{QuasarNet} independently classifies the object as a QSO, and the maximum
+line confidence across six diagnostic transitions (Ly$\alpha$, C\,\textsc{iv},
+C\,\textsc{iii}], Mg\,\textsc{ii}, \hb, and \ha) exceeds 0.99 for DR2 (0.95 for
+DR1 and the EDR). A broader criterion is applied to variable WISE QSO secondary
+targets; full details are documented in the online VAC documentation. The
+original \texttt{Redrock} redshift and \texttt{ZWARN} bitmask are preserved in
+the output columns \texttt{Z\_RR} and \texttt{ZWARN\_RR}. In total, corrected
+redshifts are applied to approximately 9,100 targets in the EDR, 74,000 in DR1,
+and 169,000 in DR2.
+
+The numbers of targets satisfying these criteria in each DESI data release,
+organized by survey and observing program, are summarized in
+Table~\ref{table:sample}; we describe the structure and content of the
+resulting value-added catalogs in \S\ref{sec:vac}.
+
 \subsection{Catalog Description and Data Format}
 \label{ssec:format}
 
@@ -1112,6 +1160,11 @@ and all catalogs are publicly accessible via
 \subsection{DR2 Catalog}
 \label{ssec:dr2}
 
+\begin{figure*}
+\includegraphics[width=6.5in]{figures/compare-mstar-loa-sv3.png}
+\caption{Write me.\label{fig:compare_mstar}}
+\end{figure*}
+
 The DR2 value-added catalog (Loa~v1.0) was produced using \fastspecfit{}
 version~3.1.4 with the \texttt{ftemplates-chabrier-2.0.0.fits} SPS template
 library (\S\ref{sec:appendix_sps}) and \texttt{desitarget}~v2.8.0 for target
@@ -1130,6 +1183,12 @@ LRG, ELG, and QSO targets observed under dark conditions---contributes
 36.5~million. We describe the EDR and DR1 catalogs in more detail, including
 key differences in template versions and algorithmic choices relative to DR2, in
 \S\ref{sec:appendix_vacs}.
+
+Figure~\ref{fig:compare_mstar} compares the stellar masses derived using \fastspec{} and \fastphot.
+
+Note: stellar masses from non-parametric SFHs can be
+$\sim$0.3--0.4~dex higher than parametric estimates \citep{leja19a,
+  leja20a}.
 
 Two known issues affect the DR2 catalog. First, there are significant errors in
 the inverse-variance estimates for emission-line fluxes and equivalent widths;
