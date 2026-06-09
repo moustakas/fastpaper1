@@ -996,25 +996,113 @@ quantities; they differ only in the data that enter the fit and in
 whether the stellar velocity dispersion is a free parameter.
 
 %% ============================================================
-\section{Case Study: A Low-Redshift BGS Nucleus}
+\section{Illustrative Examples}
 \label{sec:casestudy}
 %% ============================================================
 
+We illustrate the behavior of \fastspecfit{} across the full range of DESI
+extragalactic targets with three representative fits spanning nearly two decades
+in redshift: a low-redshift BGS galaxy with prominent AGN broad-line emission
+(\S\ref{ssec:example_bgs}); an intermediate-redshift ELG at $z \approx 0.8$,
+where several emission lines besides the \oii\ doublet fall within the DESI
+spectral window (\S\ref{ssec:example_elg}); and a high-redshift QSO
+(\S\ref{ssec:example_qso}). Together these examples highlight both the dynamic
+range of the code and its known limitations---most notably that the SPS
+templates are entirely stellar, so users should interpret continuum-derived
+quantities for QSOs and broad-line AGN with appropriate caution.
+
+\subsection{Low-Redshift BGS Galaxy}
+\label{ssec:example_bgs}
+
 \begin{figure*}
 \includegraphics[width=6.5in]{figures/fastspec-example-39633405565996021.png}
-\caption{Write me.\label{fig:example1}}
+\caption{Write me.\label{fig:example_bgs}}
 \end{figure*}
 
+Figure~\ref{fig:example_bgs} shows the \fastspecfit{} output for a low-redshift
+BGS galaxy at $z \approx \todo{X}$ observed with the DESI fiber centered on
+the nucleus. The top-left panel shows the Legacy Survey $grz$ color image with
+the $1\farcs5$-diameter fiber footprint overlaid; the remaining panels display
+the full observed DESI spectrum across all three cameras, the best-fit
+spectrophotometric model, and the broadband SED with synthesized model
+photometry from the optical through the mid-infrared. This object provides a
+clean end-to-end illustration of the complete fitting sequence described in
+\S\ref{sec:modeling}: the high signal-to-noise stellar continuum reveals
+prominent absorption features, the emission-line spectrum shows both narrow
+forbidden lines and broad Balmer emission indicative of a type~1 AGN, and
+strong WISE detections anchor the infrared SED.
+
 \begin{itemize}
-  \item Object: low-redshift BGS galaxy observed with the fiber centered
-    on the nucleus; high signal-to-noise stellar continuum; well-detected
-    broad Balmer emission indicative of an AGN; good optical and
-    mid-infrared photometry
-  \item Multi-panel figure: Legacy Survey $grz$ color image with fiber
-    overlay; full DESI spectrum (B, R, Z cameras); broadband SED with
-    model photometry
-  \item Walk through the output of each algorithmic step in \S\ref{sec:modeling}
-    applied to this object
+  \item Walk through each stage in sequence: line masker, velocity-dispersion
+    fit, aperture correction, joint spectrophotometric continuum fit, smooth
+    continuum correction, narrow+broad emission-line fit and model selection
+  \item Highlight the broad H$\alpha$ and H$\beta$ components and the
+    $\Delta\chi^2$ criterion that selects the broad model
+    (\S\ref{sssec:broadlines})
+  \item Note how the aperture correction places the fiber spectrum on the
+    total-flux scale of the broadband photometry
+\end{itemize}
+
+\subsection{Intermediate-Redshift Emission-Line Galaxy}
+\label{ssec:example_elg}
+
+%\begin{figure*}
+%\includegraphics[width=6.5in]{figures/fastspec-example-elg.png}
+%\caption{Write me.\label{fig:example_elg}}
+%\end{figure*}
+
+Figure~\ref{fig:example_elg} shows an ELG at $z \approx 0.8$, where the DESI
+spectral window covers rest-frame $\sim$2000--5500~\AA\ and brings into view
+several emission lines beyond the \oii\ doublet: [\ion{Ne}{3}]~$\lambda3869$,
+\hb, and \oiii. The faint, blue star-forming continuum tests the code's ability
+to recover accurate line fluxes and a physically meaningful stellar mass in the
+low-continuum regime typical of ELGs.
+
+\begin{itemize}
+  \item The narrow-only kinematic model applies (no significant broad Balmer
+    emission); note the single kinematic group tying the forbidden and Balmer
+    lines
+  \item The resolved \oii\ doublet flux ratio encodes the electron density;
+    highlight the free amplitude ratio for this density-sensitive pair
+    (\S\ref{sssec:kinematic})
+  \item The smooth continuum correction absorbs flux-calibration residuals
+    at the blue end of the B camera, illustrating its role for faint, blue
+    targets (\S\ref{sssec:smooth})
+  \item Derived $D_n(4000)$ and stellar mass are consistent with a young,
+    low-mass star-forming galaxy on the main sequence
+\end{itemize}
+
+\subsection{High-Redshift Quasar}
+\label{ssec:example_qso}
+
+%\begin{figure*}
+%\includegraphics[width=6.5in]{figures/fastspec-example-qso.png}
+%\caption{Write me.\label{fig:example_qso}}
+%\end{figure*}
+
+Figure~\ref{fig:example_qso} shows a QSO at $z \approx \todo{X}$, where
+several broad UV emission lines---Ly$\alpha$~$\lambda1216$,
+\ion{C}{4}~$\lambda1549$, \ion{C}{3}]~$\lambda1908$, and
+\ion{Mg}{2}~$\lambda\lambda2796,2803$---fall within the DESI spectral range.
+Although \fastspecfit{} successfully measures these broad emission lines,
+the stellar SPS templates provide a physically inappropriate model for the
+QSO continuum: the AGN accretion disk contributes substantially to the
+observed SED, and the code absorbs this power-law flux into unphysical
+young-template coefficients. Consequently, continuum-derived quantities
+such as stellar mass, SFR, and $D_n(4000)$ carry no reliable physical
+meaning for luminous, unobscured QSOs, and we recommend restricting their
+use to targets where the host-galaxy continuum dominates.
+
+\begin{itemize}
+  \item Describe the spectral morphology: power-law UV continuum, broad
+    permitted lines, strong \ion{Fe}{2} UV/optical pseudo-continuum; note
+    the partial mitigation by the \citet{vestergaard01a} iron template
+    (\S\ref{ssec:templates})
+  \item Broad emission-line fluxes and velocity widths from the
+    emission-line fit are reliable and physically meaningful---only the
+    continuum-derived quantities should be treated with caution
+  \item Note any QSO-specific after-burner redshift correction applied to
+    this object (\S\ref{ssec:zqso})
 \end{itemize}
 
 
@@ -1110,72 +1198,21 @@ the output columns \texttt{Z\_RR} and \texttt{ZWARN\_RR}. In total, corrected
 redshifts are applied to approximately 9,100 targets in the EDR, 74,000 in DR1,
 and 169,000 in DR2.
 
-The numbers of targets satisfying these criteria in each DESI data release,
-organized by survey and observing program, are summarized in
-Table~\ref{table:sample}; we describe the structure and content of the
-resulting value-added catalogs in \S\ref{sec:vac}.
+Table~\ref{table:sample} summarizes the number of targets satisfying these
+criteria in each DESI data release, organized by survey and observing program.
 
-\subsection{Catalog Description and Data Format}
-\label{ssec:format}
-
-We run \fastspecfit{} on the HEALPix-coadded DESI spectra and organize the
-output catalogs identically to how the underlying spectra, redshift catalogs,
-and other data products are organized within DESI data releases. Each VAC
-contains two types of output: individual per-HEALPix files and merged catalogs.
-
-The per-HEALPix files are located, relative to the top-level VAC directory
-\texttt{VACDIR}, at
-
-\medskip
-\noindent\texttt{VACDIR/healpix/SURVEY/PROGRAM/HPIXGROUP/HEALPIX/}\\
-\texttt{\quad \{fastspec,fastphot\}-SURVEY-PROGRAM-HEALPIX.fits\{.gz\}}
-\medskip
-
-\noindent where \texttt{SURVEY}, \texttt{PROGRAM}, \texttt{HPIXGROUP}, and
-\texttt{HEALPIX} follow the same conventions as the DESI data products. The
-\texttt{fastspec} HEALPix catalogs are gzip-compressed because they include a
-\texttt{MODELS} extension containing the best-fitting model spectra (see
-\S\ref{sec:appendix_datamodel}); the \texttt{fastphot} catalogs are not
-compressed because no \texttt{MODELS} extension is produced.
-
-Most users will find it more convenient to work with the merged catalogs, which
-combine all per-HEALPix files for a given \texttt{SURVEY} and \texttt{PROGRAM}
-into a single file:
-
-\medskip
-\noindent\texttt{VACDIR/catalogs/\{fastspec,fastphot\}-SURVEY-PROGRAM.fits}
-\medskip
-
-\noindent The merged \texttt{fastspec} catalogs omit the \texttt{MODELS}
-extension to keep individual file sizes manageable. For large survey-program
-combinations---specifically \texttt{main-bright} and \texttt{main-dark}---the
-merged catalogs are further subdivided by \texttt{nside}~=~1 HEALPixel into
-12 files following the naming pattern
-\texttt{\{fastspec,fastphot\}-SURVEY-PROGRAM-nside1-hpNN.fits}, where
-\texttt{NN} runs from \texttt{00} to \texttt{11}. The complete output data
-model for each FITS extension is described in \S\ref{sec:appendix_datamodel},
-and all catalogs are publicly accessible via
-\url{https://data.desi.lbl.gov}.
-
-\subsection{DR2 Catalog}
+\subsection{DR2 Catalog and Data Format}
 \label{ssec:dr2}
 
-\begin{figure*}
-\includegraphics[width=6.5in]{figures/compare-mstar-loa-sv3.png}
-\caption{Write me.\label{fig:compare_mstar}}
-\end{figure*}
-
-The DR2 value-added catalog (Loa~v1.0) was produced using \fastspecfit{}
+We produced the DR2 value-added catalog (Loa~v1.0) using \fastspecfit{}
 version~3.1.4 with the \texttt{ftemplates-chabrier-2.0.0.fits} SPS template
 library (\S\ref{sec:appendix_sps}) and \texttt{desitarget}~v2.8.0 for target
-selection and masking, running on the NERSC Perlmutter supercomputer.
-Table~\ref{table:sample} summarizes the number of targets in the DR2 catalog
-alongside the companion EDR and DR1 catalogs, organized by survey and observing
-program. The EDR VAC (Fuji~v3.2, \fastspecfit{}~v2.5.0) comprises approximately
-1.4~million targets drawn entirely from the DESI commissioning and
-survey-validation campaigns and was publicly released in January~2024. The DR1
-VAC (Iron~v3.0, \fastspecfit{}~v3.1.5) adds the first tranche of main-survey
-data and totals approximately 18~million targets; it was publicly released in
+selection and masking, running on the NERSC Perlmutter supercomputer. The EDR
+VAC (Fuji~v3.2, \fastspecfit{}~v2.5.0) comprises approximately 1.4~million
+targets drawn entirely from the DESI commissioning and survey-validation
+campaigns and was publicly released in January~2024. The DR1 VAC
+(Iron~v3.0, \fastspecfit{}~v3.1.5) adds the first tranche of main-survey data
+and totals approximately 18~million targets; it was publicly released in
 June~2025. The DR2 VAC encompasses the complete five-year main survey and totals
 approximately 38~million targets, of which the main survey---split between
 roughly 13~million BGS targets observed under bright conditions and 23~million
@@ -1184,21 +1221,62 @@ LRG, ELG, and QSO targets observed under dark conditions---contributes
 key differences in template versions and algorithmic choices relative to DR2, in
 \S\ref{sec:appendix_vacs}.
 
-Figure~\ref{fig:compare_mstar} compares the stellar masses derived using \fastspec{} and \fastphot.
-
-Note: stellar masses from non-parametric SFHs can be
-$\sim$0.3--0.4~dex higher than parametric estimates \citep{leja19a,
-  leja20a}.
-
-Two known issues affect the DR2 catalog. First, there are significant errors in
-the inverse-variance estimates for emission-line fluxes and equivalent widths;
-users requiring precise flux uncertainties should apply appropriate caution and
-consult the online documentation for the latest status of corrections. Second, a
-small fraction of spectra with strong emission lines suffer poor line fits due to
-a clipping error in the internal flux uncertainty routine. Both issues are fixed
-in \fastspecfit{}~v3.2.0, and updated catalogs will be released in due course.
-
 \input{tables/table-sample}
+
+We run \fastspecfit{} on the HEALPix-coadded DESI spectra and organize the
+output catalogs identically to how the underlying spectra, redshift catalogs,
+and other data products are organized within DESI data releases. Each VAC
+contains two types of output: individual per-HEALPix files and merged catalogs.
+We locate the per-HEALPix files, relative to the top-level VAC directory
+\texttt{VACDIR}, at
+
+\medskip
+\noindent\texttt{VACDIR/healpix/SURVEY/PROGRAM/HPIXGROUP/HEALPIX/}\\
+\texttt{\quad \{fastspec,fastphot\}-SURVEY-PROGRAM-HEALPIX.fits\{.gz\}}
+\medskip
+
+\noindent where \texttt{SURVEY}, \texttt{PROGRAM}, \texttt{HPIXGROUP}, and
+\texttt{HEALPIX} follow the same conventions as the DESI data products. We
+gzip-compress the \texttt{fastspec} HEALPix catalogs because they include a
+\texttt{MODELS} extension containing the best-fitting model spectra (see
+\S\ref{sec:appendix_datamodel}); we do not compress the \texttt{fastphot}
+catalogs because they carry no \texttt{MODELS} extension.
+
+Most users will find it more convenient to work with the merged catalogs, which
+we assemble by combining all per-HEALPix files for a given \texttt{SURVEY} and
+\texttt{PROGRAM} into a single file:
+
+\medskip
+\noindent\texttt{VACDIR/catalogs/\{fastspec,fastphot\}-SURVEY-PROGRAM.fits}
+\medskip
+
+\noindent We omit the \texttt{MODELS} extension from the merged
+\texttt{fastspec} catalogs to keep individual file sizes manageable. For large
+survey-program combinations---specifically \texttt{main-bright} and
+\texttt{main-dark}---we further subdivide the merged catalogs by
+\texttt{nside}~=~1 HEALPixel into 12 files following the naming pattern
+\texttt{\{fastspec,fastphot\}-SURVEY-PROGRAM-nside1-hpNN.fits}, where
+\texttt{NN} runs from \texttt{00} to \texttt{11}. We describe the complete
+output data model for each FITS extension in \S\ref{sec:appendix_datamodel},
+and we make all catalogs publicly accessible via
+\url{https://data.desi.lbl.gov}.
+
+\begin{figure*}
+\includegraphics[width=6.5in]{figures/compare-mstar-loa-sv3.png}
+\caption{Write me.\label{fig:compare_mstar}}
+\end{figure*}
+
+Figure~\ref{fig:compare_mstar} compares the stellar masses we derive using
+\fastspec{} and \fastphot{} for targets in common, illustrating the consistency
+between the spectrophotometric and photometry-only fitting modes.
+
+Two known issues affect the DR2 catalog. First, the inverse-variance estimates
+for emission-line fluxes and equivalent widths carry significant errors; users
+requiring precise flux uncertainties should apply appropriate caution and consult
+the online documentation for the latest status of corrections. Second, a small
+fraction of spectra with strong emission lines suffer poor line fits due to a
+clipping error in the internal flux uncertainty routine. We fix both issues in
+\fastspecfit{}~v3.2.0, and we will release updated catalogs in due course.
 
 
 %% ============================================================
