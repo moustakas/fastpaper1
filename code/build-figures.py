@@ -105,22 +105,28 @@ def mstar_corner(cat, labels, mstarlim=(6, 13)):
     return fig
 
 
-def compare_mstar(specprod=DEFAULT_SPECPROD, verbose=False):
-    """Corner plot: fastspec vs fastphot stellar masses (main survey, all targets).
+def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD, verbose=False):
+    """Corner plot: fastspec vs fastphot stellar masses, all targets.
 
     Both VACs store LOGMSTAR with h=1 (Planck 2018 cosmology, Chabrier IMF),
     so no cosmological correction is needed for this internal comparison.
+
+    Parameters
+    ----------
+    survey : str
+        'sv3' (default, single catalog files) or 'main' (split nside=1 files,
+        much larger).
     """
     mstarlim = (6, 13)
 
-    # --- read main-bright (BGS) and main-dark (LRG/ELG/QSO) for each VAC ---
+    # --- read bright (BGS) and dark (LRG/ELG/QSO) programs for the survey ---
     spec_chunks, phot_chunks = [], []
     for program in ('bright', 'dark'):
-        s = read_fastspec('main', program, specprod=specprod,
+        s = read_fastspec(survey, program, specprod=specprod,
                           columns=['LOGMSTAR'], verbose=verbose)
         spec_chunks.append(s[good_galaxies(s)])
 
-        p = read_fastphot('main', program, specprod=specprod,
+        p = read_fastphot(survey, program, specprod=specprod,
                           columns=['LOGMSTAR'], verbose=verbose)
         phot_chunks.append(p[p['LOGMSTAR'] > 0])
 
@@ -144,7 +150,7 @@ def compare_mstar(specprod=DEFAULT_SPECPROD, verbose=False):
 
     fig = mstar_corner(mass_cat, labels, mstarlim=mstarlim)
 
-    outfile = os.path.join(FIGDIR, 'compare-mstar.png')
+    outfile = os.path.join(FIGDIR, f'compare-mstar-{survey}.png')
     fig.savefig(outfile, bbox_inches='tight', dpi=150)
     print(f'Wrote {outfile}')
     plt.close(fig)
@@ -163,14 +169,17 @@ def main():
                         help='Stellar mass comparison: fastspec vs fastphot.')
     parser.add_argument('--specprod', default=DEFAULT_SPECPROD,
                         help='Spectroscopic production name.')
+    parser.add_argument('--main', action='store_true',
+                        help='Use main-survey catalogs instead of sv3 (default).')
     parser.add_argument('--verbose', action='store_true',
                         help='Print progress while reading catalogs.')
     args = parser.parse_args()
 
+    survey = 'main' if args.main else 'sv3'
     os.makedirs(FIGDIR, exist_ok=True)
 
     if args.compare_mstar:
-        compare_mstar(specprod=args.specprod, verbose=args.verbose)
+        compare_mstar(survey=survey, specprod=args.specprod, verbose=args.verbose)
 
 
 if __name__ == '__main__':

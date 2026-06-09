@@ -20,13 +20,17 @@ python code/build-figures.py --help
 
 ### Stellar mass comparison
 
-Compares `LOGMSTAR` from the fastspec and fastphot DR2/Loa v1.0 VACs for all main-survey targets (BGS from main-bright; LRG/ELG/QSO from main-dark). All masses use **h=1, Chabrier IMF (0.1–100 M☉)**.
+Compares `LOGMSTAR` from the fastspec and fastphot VACs. Default uses the sv3 (SV3/one-percent) catalogs, which are compact single files. Pass `--main` to use the full main-survey catalogs (larger, split into 12 nside=1 healpix files). All masses use **h=1, Chabrier IMF (0.1–100 M☉)**.
 
 ```bash
-python code/build-figures.py --compare-mstar [--verbose]
+# default: sv3
+python code/build-figures.py --compare-mstar [--specprod loa] [--verbose]
+
+# full main survey
+python code/build-figures.py --compare-mstar --main [--specprod loa] [--verbose]
 ```
 
-Output: `tex/figures/compare-mstar.png`
+Outputs: `tex/figures/compare-mstar-sv3.png` / `tex/figures/compare-mstar-main.png`
 
 ---
 
