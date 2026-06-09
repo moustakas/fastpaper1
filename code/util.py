@@ -171,7 +171,7 @@ def read_fastspec(survey='main', program='dark', specprod=DEFAULT_SPECPROD,
 
 def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
                 titles=None, unity=False, diag_ylabel='N',
-                suptitle='', subplots_adjust=None):
+                figsize=None, suptitle='', subplots_adjust=None):
     """Corner-style N×N plot: histograms on the diagonal, 2D density on the lower triangle.
 
     Adapted from fastspecfit.qa._corner_plot for catalog-scale datasets.
@@ -199,6 +199,9 @@ def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
         Draw a 1:1 reference line on each off-diagonal panel.
     diag_ylabel : str
         Y-axis label on the leftmost diagonal histogram.
+    figsize : tuple of (float, float) or None
+        Figure size in inches as (width, height). Default is (3*ndim, 3*ndim),
+        minimum 6×6.
     suptitle : str
         Figure suptitle.
     subplots_adjust : dict or None
@@ -212,8 +215,10 @@ def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
 
     plotdata = np.asarray(plotdata)
     ndim = plotdata.shape[1]
-    figsize = max(3 * ndim, 6)
-    fig, axes = plt.subplots(ndim, ndim, figsize=(figsize, figsize))
+    if figsize is None:
+        _size = max(3 * ndim, 6)
+        figsize = (_size, _size)
+    fig, axes = plt.subplots(ndim, ndim, figsize=figsize)
     ax = np.array(axes).reshape((ndim, ndim))
 
     for yi in range(ndim):

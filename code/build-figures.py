@@ -6,8 +6,8 @@ Run from the repo root or from code/:
     python code/build-figures.py --compare-mstar [--verbose]
 
 Each flag generates one figure written to tex/figures/.
-"""
 
+"""
 import os, argparse, pdb
 import numpy as np
 import matplotlib.pyplot as plt
@@ -37,7 +37,7 @@ def good_galaxies(cat):
 # compare-mstar
 # ---------------------------------------------------------------------------
 
-def mstar_corner(cat, labels, mstarlim=(6, 13)):
+def mstar_corner(cat, labels, mstarlim=(6, 13), figsize=(12, 6)):
     """Corner plot comparing log stellar masses from N catalogs.
 
     Parameters
@@ -48,12 +48,16 @@ def mstar_corner(cat, labels, mstarlim=(6, 13)):
         Axis label for each mass column.
     mstarlim : tuple
         (min, max) plot range in log10(M/Msun).
+    figsize : tuple of (float, float) or None
+        Figure size in inches. Default is (3*N, 3*N).
 
     Returns
     -------
     matplotlib.figure.Figure
+
     """
-    from matplotlib.ticker import MaxNLocator
+    import math
+    from matplotlib.ticker import MaxNLocator, FuncFormatter
 
     plot_style(talk=True, font_scale=0.7)
 
@@ -63,17 +67,43 @@ def mstar_corner(cat, labels, mstarlim=(6, 13)):
     fig = corner_plot(
         Xdata, labels=labels, ranges=[mstarlim] * n,
         bins=60, unity=True, diag_ylabel='Number of Galaxies',
+        figsize=figsize,
     )
 
-    # add top-axis labels on each diagonal panel
+    # --- y-axis normalization on diagonal panels ---
+    # scale to nearest order of magnitude below the tallest bin
+    max_count = max(fig.axes[ii * n + ii].get_ylim()[1] for ii in range(n))
+    exp = math.floor(math.log10(max_count))
+    scale = 10 ** exp
+    norm_ylabel = f'Number of Galaxies ($\\times10^{{{exp}}}$)'
+    fmt = FuncFormatter(lambda x, _: f'{x / scale:g}')
+
+    for ii in range(n):
+        fig.axes[ii * n + ii].yaxis.set_major_formatter(fmt)
+    fig.axes[0].set_ylabel(norm_ylabel)
+
+    # twin y-axis on last diagonal panel, mirroring the first panel's scale
+    a_last = fig.axes[(n - 1) * n + (n - 1)]
+    yy = a_last.twinx()
+    yy.set_ylim(a_last.get_ylim())
+    yy.yaxis.set_major_formatter(fmt)
+    yy.set_ylabel(norm_ylabel)
+
+    # --- aligned top x-axis on each diagonal panel ---
+    # compute tick positions once so bottom and top axes are guaranteed to match
+    loc = MaxNLocator(5, integer=True)
+    shared_ticks = np.asarray(loc.tick_values(*mstarlim))
+    shared_ticks = shared_ticks[(shared_ticks >= mstarlim[0]) & (shared_ticks <= mstarlim[1])]
+    tick_labels = [f'{t:g}' for t in shared_ticks]
+
     for ii in range(n):
         a = fig.axes[ii * n + ii]
+        a.set_xticks(shared_ticks)
         xx = a.twiny()
         xx.set_xlim(mstarlim)
+        xx.set_xticks(shared_ticks)
+        xx.set_xticklabels(tick_labels, rotation=45)
         xx.set_xlabel(labels[ii])
-        xx.xaxis.set_major_locator(MaxNLocator(5, prune='lower'))
-        for lbl in xx.get_xticklabels() + xx.get_xticklabels(minor=True):
-            lbl.set_rotation(45)
 
     return fig
 
@@ -115,8 +145,8 @@ def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD, verbose=False):
     print(f'{len(cat):,d} galaxies with good masses in both VACs')
 
     labels = (
-        MSTAR_LABEL + '\n [FastSpec]',
-        MSTAR_LABEL + '\n [FastPhot]',
+        MSTAR_LABEL + '\n [fastspec]',
+        MSTAR_LABEL + '\n [fastphot]',
     )
     # pass only the mass columns to the corner function
     mass_cat = cat['LOGMSTAR_FASTSPEC', 'LOGMSTAR_FASTPHOT']
