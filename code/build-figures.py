@@ -15,7 +15,7 @@ from astropy.table import vstack, join
 
 import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from util import read_fastspec, read_fastphot, plot_style, DEFAULT_SPECPROD
+from util import read_fastspec, read_fastphot, plot_style, corner_plot, DEFAULT_SPECPROD
 
 REPODIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIGDIR  = os.path.join(REPODIR, 'tex', 'figures')
@@ -43,10 +43,9 @@ def mstar_corner(cat, labels, mstarlim=(6, 13)):
     Parameters
     ----------
     cat : astropy.table.Table
-        Must contain one column per label; column names are derived from
-        labels via the caller (see compare_mstar).
+        One column per catalog, in the same order as labels.
     labels : list of str
-        Axis label for each mass column, in the same order as the data columns.
+        Axis label for each mass column.
     mstarlim : tuple
         (min, max) plot range in log10(M/Msun).
 
@@ -54,53 +53,27 @@ def mstar_corner(cat, labels, mstarlim=(6, 13)):
     -------
     matplotlib.figure.Figure
     """
-    import corner as cn
     from matplotlib.ticker import MaxNLocator
 
-    sns, colors = plot_style(talk=True, font_scale=0.7)
+    plot_style(talk=True, font_scale=0.7)
 
     n = len(labels)
-    lims = [mstarlim] * n
-    max_n_ticks = 5
+    Xdata = np.column_stack([cat[c] for c in cat.colnames])
 
-    col_names = list(cat.colnames)
-    Xdata = np.column_stack([cat[c] for c in col_names])
-
-    fig = cn.corner(
-        Xdata,
-        labels=labels,
-        fill_contours=True,
-        range=lims,
-        labelpad=0.08,
-        max_n_ticks=max_n_ticks,
-        smooth=0.8,
-        top_ticks=True,
-        plot_density=True,
-        levels=[0.5, 0.75, 0.95, 0.995],
-        contour_kwargs={'colors': 'k'},
-        show_titles=False,
-        hist_kwargs={'color': 'k', 'lw': 2},
-        color=colors[0],
-        quiet=True,
+    fig = corner_plot(
+        Xdata, labels=labels, ranges=[mstarlim] * n,
+        bins=60, unity=True, diag_ylabel='Number of Galaxies',
     )
 
-    # add top-axis ticks on each diagonal panel
+    # add top-axis labels on each diagonal panel
     for ii in range(n):
-        ax = fig.axes[ii + ii * n]
-        xx = ax.twiny()
+        a = fig.axes[ii * n + ii]
+        xx = a.twiny()
         xx.set_xlim(mstarlim)
         xx.set_xlabel(labels[ii])
-        xx.xaxis.set_major_locator(MaxNLocator(max_n_ticks, prune='lower'))
+        xx.xaxis.set_major_locator(MaxNLocator(5, prune='lower'))
         for lbl in xx.get_xticklabels() + xx.get_xticklabels(minor=True):
             lbl.set_rotation(45)
-
-    fig.axes[0].set_ylabel('Number of Galaxies\n')
-
-    # 1:1 line on every off-diagonal panel
-    for row in range(1, n):
-        for col in range(row):
-            fig.axes[row * n + col].plot(mstarlim, mstarlim,
-                                         color=colors[1], lw=1)
 
     return fig
 

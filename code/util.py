@@ -169,6 +169,111 @@ def read_fastspec(survey='main', program='dark', specprod=DEFAULT_SPECPROD,
     )
 
 
+def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
+                titles=None, unity=False, diag_ylabel='N',
+                suptitle='', subplots_adjust=None):
+    """Corner-style N×N plot: histograms on the diagonal, 2D density on the lower triangle.
+
+    Adapted from fastspecfit.qa._corner_plot for catalog-scale datasets.
+    Off-diagonal panels use hexbin density maps instead of scatter plots.
+
+    Parameters
+    ----------
+    plotdata : array_like, shape (nsamples, ndim)
+        Data array, one column per parameter.
+    labels : list of str
+        Axis labels, one per parameter.
+    ranges : list of (lo, hi) tuples
+        Axis limits for each parameter.
+    bins : int
+        Number of histogram bins on the diagonal.
+    truths : list of float or None
+        Reference values: vertical lines on diagonal, crosshairs on off-diagonal.
+        Skipped if None.
+    sigmas : list of float or None
+        1-sigma uncertainties drawn as dashed lines on the diagonal.
+        Only used when truths is not None.
+    titles : list of str or None
+        Titles above each diagonal histogram. Skipped if None.
+    unity : bool
+        Draw a 1:1 reference line on each off-diagonal panel.
+    diag_ylabel : str
+        Y-axis label on the leftmost diagonal histogram.
+    suptitle : str
+        Figure suptitle.
+    subplots_adjust : dict or None
+        Forwarded to fig.subplots_adjust; if None, tight_layout is used.
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+    """
+    import matplotlib.pyplot as plt
+
+    plotdata = np.asarray(plotdata)
+    ndim = plotdata.shape[1]
+    figsize = max(3 * ndim, 6)
+    fig, axes = plt.subplots(ndim, ndim, figsize=(figsize, figsize))
+    ax = np.array(axes).reshape((ndim, ndim))
+
+    for yi in range(ndim):
+        for xi in range(ndim):
+            a = ax[yi, xi]
+            if xi > yi:
+                a.set_visible(False)
+                continue
+
+            lo_x, hi_x = ranges[xi]
+            lo_y, hi_y = ranges[yi]
+
+            if xi == yi:
+                a.hist(plotdata[:, xi], bins=bins, range=(lo_x, hi_x),
+                       color='gray', alpha=0.75, edgecolor='k')
+                if truths is not None:
+                    a.axvline(truths[xi], color='C0', lw=2, ls='-')
+                    if sigmas is not None:
+                        a.axvline(truths[xi] + sigmas[xi], color='C0', lw=1, ls='--')
+                        a.axvline(truths[xi] - sigmas[xi], color='C0', lw=1, ls='--')
+                if titles is not None:
+                    a.set_title(titles[xi], fontsize=8)
+                a.set_xlim(lo_x, hi_x)
+                if xi == 0:
+                    a.set_ylabel(diag_ylabel)
+                else:
+                    a.tick_params(labelleft=False)
+            else:
+                a.hexbin(plotdata[:, xi], plotdata[:, yi], gridsize=50,
+                         bins='log', cmap='Blues', mincnt=1,
+                         extent=(lo_x, hi_x, lo_y, hi_y))
+                if truths is not None:
+                    a.axvline(truths[xi], color='C0', lw=1, ls='-', alpha=0.75)
+                    a.axhline(truths[yi], color='C0', lw=1, ls='-', alpha=0.75)
+                if unity:
+                    lo = max(lo_x, lo_y)
+                    hi = min(hi_x, hi_y)
+                    a.plot([lo, hi], [lo, hi], color='k', lw=1, ls='--')
+                a.set_xlim(lo_x, hi_x)
+                a.set_ylim(lo_y, hi_y)
+                if xi == 0:
+                    a.set_ylabel(labels[yi])
+                else:
+                    a.tick_params(labelleft=False)
+
+            if yi == ndim - 1:
+                a.set_xlabel(labels[xi])
+            else:
+                a.tick_params(labelbottom=False)
+
+    if suptitle:
+        fig.suptitle(suptitle)
+    if subplots_adjust:
+        fig.subplots_adjust(**subplots_adjust)
+    else:
+        fig.tight_layout()
+
+    return fig
+
+
 def plot_style(talk=True, font_scale=1.0):
     """Set seaborn plot style and return (sns, color_palette).
 
