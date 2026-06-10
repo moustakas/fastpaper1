@@ -356,6 +356,23 @@ sequence applied to a representative BGS target is given in \S\ref{sec:casestudy
 \subsection{SPS Template Library}
 \label{ssec:templates}
 
+\begin{figure*}
+\includegraphics[width=6.5in]{figures/sps-models.png}
+\caption{The five SPS templates that span the
+  \fastspecfit\ star-formation history bins (\S\ref{ssec:templates}),
+  computed at solar metallicity ($\log_{10}Z/Z_\odot=0$) with
+  $\tauv=0.1$ and normalized to a $10^{10}\,M_\odot$ galaxy at
+  $z=0.1$.  Each line corresponds to one lookback-time bin, ranging
+  from 0--30~Myr (youngest) to 11.6--13.7~Gyr (oldest); the spectral
+  energy distribution shifts from UV-bright continua with prominent
+  nebular emission in the youngest populations to red, featureless
+  spectra in the oldest.  The gray band marks the DESI optical
+  spectral range (0.36--0.98~$\mu$m); the curves along the bottom of
+  the panel show the DECam $grz$ and WISE $W1W2$ broadband filter
+  throughputs that \fastspecfit\ includes in the simultaneous
+  spectrophotometric fit. \label{fig:sps}}
+\end{figure*}
+
 We represent the stellar continuum as a non-negative linear superposition of
 simple stellar population (SPS) templates generated with
 FSPS\footnote{\url{https://github.com/cconroy20/fsps}}
@@ -410,11 +427,6 @@ host galaxies; and the \citet{vestergaard01a} empirical UV/optical iron
 emission template for broad-line AGN. We incorporate all three within the same
 non-negative coefficient framework as the SPS templates. Table~\ref{table:templates}
 summarizes the full template grid.
-
-\begin{figure*}
-\includegraphics[width=6.5in]{figures/sps-models.png}
-\caption{Write me.\label{fig:sps}}
-\end{figure*}
 
 %\input{tables/table-templates}
 

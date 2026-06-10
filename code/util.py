@@ -391,7 +391,7 @@ def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
     return fig
 
 
-def plot_style(talk=True, font_scale=1.0):
+def plot_style(talk=True, font_scale=1.0, palette=None):
     """Set seaborn plot style and return (sns, color_palette).
 
     Parameters
@@ -400,6 +400,10 @@ def plot_style(talk=True, font_scale=1.0):
         Use 'talk' context (larger fonts) if True, else 'paper'.
     font_scale : float
         Additional font scaling factor on top of the context default.
+    palette : str or list or None
+        Color palette passed to seaborn.set_palette().  None keeps the
+        seaborn default.  Pass 'colorblind' for the Okabe-Ito palette,
+        which is safe for deuteranopia, protanopia, and tritanopia.
 
     Returns
     -------
@@ -410,6 +414,8 @@ def plot_style(talk=True, font_scale=1.0):
     import seaborn as sns
     sns.set(context='talk' if talk else 'paper',
             style='whitegrid', font_scale=font_scale)
+    if palette is not None:
+        sns.set_palette(palette)
     return sns, sns.color_palette()
 
 

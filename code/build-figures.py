@@ -54,9 +54,15 @@ def sps_models(verbose=False):
     cosmo = sc_data.cosmology
     igm = sc_data.igm
     templates = sc_data.templates
-    info = sc_data.templates.info
 
-    plot_style(talk=True, font_scale=1.1)
+    #info = sc_data.templates.info
+    #def age_label(age_yr):
+    #    return f'{age_yr/1e6:.0f} Myr' if age_yr < 1e9 else f'{age_yr/1e9:.0f} Gyr'
+
+    agebins = ['0\u201330 Myr', '30\u2013100 Myr', '0.1\u20131.1 Gyr',
+               '1.1\u20131.6 Gyr', '11.6\u201313.7 Gyr']
+
+    plot_style(talk=True, font_scale=1.1, palette='colorblind')
 
     @ticker.FuncFormatter
     def major_formatter(x, pos):
@@ -65,9 +71,6 @@ def sps_models(verbose=False):
         if 0.1 <= x < 1:
             return f'{x:.1f}'
         return f'{x:.0f}'
-
-    def age_label(age_yr):
-        return f'{age_yr/1e6:.0f} Myr' if age_yr < 1e9 else f'{age_yr/1e9:.0f} Gyr'
 
 
     zref = 0.1
@@ -80,7 +83,7 @@ def sps_models(verbose=False):
     xlim  = [0.07, 40.]
     ylim  = [29.5, 3.]     # AB mag, inverted
     wdesi = [0.36, 0.98]   # DESI optical range [µm]
-    ffact = -3.             # filter depth below ylim[0]
+    ffact = -3.            # filter depth below ylim[0]
 
     fig, ax = plt.subplots(figsize=(9, 6))
 
@@ -102,7 +105,7 @@ def sps_models(verbose=False):
         abmag = -2.5 * np.log10(sedmodel * abfactor) # [AB mag]
 
         ax.plot(templates.wave / 1e4, abmag, lw=2,
-                label=age_label(info['age'][ii]))
+                label=agebins[ii]) # age_label(info['age'][ii]))
 
 
     # filter curves anchored below the plot bottom
@@ -116,16 +119,16 @@ def sps_models(verbose=False):
     ax.set_xscale('log')
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
+    ax.set_xticks([0.1, 0.3, 1, 3, 10, 30])
     ax.xaxis.set_major_formatter(major_formatter)
-    ax.set_xlabel(r'Rest Wavelength ($\mu$m)')
+    ax.set_xlabel(r'Rest-frame Wavelength ($\mu$m)')
     ax.set_ylabel(
-        f'AB mag ($10^{{{logmstar:.0f}}}\\,M_\\odot$ galaxy at $z = {zref:.1f}$)')
-    ax.legend(fontsize=10, ncols=1, loc='upper left')
+        f'AB mag ($10^{{{logmstar:.0f}}}\\,M_\\odot$ at $z = {zref:.1f}$)')
+    ax.legend(fontsize=10, ncols=2, loc='upper left')
+    #ax.text(0.97, 0.97, f'$\\tau_{{\\mathrm{{V}}}}={tauv:.1f}$\n$Z = Z_{{\\odot}}$',
+    ax.text(0.97, 0.97, f'$Z = Z_{{\\odot}}$\n$\\tau_{{\\mathrm{{V}}}}={tauv:.1f}$',
+            ha='right', va='top', fontsize=15, transform=ax.transAxes)
 
-    ax.text(0.97, 0.96, f'$\\tau_{{\\mathrm{{V}}}}={tauv:.1f}$\n$Z = Z_{{\\odot}}$',
-            ha='right', va='top', fontsize=14, transform=ax.transAxes)
-
-    #fig.subplots_adjust(left=0.10, right=0.97, top=0.97, bottom=0.13)
     fig.tight_layout()
 
     outfile = os.path.join(FIGDIR, 'sps-models.png')
