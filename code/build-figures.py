@@ -34,6 +34,107 @@ def good_galaxies(cat):
 
 
 # ---------------------------------------------------------------------------
+# sps-models
+# ---------------------------------------------------------------------------
+
+def sps_models(verbose=False):
+    """SPS template library: dust-free solar-metallicity templates, normalized
+    to 10^10 M_sun at z=0.1, with DESI optical range and filter curves overlaid.
+
+    """
+    import matplotlib.ticker as ticker
+    from matplotlib.patches import Rectangle
+    from speclite import filters as speclite_filters
+    from fastspecfit.util import C_LIGHT, MASSNORM, FLUXNORM
+    from fastspecfit.continuum import build_stellar_continuum
+    from fastspecfit.singlecopy import sc_data
+
+    sc_data.initialize()
+    photo = sc_data.photometry
+    cosmo = sc_data.cosmology
+    igm = sc_data.igm
+    templates = sc_data.templates
+    info = sc_data.templates.info
+
+    plot_style(talk=True, font_scale=1.1)
+
+    @ticker.FuncFormatter
+    def major_formatter(x, pos):
+        if 0.01 <= x < 0.1:
+            return f'{x:.2f}'
+        if 0.1 <= x < 1:
+            return f'{x:.1f}'
+        return f'{x:.0f}'
+
+    def age_label(age_yr):
+        return f'{age_yr/1e6:.0f} Myr' if age_yr < 1e9 else f'{age_yr/1e9:.0f} Gyr'
+
+
+    zref = 0.1
+    tauv = 0.1
+    mstar = 1e10 # [Msun]
+    logmstar = np.log10(mstar)
+    filt = photo.filters['S']
+    bands = photo.bands
+
+    xlim  = [0.07, 40.]
+    ylim  = [29.5, 3.]     # AB mag, inverted
+    wdesi = [0.36, 0.98]   # DESI optical range [µm]
+    ffact = -3.             # filter depth below ylim[0]
+
+    fig, ax = plt.subplots(figsize=(9, 6))
+
+    # shade DESI optical range
+    ax.add_artist(Rectangle((wdesi[0], ylim[1]), np.ptp(wdesi), np.ptp(ylim),
+                             fill=True, color='gray', alpha=0.2))
+
+    # one line per template
+    for ii in range(templates.ntemplates):
+
+        coeff = np.zeros(templates.ntemplates)
+        coeff[ii] = mstar / MASSNORM
+        sedwave, sedmodel = build_stellar_continuum(
+            coeff, tauv, zref, templates, cosmo, igm,
+            dust_emission=True, vdisp=None)
+
+        # [1e-17 erg/s/cm2/A --> maggies]
+        abfactor = 10.**(0.4 * 48.6) * sedwave**2. / (C_LIGHT * 1e13) / FLUXNORM
+        abmag = -2.5 * np.log10(sedmodel * abfactor) # [AB mag]
+
+        ax.plot(templates.wave / 1e4, abmag, lw=2,
+                label=age_label(info['age'][ii]))
+
+
+    # filter curves anchored below the plot bottom
+    for ff, band in zip(filt, bands):
+        ax.plot(ff.wavelength / 1e4,
+                ffact * ff.response / ff.response.max() + ylim[0],
+                color='k', alpha=0.8, lw=1)
+        ax.text(ff.effective_wavelength.value / 1e4, -0.7 + ffact + ylim[0],
+                band, fontsize=10, va='center', ha='center')
+
+    ax.set_xscale('log')
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+    ax.xaxis.set_major_formatter(major_formatter)
+    ax.set_xlabel(r'Rest Wavelength ($\mu$m)')
+    ax.set_ylabel(
+        f'AB mag ($10^{{{logmstar:.0f}}}\\,M_\\odot$ galaxy at $z = {zref:.1f}$)')
+    ax.legend(fontsize=10, ncols=1, loc='upper left')
+
+    ax.text(0.97, 0.96, f'$\\tau_{{\\mathrm{{V}}}}={tauv:.1f}$\n$Z = Z_{{\\odot}}$',
+            ha='right', va='top', fontsize=14, transform=ax.transAxes)
+
+    #fig.subplots_adjust(left=0.10, right=0.97, top=0.97, bottom=0.13)
+    fig.tight_layout()
+
+    outfile = os.path.join(FIGDIR, 'sps-models.png')
+    fig.savefig(outfile, dpi=150, bbox_inches='tight')
+    print(f'Wrote {outfile}')
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
 # compare-mstar
 # ---------------------------------------------------------------------------
 
@@ -243,6 +344,8 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description=__doc__,
     )
+    parser.add_argument('--sps-models', action='store_true',
+                        help='SPS template library figure.')
     parser.add_argument('--compare-mstar', action='store_true',
                         help='Stellar mass comparison: fastspec vs fastphot.')
     parser.add_argument('--specprod', default=DEFAULT_SPECPROD,
@@ -257,6 +360,9 @@ def main():
 
     survey = 'main' if args.main else 'sv3'
     os.makedirs(FIGDIR, exist_ok=True)
+
+    if args.sps_models:
+        sps_models(verbose=args.verbose)
 
     if args.compare_mstar:
         compare_mstar(survey=survey, specprod=args.specprod,
