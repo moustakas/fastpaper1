@@ -17,6 +17,7 @@ All output columns are standardized to **h=1, Chabrier IMF** before writing.
 - [Zou et al. (CIGALE) — `zouhu`](#zou-et-al-cigale--zouhu)
 - [Siudek et al. (CIGALE-AGN) — `cigaleagn`](#siudek-et-al-cigale-agn--cigaleagn)
 - [Salim et al. (GSWLC-X2) — `gswlcx2`](#salim-et-al-gswlc-x2--gswlcx2)
+- [Ross et al. (fundamental plane) — `fpcatalog`](#ross-et-al-fundamental-plane--fpcatalog)
 
 ---
 
@@ -118,3 +119,34 @@ redshift (|Δv| < 1000 km/s). Output files are named
 | `SFR_ERR_GSWLCX2` | M_sun/yr | 1σ uncertainty |
 | `TAUV_GSWLCX2` | — | V-band optical depth (converted from AV) |
 | `TAUV_ERR_GSWLCX2` | — | 1σ uncertainty |
+
+---
+
+## Ross et al. (fundamental plane) — `fpcatalog`
+
+| Property | Value |
+|---|---|
+| Short name | `fpcatalog` |
+| Method | Fundamental-plane fitting; pPXF and Portsmouth velocity dispersions |
+| Lead | N. Ross |
+| IMF | N/A |
+| H0 | N/A (no cosmological corrections needed) |
+| Specprods | `iron` (DR1 only; not a formal DESI VAC) |
+| Source | `/dvs_ro/cfs/cdirs/desi/science/td/pv/VAC/DR1/peculiar-velocity/v1.0/fundamental-plane/FP_catalogue_v5.fits` |
+
+**References:**
+- Ross et al. (2026, in press) — https://arxiv.org/abs/2512.03226
+
+Used to validate FastSpecFit stellar velocity dispersions. No unit conversions
+applied; all columns are passed through as-is.
+
+**Output columns:**
+
+| Column | Units | Description |
+|---|---|---|
+| `PPXF_VDISP_FPCATALOG` | km/s | pPXF stellar velocity dispersion |
+| `PPXF_VDISP_ERR_FPCATALOG` | km/s | 1σ uncertainty |
+| `PORTSMOUTH_SIGMA_STARS_FPCATALOG` | km/s | Portsmouth stellar velocity dispersion |
+| `PORTSMOUTH_SIGMA_STARS_ERR_FPCATALOG` | km/s | 1σ uncertainty |
+| `FPCALIBRATOR_FPCATALOG` | — | Fundamental-plane calibrator flag |
+| `PRIMARYVDISP_FPCATALOG` | — | Primary velocity dispersion flag |

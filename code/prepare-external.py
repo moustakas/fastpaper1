@@ -524,6 +524,89 @@ def prepare_gswlcx2(survey=None, verbose=False):
 
 
 # ---------------------------------------------------------------------------
+# Ross et al. fundamental-plane catalog (Iron only, not a formal DESI VAC)
+# ---------------------------------------------------------------------------
+
+def prepare_fpcatalog(survey=None, verbose=False):
+    """Prepare the Ross et al. fundamental-plane / velocity-dispersion catalog (DR1/Iron only).
+
+    Source (not a formal DESI VAC):
+        /dvs_ro/cfs/cdirs/desi/science/td/pv/VAC/DR1/peculiar-velocity/v1.0/
+        fundamental-plane/FP_catalogue_v5.fits
+
+    No IMF or cosmology corrections are needed; all columns are carried through
+    as-is with a _FPCATALOG suffix.
+
+    References:
+        Ross et al. (2026, in press) — https://arxiv.org/abs/2512.03226
+
+    """
+    shortcat = 'fpcatalog'
+    specprod = 'iron'  # no Loa version exists
+
+    fpcatalog_path = (
+        '/dvs_ro/cfs/cdirs/desi/science/td/pv/VAC/DR1/peculiar-velocity/v1.0/'
+        'fundamental-plane/FP_catalogue_v5.fits'
+    )
+    if not os.path.exists(fpcatalog_path):
+        raise FileNotFoundError(f'FP catalog not found: {fpcatalog_path}')
+
+    readcols = ['TARGETID', 'RA', 'DEC', 'Z',
+                'PPXF_VDISP', 'PPXF_VDISP_ERR',
+                'PORTSMOUTH_SIGMA_STARS', 'PORTSMOUTH_SIGMA_STARS_ERR',
+                'FPCALIBRATOR', 'PRIMARYVDISP']
+
+    if verbose:
+        print(f'Reading index columns from {fpcatalog_path} ...')
+    with fitsio.FITS(fpcatalog_path) as fits:
+        idx = fits[1].read(columns=['SURVEY', 'PROGRAM'])
+    idx_survey  = _decode_str_col(idx['SURVEY'])
+    idx_program = _decode_str_col(idx['PROGRAM'])
+    if verbose:
+        print(f'  ... read {len(idx):,} rows')
+
+    for surv, program in SURVEY_PROGRAMS:
+        if survey is not None and surv != survey:
+            continue
+        outfile = os.path.join(EXTDIR, f'{shortcat}-{specprod}-{surv}-{program}.fits')
+
+        rows = np.where((idx_survey == surv) & (idx_program == program))[0]
+        if len(rows) == 0:
+            print(f'  {surv}-{program}: no rows found; skipping')
+            continue
+        if verbose:
+            print(f'\n  {surv}/{program}: {len(rows):,} {shortcat} rows')
+
+        with fitsio.FITS(fpcatalog_path) as fits:
+            ext = Table(fits[1].read(columns=readcols, rows=rows))
+
+        try:
+            ref = read_fastspec(surv, program, specprod=DEFAULT_SPECPROD,
+                                columns=_ref_columns(surv), verbose=verbose)
+        except (FileNotFoundError, ValueError) as exc:
+            print(f'  {surv}/{program}: cannot read reference — {exc}, skipping')
+            continue
+
+        i_ref, i_ext = cross_match(ref, ext, verbose=verbose)
+        if len(i_ref) == 0:
+            print(f'  {surv}/{program}: no matches after consistency checks, skipping')
+            continue
+        print(f'  {surv}/{program}: {len(i_ref):,} matched → {outfile}')
+
+        out   = ref[i_ref].copy()
+        ext_m = ext[i_ext]
+
+        for col in ['PPXF_VDISP', 'PPXF_VDISP_ERR',
+                    'PORTSMOUTH_SIGMA_STARS', 'PORTSMOUTH_SIGMA_STARS_ERR',
+                    'FPCALIBRATOR', 'PRIMARYVDISP']:
+            out[f'{col}_{shortcat.upper()}'] = ext_m[col]
+
+        out.write(outfile, overwrite=True)
+
+    print('Done.')
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -538,6 +621,8 @@ def main():
                         help='Prepare the Siudek et al. CIGALE-AGN catalog (DR1/iron only).')
     parser.add_argument('--gswlcx2', action='store_true',
                         help='Prepare the Salim et al. GSWLC-X2 catalog (SDSS; matched by sky position).')
+    parser.add_argument('--fpcatalog', action='store_true',
+                        help='Prepare the Ross et al. fundamental-plane catalog (DR1/iron only).')
     parser.add_argument('--specprod', default=DEFAULT_SPECPROD,
                         help='Spectroscopic production name.')
     parser.add_argument('--survey', default=None, choices=['sv3', 'main'],
@@ -554,6 +639,9 @@ def main():
 
     if args.gswlcx2:
         prepare_gswlcx2(survey=args.survey, verbose=args.verbose)
+
+    if args.fpcatalog:
+        prepare_fpcatalog(survey=args.survey, verbose=args.verbose)
 
 
 if __name__ == '__main__':
