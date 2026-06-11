@@ -146,10 +146,10 @@ def prepare_zouhu(ntest=None, survey=None, specprod=DEFAULT_SPECPROD, verbose=Fa
     Iron (DR1) Source:
         /global/cfs/cdirs/desi/public/dr1/vac/dr1/stellar-mass-emline/
 
-    IMF: Chabrier (same as FastSpecFit — no IMF correction needed).
-    Cosmology: H0=70 km/s/Mpc (h=0.7); FastSpecFit stores values at h=1.
+    IMF: Chabrier
+    Cosmology: H0=70 km/s/Mpc (h=0.7)
 
-    Unit conversions applied before writing:
+    Unit conversions:
         LOGMSTAR  [log10, h=1] = MASS_CG_*    + 2·log10(0.7)  (≈ −0.309 dex)
         SFR       [M⊙/yr, h=1] = SFR_CG_*     × 0.7²          (× 0.49)
         TAUV                   = AV_CG_*       / 1.086
@@ -173,8 +173,16 @@ def prepare_zouhu(ntest=None, survey=None, specprod=DEFAULT_SPECPROD, verbose=Fa
 
     prefix = 'zouhu'
     h_zouhu = 0.7
-    dlogm   = 2.0 * np.log10(h_zouhu)  # ≈ −0.309 dex; additive to log10 mass
-    h2      = h_zouhu ** 2             # = 0.49; multiplicative to linear SFR
+    dlogm   = 2. * np.log10(h_zouhu)  # ≈ −0.309 dex; additive to log10 mass
+    h2      = h_zouhu**2.             # = 0.49; multiplicative to linear SFR
+
+    _readcols = {
+        'loa': ['FLUX_SCALE', 'AV_CG_15', 'AVERR_CG_15', 'SFR_CG_15',
+                'SFRERR_CG_15', 'MASS_CG_15', 'MASSERR_CG_15', ],
+        'iron': ['FLUX_SCALE', 'AV_CG_15', 'AVERR_CG_15', 'SFR_CG_15',
+                 'SFRERR_CG_15', 'MASS_CG_15', 'MASSERR_CG_15', ],
+    }
+    readcols = _readcols[specprod]
 
     if verbose:
         print(f'Reading index columns from {zouhu_path} ...')
@@ -207,7 +215,7 @@ def prepare_zouhu(ntest=None, survey=None, specprod=DEFAULT_SPECPROD, verbose=Fa
 
         # Read the selected rows from disk
         with fitsio.FITS(zouhu_path) as fits:
-            ext = Table(fits[1].read(rows=rows))
+            ext = Table(fits[1].read(columns=readcols, rows=rows))
 
         # Read the reference FastSpecFit catalog for this survey+program
         try:
