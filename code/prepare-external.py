@@ -71,6 +71,54 @@ def _decode_str_col(col):
     ])
 
 
+def cross_match_radec(ref, ext, ext_z_col='Z', ext_ra_col='RA', ext_dec_col='DEC',
+                      verbose=False):
+    """Match ref and ext on sky position, then check redshift consistency.
+
+    Used for external (non-DESI) catalogs that have no TARGETID. For each ref
+    object the nearest ext neighbor is found; pairs are kept only if the
+    separation is < MAX_SEP_ARCSEC and |Δv| < MAX_DV_KMS.
+
+    Parameters
+    ----------
+    ref : astropy.table.Table
+        Reference FastSpecFit catalog; must have RA, DEC, Z.
+    ext : astropy.table.Table
+        External catalog; must have positional and redshift columns.
+    ext_z_col, ext_ra_col, ext_dec_col : str
+        Column names in ext.
+    verbose : bool
+
+    Returns
+    -------
+    i_ref, i_ext : ndarray of int
+        Indices into ref and ext of matched, consistency-checked pairs.
+    """
+    from astropy.coordinates import SkyCoord
+    import astropy.units as u_
+
+    c_ref = SkyCoord(ref['RA'] * u_.deg, ref['DEC'] * u_.deg)
+    c_ext = SkyCoord(ext[ext_ra_col] * u_.deg, ext[ext_dec_col] * u_.deg)
+
+    idx_ext, sep, _ = c_ref.match_to_catalog_sky(c_ext)
+    pos_ok = sep.arcsec < MAX_SEP_ARCSEC
+
+    dv    = np.abs(ref['Z'] - ext[ext_z_col][idx_ext]) * C_LIGHT
+    z_ok  = dv < MAX_DV_KMS
+
+    keep  = pos_ok & z_ok
+    i_ref = np.where(keep)[0]
+    i_ext = idx_ext[keep]
+
+    n_fail_pos = int((~pos_ok).sum())
+    n_fail_z   = int((pos_ok & ~z_ok).sum())
+    if verbose or n_fail_z or n_fail_pos:
+        print(f'    Position matches: {pos_ok.sum():,}  →  after Δv cut: {keep.sum():,}'
+              f'  (Δv failures: {n_fail_z}, position failures: {n_fail_pos})')
+
+    return i_ref, i_ext
+
+
 def cross_match(ref, ext, ext_z_col='Z', ext_ra_col='RA', ext_dec_col='DEC',
                 verbose=False):
     """Match ref and ext on TARGETID, then check redshift and sky-position consistency.
@@ -141,6 +189,7 @@ def cross_match(ref, ext, ext_z_col='Z', ext_ra_col='RA', ext_dec_col='DEC',
 # ---------------------------------------------------------------------------
 # Zou et al. (Iron, Loa - CIGALE)
 # ---------------------------------------------------------------------------
+
 
 def prepare_zouhu(ntest=None, survey=None, specprod=DEFAULT_SPECPROD, verbose=False):
     """Prepare the Zou et al. (CIGALE) SED-fitting catalogs.
@@ -405,6 +454,121 @@ def prepare_cigaleagn(ntest=None, survey=None, verbose=False):
 
 
 # ---------------------------------------------------------------------------
+# Salim et al. (GSWLC-X2 / SDSS-based, no TARGETID)
+# ---------------------------------------------------------------------------
+
+def prepare_gswlcx2(ntest=None, survey=None, verbose=False):
+    """Prepare the Salim et al. GALEX-SDSS-WISE Legacy Catalog (GSWLC-X2).
+
+    Source:
+        /dvs_ro/cfs/cdirs/desicollab/users/ioannis/fastspecfit/external/
+        GSWLC-X2.dat
+
+    This is an SDSS-based catalog with no TARGETID and no SURVEY/PROGRAM
+    columns. Matching to the FastSpecFit reference is done purely by sky
+    position (< 1.5 arcsec) and redshift (|Δv| < 1000 km/s) using
+    cross_match_radec().  The full catalog is read once before the
+    survey/program loop.
+
+    IMF: Chabrier (same as FastSpecFit — no IMF correction needed).
+    Cosmology: WMAP7, H0=70.4 km/s/Mpc (h=0.704); FastSpecFit stores values at h=1.
+
+    Unit conversions applied:
+        LOGMSTAR_h1  = LOGMSTAR + 2·log10(0.704)         (≈ −0.305 dex; additive)
+        LOGMSTAR_ERR unchanged (dex errors are additive-h-invariant)
+        SFR_h1       = 10^(LOGSFR + 2·log10(0.704))      [M_sun/yr, linear]
+        SFR_ERR_h1   = SFR_h1 × LOGSFR_ERR × ln(10)     (dex → linear propagation)
+        TAUV         = AV / 1.086
+        TAUV_ERR     = AV_ERR / 1.086
+
+    References:
+        Salim et al. (2016) — https://iopscience.iop.org/article/10.3847/0067-0049/227/1/2
+        Salim et al. (2018) — https://iopscience.iop.org/article/10.3847/1538-4357/aabf3c
+        Catalog homepage   — https://salims.pages.iu.edu/gswlc/
+
+    """
+    from astropy.table import Table as ATable
+
+    shortcat = 'gswlcx2'
+    gswlcx2_path = (
+        '/dvs_ro/cfs/cdirs/desicollab/users/ioannis/fastspecfit/external/'
+        'GSWLC-X2.dat'
+    )
+    if not os.path.exists(gswlcx2_path):
+        raise FileNotFoundError(f'GSWLC-X2 catalog not found: {gswlcx2_path}')
+
+    h_gswlc = 0.704
+    dlogm   = 2.0 * np.log10(h_gswlc)  # ≈ −0.305 dex
+
+    if verbose:
+        print(f'Reading {gswlcx2_path} ...')
+    ext_full = ATable.read(
+        gswlcx2_path, format='ascii',
+        names=['OBJID', 'GLXID', 'PLATE', 'MJD', 'FIBERID', 'RA', 'DEC', 'Z',
+               'RCHI2', 'LOGMSTAR', 'LOGMSTAR_ERR', 'LOGSFR', 'LOGSFR_ERR',
+               'AFUV', 'AFUV_ERR', 'AB', 'AB_ERR', 'AV', 'AV_ERR',
+               'FLAG_SED', 'UVSURVEY', 'FLAG_UV', 'FLAG_MIDIR', 'FLAG_MGS'],
+    )
+    ext_full = ext_full['OBJID', 'RA', 'DEC', 'Z',
+                        'LOGMSTAR', 'LOGMSTAR_ERR', 'LOGSFR', 'LOGSFR_ERR',
+                        'AV', 'AV_ERR']
+    if verbose:
+        print(f'  ... read {len(ext_full):,} rows')
+
+    # --ntest: subsample once before the survey/program loop
+    if ntest is not None:
+        rng      = np.random.default_rng(42)
+        ext_full = ext_full[rng.choice(len(ext_full), min(ntest, len(ext_full)),
+                                       replace=False)]
+        if verbose:
+            print(f'    ntest subsample: {len(ext_full):,} {shortcat} rows')
+
+    for surv, program in SURVEY_PROGRAMS:
+        if survey is not None and surv != survey:
+            continue
+        outfile = os.path.join(EXTDIR, f'{shortcat}-{surv}-{program}.fits')
+
+        try:
+            ref = read_fastspec(surv, program, specprod=DEFAULT_SPECPROD,
+                                columns=_ref_columns(surv), verbose=verbose)
+        except (FileNotFoundError, ValueError) as exc:
+            print(f'  {surv}/{program}: cannot read reference — {exc}, skipping')
+            continue
+
+        if ntest is not None:
+            rng = np.random.default_rng(42)
+            ref = ref[rng.choice(len(ref), min(ntest, len(ref)), replace=False)]
+            if verbose:
+                print(f'    ntest subsample: {len(ref):,} reference rows')
+
+        i_ref, i_ext = cross_match_radec(ref, ext_full, verbose=verbose)
+        if len(i_ref) == 0:
+            print(f'  {surv}/{program}: no matches after consistency checks, skipping')
+            continue
+        print(f'  {surv}/{program}: {len(i_ref):,} matched → {outfile}')
+
+        out   = ref[i_ref].copy()
+        ext_m = ext_full[i_ext]
+
+        # stellar mass [log10(M/M_sun), h=1]: already log, additive h correction
+        out[f'LOGMSTAR_{shortcat.upper()}']     = ext_m['LOGMSTAR']     + dlogm
+        out[f'LOGMSTAR_ERR_{shortcat.upper()}'] = ext_m['LOGMSTAR_ERR']  # dex unchanged
+
+        # SFR: log10(M_sun/yr) at h=0.704 → linear M_sun/yr at h=1
+        sfr_h1 = np.power(10., ext_m['LOGSFR'] + dlogm)
+        out[f'SFR_{shortcat.upper()}']     = sfr_h1
+        out[f'SFR_ERR_{shortcat.upper()}'] = sfr_h1 * ext_m['LOGSFR_ERR'] * np.log(10.)
+
+        # dust: AV [mag] → TAUV = AV / 1.086
+        out[f'TAUV_{shortcat.upper()}']     = ext_m['AV']     / 1.086
+        out[f'TAUV_ERR_{shortcat.upper()}'] = ext_m['AV_ERR'] / 1.086
+
+        out.write(outfile, overwrite=True)
+
+    print('Done.')
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -417,6 +581,8 @@ def main():
                         help='Prepare the Zou et al. CIGALE catalog (DR2/loa or DR1/iron).')
     parser.add_argument('--cigaleagn', action='store_true',
                         help='Prepare the Siudek et al. CIGALE-AGN catalog (DR1/iron only).')
+    parser.add_argument('--gswlcx2', action='store_true',
+                        help='Prepare the Salim et al. GSWLC-X2 catalog (SDSS; matched by sky position).')
     parser.add_argument('--specprod', default=DEFAULT_SPECPROD,
                         help='Spectroscopic production name.')
     parser.add_argument('--ntest', type=int, default=None, metavar='N',
@@ -441,6 +607,9 @@ def main():
 
     if args.cigaleagn:
         prepare_cigaleagn(ntest=args.ntest, survey=survey, verbose=args.verbose)
+
+    if args.gswlcx2:
+        prepare_gswlcx2(ntest=args.ntest, survey=survey, verbose=args.verbose)
 
 
 if __name__ == '__main__':

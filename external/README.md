@@ -12,6 +12,12 @@ Files are named `{shortcat}-{specprod}-{survey}-{program}.fits` where
 
 All output columns are standardized to **h=1, Chabrier IMF** before writing.
 
+## Contents
+
+- [Zou et al. (CIGALE) — `zouhu`](#zou-et-al-cigale--zouhu)
+- [Siudek et al. (CIGALE-AGN) — `cigaleagn`](#siudek-et-al-cigale-agn--cigaleagn)
+- [Salim et al. (GSWLC-X2) — `gswlcx2`](#salim-et-al-gswlc-x2--gswlcx2)
+
 ---
 
 ## Zou et al. (CIGALE) — `zouhu`
@@ -77,3 +83,38 @@ the prepared files.
 | `FLAG_LOGMSTAR_CIGALEAGN` | — | Mass PDF quality flag; good fits: 0.2 < flag < 5.0 |
 | `FLAG_LOGSFR_CIGALEAGN` | — | SFR PDF quality flag; good fits: 0.2 < flag < 5.0 |
 | `AGNFRAC_CIGALEAGN` | — | AGN fraction |
+
+---
+
+## Salim et al. (GSWLC-X2) — `gswlcx2`
+
+| Property | Value |
+|---|---|
+| Short name | `gswlcx2` |
+| Method | CIGALE SED fitting of GALEX+SDSS+WISE photometry |
+| Lead | Samir Salim |
+| IMF | Chabrier |
+| H0 | 70.4 km/s/Mpc (h = 0.704, WMAP7) |
+| Specprods | N/A (SDSS-based; matched by sky position + redshift) |
+| Source | `/dvs_ro/cfs/cdirs/desicollab/users/ioannis/fastspecfit/external/GSWLC-X2.dat` |
+
+**References:**
+- Salim et al. (2016) — https://iopscience.iop.org/article/10.3847/0067-0049/227/1/2
+- Salim et al. (2018) — https://iopscience.iop.org/article/10.3847/1538-4357/aabf3c
+- Catalog homepage — https://salims.pages.iu.edu/gswlc/
+
+No TARGETID or SURVEY/PROGRAM columns; the full catalog is read once and
+matched to each reference catalog by sky position (< 1.5 arcsec) and
+redshift (|Δv| < 1000 km/s). Output files are named
+`gswlcx2-{survey}-{program}.fits` (no specprod component).
+
+**Output columns** (after unit conversion to h=1):
+
+| Column | Units | Description |
+|---|---|---|
+| `LOGMSTAR_GSWLCX2` | log10(M/M_sun) | Stellar mass at h=1 |
+| `LOGMSTAR_ERR_GSWLCX2` | dex | 1σ uncertainty |
+| `SFR_GSWLCX2` | M_sun/yr | SFR at h=1 (linear; converted from log) |
+| `SFR_ERR_GSWLCX2` | M_sun/yr | 1σ uncertainty |
+| `TAUV_GSWLCX2` | — | V-band optical depth (converted from AV) |
+| `TAUV_ERR_GSWLCX2` | — | 1σ uncertainty |
