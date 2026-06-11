@@ -7,14 +7,18 @@ catalog (via util.read_fastspec), applies positional and redshift consistency
 checks, standardizes units, and writes a compact prepared file to ./external/.
 
 Output files are named:
-    external/<catalog>/loa-<survey>-<program>.fits
+    external/{shortcat}-{specprod}-{survey}-{program}.fits
+
+where {specprod} identifies the external catalog's data release (e.g. 'loa',
+'iron') and {shortcat} is the catalog's short name (e.g. 'zouhu').  The
+reference catalog is always the Loa FastSpecFit VAC.
 
 Each output file contains the matched reference columns (TARGETID, RA, DEC, Z,
-LOGMSTAR, SFR, TAUV, …) side-by-side with standardized external columns, all at
-h=1 and Chabrier IMF, ready for direct comparison.
+LOGMSTAR, SFR, TAUV, …) side-by-side with standardized external columns, all
+converted to h=1 and Chabrier IMF, ready for direct comparison.
 
 Usage (from repo root or code/):
-    python code/prepare-external.py --zouhu [--specprod loa] [--ntest N] [--verbose]
+    python code/prepare-external.py --zouhu [--specprod loa|iron] [--ntest N] [--verbose]
 
 """
 import os, sys, argparse
@@ -147,21 +151,20 @@ def prepare_zouhu(ntest=None, survey=None, specprod=DEFAULT_SPECPROD, verbose=Fa
     Iron (DR1) Source:
         /dvs_ro/cfs/cdirs/desi/public/dr1/vac/dr1/stellar-mass-emline/
 
-    IMF: Chabrier
-    Cosmology: H0=70 km/s/Mpc (h=0.7)
+    IMF: Chabrier (same as FastSpecFit — no IMF correction needed).
+    Cosmology: H0=70 km/s/Mpc (h=0.7); FastSpecFit stores values at h=1.
 
-    Unit conversions:
-        LOGMSTAR  [log10, h=1] = MASS_CG_*    + 2·log10(0.7)  (≈ −0.309 dex)
-        SFR       [M⊙/yr, h=1] = SFR_CG_*     × 0.7²          (× 0.49)
-        TAUV                   = AV_CG_*       / 1.086
+    Unit conversions applied before writing:
+        LOGMSTAR  [log10, h=1] = log10(MASS_CG_*) + 2·log10(0.7)  (≈ −0.309 dex)
+        LOGMSTAR_ERR  [dex]    = MASSERR_CG_* / (MASS_CG_* × ln 10)
+        SFR       [M⊙/yr, h=1] = SFR_CG_*  × 0.7²                 (× 0.49)
+        SFR_ERR                = SFRERR_CG_* × 0.7²
+        TAUV                   = AV_CG_*  / 1.086
+        TAUV_ERR               = AVERR_CG_* / 1.086
 
-    Uncertainty columns:
-        log-mass errors (dex) are unchanged by the additive h correction.
-        SFR errors scale the same as SFR (multiplicative).
-        TAUV errors = AV errors / 1.086.
-
-    Assumption: MASS_CG_15 / MASS_CG_5 are log10(M_star / M_sun). If they
-    are instead linear stellar masses, the h-correction logic must be revised.
+    MASS_CG_* and MASSERR_CG_* are linear stellar masses in M_sun.
+    Only the _CG_15 variant (5-band tractor + 10-band spectrophotometry) is
+    included; the 5-band-only _CG_5 variant is omitted.
 
     """
     _zouhu_path = {
@@ -182,14 +185,14 @@ def prepare_zouhu(ntest=None, survey=None, specprod=DEFAULT_SPECPROD, verbose=Fa
             'readcols': ['TARGETID', 'TARGET_RA', 'TARGET_DEC', 'Z', 'FLUX_SCALE', 'AV_CG_15',
                          'AVERR_CG_15', 'SFR_CG_15', 'SFRERR_CG_15', 'MASS_CG_15',
                          'MASSERR_CG_15', ],
-            'newcols': ['TARGETID', 'RA', 'DEC', 'Z', 'APERCORR', 'TAUV', 'TAUV_ERR', 'SFR',
-                        'SFR_ERR', 'LOGMSTAR', 'LOGMSTAR_ERR', ],
+            'newcols': ['TARGETID', 'RA', 'DEC', 'Z', 'APERCORR', 'AV', 'AV_ERR', 'SFR',
+                        'SFR_ERR', 'MSTAR', 'MSTAR_ERR', ],
         },
         'iron': {
             'readcols': ['TARGETID', 'TARGET_RA', 'TARGET_DEC', 'Z', 'FLUX_SCALE', 'AV_CG',
                          'AVERR_CG', 'SFR_CG', 'SFRERR_CG', 'MASS_CG', 'MASSERR_CG', ],
-            'newcols': ['TARGETID', 'RA', 'DEC', 'Z', 'APERCORR', 'TAUV', 'TAUV_ERR', 'SFR',
-                        'SFR_ERR', 'LOGMSTAR', 'LOGMSTAR_ERR', ],
+            'newcols': ['TARGETID', 'RA', 'DEC', 'Z', 'APERCORR', 'AV', 'AV_ERR', 'SFR',
+                        'SFR_ERR', 'MSTAR', 'MSTAR_ERR', ],
         },
     }
     readcols = _columns[specprod]['readcols']
@@ -254,22 +257,22 @@ def prepare_zouhu(ntest=None, survey=None, specprod=DEFAULT_SPECPROD, verbose=Fa
         out   = ref[i_ref].copy()
         ext_m = ext[i_ext]
 
-        # convert stellar mass [Msun, linear] to log10(M/M_sun), h=1
-        mstar = ext_m['LOGMSTAR'].astype(float).copy()
-        mstarerr = ext_m['LOGMSTAR_ERR'].astype(float).copy()
+        # stellar mass: linear M_sun → log10(M/M_sun) at h=1
+        mstar    = ext_m['MSTAR'].astype(float).copy()
+        mstarerr = ext_m['MSTAR_ERR'].astype(float).copy()
         bad = (mstar <= 0.) | (mstarerr <= 0.) | np.isnan(mstar) | np.isnan(mstarerr)
         mstar[bad] = np.nan
         mstarerr[bad] = np.nan
-        out[f'LOGMSTAR_{shortcat.upper()}']  = np.log10(mstar) + dlogm
+        out[f'LOGMSTAR_{shortcat.upper()}']     = np.log10(mstar) + dlogm
         out[f'LOGMSTAR_ERR_{shortcat.upper()}'] = mstarerr / (mstar * np.log(10))
 
-        # convert SFR [M_sun/yr, linear] to h=1
-        out[f'SFR_{shortcat.upper()}']  = ext_m['SFR'] * h2
+        # SFR: linear M_sun/yr → h=1
+        out[f'SFR_{shortcat.upper()}']     = ext_m['SFR']     * h2
         out[f'SFR_ERR_{shortcat.upper()}'] = ext_m['SFR_ERR'] * h2
 
-        # convert dust attenuation AV → TAUV = AV / 1.086
-        out[f'TAUV_{shortcat.upper()}']  = ext_m['TAUV'] / 1.086
-        out[f'TAUV_ERR_{shortcat.upper()}'] = ext_m['TAUV_ERR'] / 1.086
+        # dust: AV [mag] → TAUV = AV / 1.086
+        out[f'TAUV_{shortcat.upper()}']     = ext_m['AV']     / 1.086
+        out[f'TAUV_ERR_{shortcat.upper()}'] = ext_m['AV_ERR'] / 1.086
 
         # aperture correction factor
         out[f'APERCORR_{shortcat.upper()}'] = ext_m['APERCORR']
@@ -289,7 +292,7 @@ def main():
         description=__doc__,
     )
     parser.add_argument('--zouhu', action='store_true',
-                        help='Prepare the CIGALE catalog (Zou et al. DR2).')
+                        help='Prepare the Zou et al. CIGALE catalog (DR2/loa or DR1/iron).')
     parser.add_argument('--specprod', default=DEFAULT_SPECPROD,
                         help='Spectroscopic production name.')
     parser.add_argument('--ntest', type=int, default=None, metavar='N',
