@@ -370,7 +370,7 @@ def compare_vdisp(verbose=False):
     fs_p, ppxf_p = fs[good_ppxf], ppxf[good_ppxf]
     fs_q, port_q = fs[good_port], port[good_port]
 
-    sigrange = [75, 450]
+    sigrange = [30, 400]
     resrange = [-150, 150]
     bins_main = 60
     bins_res  = [60, 40]
@@ -380,18 +380,16 @@ def compare_vdisp(verbose=False):
 
     plot_style(talk=True, font_scale=0.85, palette='colorblind')
 
-    fig = plt.figure(figsize=(11, 8))
-    gs = GridSpec(2, 2, figure=fig, height_ratios=[3, 1],
+    fig = plt.figure(figsize=(7, 6))
+    gs = GridSpec(2, 1, figure=fig, height_ratios=[3, 1],
                   hspace=0.05, wspace=0.08)
 
     ax_pp  = fig.add_subplot(gs[0, 0])
-    ax_pt  = fig.add_subplot(gs[0, 1])
     ax_rpp = fig.add_subplot(gs[1, 0], sharex=ax_pp)
-    ax_rpt = fig.add_subplot(gs[1, 1], sharex=ax_pt)
 
     # ---- top-left: FS vs pPXF ----
     hess_contours(ax_pp, fs_p, ppxf_p, sigrange, sigrange, bins=bins_main)
-    ax_pp.plot(sigrange, sigrange, color='k', lw=1, ls='--')
+    ax_pp.plot(sigrange, sigrange, color='k', lw=1.5, ls='-')
     ax_pp.set_xlim(sigrange)
     ax_pp.set_ylim(sigrange)
     ax_pp.set_ylabel(r'$\sigma_\star$ [pPXF] (km s$^{-1}$)')
@@ -405,24 +403,6 @@ def compare_vdisp(verbose=False):
                va='top', ha='left',
                bbox=dict(facecolor='white', edgecolor='none', alpha=0.75, pad=2))
 
-    # ---- top-right: FS vs Portsmouth ----
-    hess_contours(ax_pt, fs_q, port_q, sigrange, sigrange, bins=bins_main)
-    ax_pt.plot(sigrange, sigrange, color='k', lw=1, ls='--')
-    ax_pt.set_xlim(sigrange)
-    ax_pt.set_ylim(sigrange)
-    ax_pt.set_ylabel(r'$\sigma_\star$ [Portsmouth] (km s$^{-1}$)')
-    ax_pt.yaxis.set_label_position('right')
-    ax_pt.yaxis.tick_right()
-    ax_pt.tick_params(labelbottom=False)
-    dpt = port_q - fs_q
-    ax_pt.text(0.04, 0.96,
-               f'$N={len(fs_q):,}$\n'
-               f'$\\Delta_{{\\rm med}}={np.median(dpt):+.1f}$ km s$^{{-1}}$\n'
-               f'NMAD$={_nmad(dpt):.1f}$ km s$^{{-1}}$',
-               transform=ax_pt.transAxes, fontsize='small',
-               va='top', ha='left',
-               bbox=dict(facecolor='white', edgecolor='none', alpha=0.75, pad=2))
-
     # ---- bottom-left: residuals pPXF ----
     hess_contours(ax_rpp, fs_p, dpp, sigrange, resrange, bins=bins_res)
     ax_rpp.axhline(0, color='k', lw=1, ls='--')
@@ -430,16 +410,6 @@ def compare_vdisp(verbose=False):
     ax_rpp.set_ylim(resrange)
     ax_rpp.set_xlabel(r'$\sigma_\star$ [FastSpecFit] (km s$^{-1}$)')
     ax_rpp.set_ylabel(r'$\Delta\sigma_\star$ (km s$^{-1}$)')
-
-    # ---- bottom-right: residuals Portsmouth ----
-    hess_contours(ax_rpt, fs_q, dpt, sigrange, resrange, bins=bins_res)
-    ax_rpt.axhline(0, color='k', lw=1, ls='--')
-    ax_rpt.set_xlim(sigrange)
-    ax_rpt.set_ylim(resrange)
-    ax_rpt.set_xlabel(r'$\sigma_\star$ [FastSpecFit] (km s$^{-1}$)')
-    ax_rpt.yaxis.set_label_position('right')
-    ax_rpt.yaxis.tick_right()
-    ax_rpt.set_ylabel(r'$\Delta\sigma_\star$ (km s$^{-1}$)')
 
     fig.tight_layout()
 
