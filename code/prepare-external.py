@@ -15,8 +15,8 @@ h=1 and Chabrier IMF, ready for direct comparison.
 
 Usage (from repo root or code/):
     python code/prepare-external.py --zouhu [--specprod loa] [--ntest N] [--verbose]
-"""
 
+"""
 import os, sys, argparse
 import numpy as np
 from astropy.table import Table
@@ -166,7 +166,7 @@ def prepare_zouhu(ntest=None, survey=None, specprod=DEFAULT_SPECPROD, verbose=Fa
     _zouhu_path = {
         'loa': '/global/cfs/cdirs/desicollab/users/zouhu/vac/dr2/dr2_galaxy_sedfitting_v1.0.fits',
         'iron': '/global/cfs/cdirs/desi/public/dr1/vac/dr1/stellar-mass-emline/v1.0/dr1_galaxy_stellarmass_lineinfo_v1.0.fits',
-    )
+    }
     zouhu_path = _zouhu_path[specprod]
     if not os.path.exists(zouhu_path):
         raise FileNotFoundError(f'Zou et al. catalog not found: {zouhu_path}')
