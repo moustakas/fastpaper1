@@ -8,14 +8,14 @@ Run from the repo root or from code/:
 Each flag generates one figure written to tex/figures/.
 
 """
-import os, argparse, pdb
+import sys, os, argparse, pdb
 import numpy as np
 import matplotlib.pyplot as plt
 from astropy.table import vstack, join
 
-import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from util import read_fastspec, read_fastphot, plot_style, corner_plot, DEFAULT_SPECPROD
+from util import (read_fastspec, read_fastphot, plot_style,
+                  corner_plot, hess_contours, DEFAULT_SPECPROD)
 
 REPODIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIGDIR  = os.path.join(REPODIR, 'tex', 'figures')
@@ -339,6 +339,117 @@ def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD,
 
 
 # ---------------------------------------------------------------------------
+# compare-vdisp
+# ---------------------------------------------------------------------------
+
+def compare_vdisp(verbose=False):
+    """2×2 comparison of FastSpecFit stellar velocity dispersions vs pPXF and Portsmouth.
+
+    Data source: external/fpcatalog-iron-main-bright.fits (Ross et al. 2026).
+    Top row: scatter (Hess + contours); bottom row: absolute residuals vs sigma_FS.
+    Output: tex/figures/compare-vdisp.png
+    """
+    from matplotlib.gridspec import GridSpec
+
+    extdir = os.path.join(REPODIR, 'external')
+    catfile = os.path.join(extdir, 'fpcatalog-iron-main-bright.fits')
+    if verbose:
+        print(f'Reading {catfile}')
+    import fitsio
+    d = fitsio.read(catfile)
+
+    fs   = d['VDISP'].astype(float)
+    ppxf = d['PPXF_VDISP_FPCATALOG'].astype(float)
+    port = d['PORTSMOUTH_SIGMA_STARS_FPCATALOG'].astype(float)
+    ivar = d['VDISP_IVAR'].astype(float)
+
+    good_fs   = (ivar > 0) & np.isfinite(fs) & (fs > 0)
+    good_ppxf = good_fs & np.isfinite(ppxf) & (ppxf > 0)
+    good_port = good_fs & np.isfinite(port) & (port > 0)
+
+    fs_p, ppxf_p = fs[good_ppxf], ppxf[good_ppxf]
+    fs_q, port_q = fs[good_port], port[good_port]
+
+    sigrange = [75, 450]
+    resrange = [-150, 150]
+    bins_main = 60
+    bins_res  = [60, 40]
+
+    def _nmad(x):
+        return 1.4826 * np.median(np.abs(x - np.median(x)))
+
+    plot_style(talk=True, font_scale=0.85, palette='colorblind')
+
+    fig = plt.figure(figsize=(11, 8))
+    gs = GridSpec(2, 2, figure=fig, height_ratios=[3, 1],
+                  hspace=0.05, wspace=0.08)
+
+    ax_pp  = fig.add_subplot(gs[0, 0])
+    ax_pt  = fig.add_subplot(gs[0, 1])
+    ax_rpp = fig.add_subplot(gs[1, 0], sharex=ax_pp)
+    ax_rpt = fig.add_subplot(gs[1, 1], sharex=ax_pt)
+
+    # ---- top-left: FS vs pPXF ----
+    hess_contours(ax_pp, fs_p, ppxf_p, sigrange, sigrange, bins=bins_main)
+    ax_pp.plot(sigrange, sigrange, color='k', lw=1, ls='--')
+    ax_pp.set_xlim(sigrange)
+    ax_pp.set_ylim(sigrange)
+    ax_pp.set_ylabel(r'$\sigma_\star$ [pPXF] (km s$^{-1}$)')
+    ax_pp.tick_params(labelbottom=False)
+    dpp = ppxf_p - fs_p
+    ax_pp.text(0.04, 0.96,
+               f'$N={len(fs_p):,}$\n'
+               f'$\\Delta_{{\\rm med}}={np.median(dpp):+.1f}$ km s$^{{-1}}$\n'
+               f'NMAD$={_nmad(dpp):.1f}$ km s$^{{-1}}$',
+               transform=ax_pp.transAxes, fontsize='small',
+               va='top', ha='left',
+               bbox=dict(facecolor='white', edgecolor='none', alpha=0.75, pad=2))
+
+    # ---- top-right: FS vs Portsmouth ----
+    hess_contours(ax_pt, fs_q, port_q, sigrange, sigrange, bins=bins_main)
+    ax_pt.plot(sigrange, sigrange, color='k', lw=1, ls='--')
+    ax_pt.set_xlim(sigrange)
+    ax_pt.set_ylim(sigrange)
+    ax_pt.set_ylabel(r'$\sigma_\star$ [Portsmouth] (km s$^{-1}$)')
+    ax_pt.yaxis.set_label_position('right')
+    ax_pt.yaxis.tick_right()
+    ax_pt.tick_params(labelbottom=False)
+    dpt = port_q - fs_q
+    ax_pt.text(0.04, 0.96,
+               f'$N={len(fs_q):,}$\n'
+               f'$\\Delta_{{\\rm med}}={np.median(dpt):+.1f}$ km s$^{{-1}}$\n'
+               f'NMAD$={_nmad(dpt):.1f}$ km s$^{{-1}}$',
+               transform=ax_pt.transAxes, fontsize='small',
+               va='top', ha='left',
+               bbox=dict(facecolor='white', edgecolor='none', alpha=0.75, pad=2))
+
+    # ---- bottom-left: residuals pPXF ----
+    hess_contours(ax_rpp, fs_p, dpp, sigrange, resrange, bins=bins_res)
+    ax_rpp.axhline(0, color='k', lw=1, ls='--')
+    ax_rpp.set_xlim(sigrange)
+    ax_rpp.set_ylim(resrange)
+    ax_rpp.set_xlabel(r'$\sigma_\star$ [FastSpecFit] (km s$^{-1}$)')
+    ax_rpp.set_ylabel(r'$\Delta\sigma_\star$ (km s$^{-1}$)')
+
+    # ---- bottom-right: residuals Portsmouth ----
+    hess_contours(ax_rpt, fs_q, dpt, sigrange, resrange, bins=bins_res)
+    ax_rpt.axhline(0, color='k', lw=1, ls='--')
+    ax_rpt.set_xlim(sigrange)
+    ax_rpt.set_ylim(resrange)
+    ax_rpt.set_xlabel(r'$\sigma_\star$ [FastSpecFit] (km s$^{-1}$)')
+    ax_rpt.yaxis.set_label_position('right')
+    ax_rpt.yaxis.tick_right()
+    ax_rpt.set_ylabel(r'$\Delta\sigma_\star$ (km s$^{-1}$)')
+
+    fig.tight_layout()
+
+    outfile = os.path.join(FIGDIR, 'compare-vdisp.png')
+    fig.savefig(outfile, dpi=150, bbox_inches='tight')
+    print(f'Wrote {outfile}')
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -351,6 +462,8 @@ def main():
                         help='SPS template library figure.')
     parser.add_argument('--compare-mstar', action='store_true',
                         help='Stellar mass comparison: fastspec vs fastphot.')
+    parser.add_argument('--compare-vdisp', action='store_true',
+                        help='Velocity dispersion comparison: FastSpecFit vs pPXF and Portsmouth.')
     parser.add_argument('--specprod', default=DEFAULT_SPECPROD,
                         help='Spectroscopic production name.')
     parser.add_argument('--main', action='store_true',
@@ -370,6 +483,9 @@ def main():
     if args.compare_mstar:
         compare_mstar(survey=survey, specprod=args.specprod,
                       split_contours=args.split_contours, verbose=args.verbose)
+
+    if args.compare_vdisp:
+        compare_vdisp(verbose=args.verbose)
 
 
 if __name__ == '__main__':

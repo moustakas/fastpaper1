@@ -393,6 +393,36 @@ def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
     return fig
 
 
+def hess_contours(ax, x, y, xrange, yrange, bins=50, smooth=1.0,
+                  contour_levels=None, cmap='Blues', contour_lw=1.5):
+    """Hess diagram with smoothed cumulative contours, matching corner_plot style."""
+    from matplotlib.colors import LogNorm
+    from scipy.ndimage import gaussian_filter
+
+    if contour_levels is None:
+        contour_levels = [0.5, 0.75, 0.95, 0.995]
+
+    H, xedges, yedges = np.histogram2d(x, y, bins=bins,
+                                        range=[xrange, yrange])
+    xc = 0.5 * (xedges[:-1] + xedges[1:])
+    yc = 0.5 * (yedges[:-1] + yedges[1:])
+    ax.pcolormesh(xedges, yedges, H.T, norm=LogNorm(vmin=1), cmap=cmap)
+
+    Hs = gaussian_filter(H, smooth) if smooth > 0 else H
+    flat = np.sort(Hs.flatten())[::-1]
+    cumsum = np.cumsum(flat)
+    total = cumsum[-1]
+    if total > 0 and contour_levels:
+        lvls = []
+        for frac in contour_levels:
+            idx = np.searchsorted(cumsum, frac * total)
+            lvls.append(flat[min(idx, len(flat) - 1)])
+        lvls = sorted(v for v in set(lvls) if v > 0)
+        if lvls:
+            ax.contour(xc, yc, Hs.T, levels=lvls,
+                       colors='k', linewidths=contour_lw)
+
+
 def plot_style(talk=True, font_scale=1.0, palette=None):
     """Set seaborn plot style and return (sns, color_palette).
 
