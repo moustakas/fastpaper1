@@ -36,8 +36,9 @@
 \newcommand{\deltachisq}{{\ensuremath{\Delta\chi^2}}}
 \newcommand{\vdisp}{\ensuremath{\sigma_\star}}
 \newcommand{\tauv}{\ensuremath{\tau_V}}
-\newcommand{\Mstar}{M_\star}
-\newcommand{\logmstar}{\log_{10}(\Mstar/\mathrm{M_\odot})}
+\newcommand{\Mstar}{\ensuremath{\mathcal{M}_{\mathrm{star}}}}
+\newcommand{\msun}{\ensuremath{\mathcal{M}_{\odot}}}
+\newcommand{\logmstar}{\log_{10}(\Mstar/\msun)}
 % macros used in table-desi.tex
 \newcommand{\shortdlis}{DESI Legacy Imaging Surveys}
 \newcommand{\shortatlas}{Legacy Survey image atlas}
@@ -224,12 +225,12 @@ in the observed frame \citep{guy23a}. The three cameras sense blue (B:
 $R \approx 2000$ in the blue to $R \approx 5500$ in the near-infrared.
 
 The spectroscopic pipeline \citep{guy23a} delivers flux-calibrated,
-sky-subtracted 1D spectra for all targets on a common linear wavelength
-grid with 0.8\,\AA\,pixel$^{-1}$ steps. The optimal spectral
-extraction \citep[following][]{bolton10a} encodes the wavelength-dependent
-line-spread function (LSF) for each fiber in a sparse resolution matrix,
-which \fastspecfit{} uses to convolve model spectra before comparing
-them to the data (\S\ref{ssec:emlines}).
+sky-subtracted one-dimensional spectra for all targets on a common
+linear wavelength grid with 0.8\,\AA\,pixel$^{-1}$ steps. The optimal
+spectral extraction \citep[following][]{bolton10a} encodes the
+wavelength-dependent line-spread function (LSF) for each fiber in a
+sparse resolution matrix, which \fastspecfit{} uses to convolve model
+spectra before comparing them to the data (\S\ref{ssec:emlines}).
 
 Wavelength calibration proceeds in three steps: an initial solution
 from arc-lamp spectra, a per-exposure PSF and trace refinement, and a
@@ -238,6 +239,8 @@ external high-resolution sky atlas. The residual wavelength
 calibration uncertainty after this correction is typically
 $\epsilon_\lambda \approx 0.025$\,\AA\ per sky line---roughly 3\%
 of a CCD pixel, or $\sim$1\,\kms\ at 7000\,\AA\ \citep{guy23a}.
+
+All wavelengths are measured in vacuum.
 
 Flux calibration uses approximately ten F-type standard stars per
 spectrograph petal, selected from the Legacy Survey imaging catalogs
@@ -274,14 +277,13 @@ undetected enter the fit as $1\sigma$ upper limits.
 The Legacy Survey catalogs provide two distinct photometric
 measurements for each source: \emph{total} photometry, which
 integrates the full surface brightness profile, and \emph{fiber}
-photometry, which estimates the flux a 1.5\arcsec-diameter fiber
-would collect at 1\arcsec\ FWHM seeing. \fastspecfit{} fits the
-total photometry jointly with the DESI fiber spectrum, but must
-reconcile the fact that the fiber samples only the central region of
-an extended source. We apply an aperture correction to place the
-fiber spectrum on the same flux scale as the total broadband
-photometry before the joint fit; we describe this step in
-\S\ref{ssec:continuum}.
+photometry, which estimates the flux a 1\farcs5-diameter fiber would
+collect at 1\arcsec{} FWHM seeing. \fastspecfit{} fits the total
+photometry jointly with the DESI fiber spectrum, but must reconcile
+the fact that the fiber samples only the central region of an extended
+source. We apply an aperture correction to place the fiber spectrum on
+the same flux scale as the total broadband photometry before the joint
+fit; we describe this step in \S\ref{ssec:continuum}.
 
 %\input{tables/table-desi}
 
@@ -361,7 +363,7 @@ sequence applied to a representative BGS target is given in \S\ref{sec:casestudy
 \caption{The five SPS templates that span the
   \fastspecfit\ star-formation history bins (\S\ref{ssec:templates}),
   computed at solar metallicity ($\log_{10}Z/Z_\odot=0$) with
-  $\tauv=0.1$ and normalized to a $10^{10}\,M_\odot$ galaxy at
+  $\tauv=0.1$ and normalized to a $10^{10}\,\msun$ galaxy at
   $z=0.1$.  Each line corresponds to one lookback-time bin, ranging
   from 0--30~Myr (youngest) to 11.6--13.7~Gyr (oldest); the spectral
   energy distribution shifts from UV-bright continua with prominent
@@ -373,15 +375,17 @@ sequence applied to a representative BGS target is given in \S\ref{sec:casestudy
   spectrophotometric fit. \label{fig:sps}}
 \end{figure*}
 
-We represent the stellar continuum as a non-negative linear superposition of
-simple stellar population (SPS) templates generated with
-FSPS\footnote{\url{https://github.com/cconroy20/fsps}}
+We represent the stellar continuum as a non-negative linear
+superposition of simple stellar population (SPS) templates generated
+with FSPS\footnote{\url{https://github.com/cconroy20/fsps}}
 \citep[Flexible Stellar Population Synthesis;][]{conroy09a,conroy10b}
-via the \texttt{python-fsps}\footnote{\url{https://github.com/dfm/python-fsps}}
-interface, adopting the C3K empirical stellar spectral library (spanning
-2750--9100~\AA\ at $R \equiv \lambda/\mathrm{FWHM} \approx 3000$, or
-${\approx}42$~\kms), MIST stellar isochrones \citep{choi16a,dotter16a},
-and a Chabrier \citep{chabrier03a} initial mass function (IMF).
+via the
+\texttt{python-fsps}\footnote{\url{https://github.com/dfm/python-fsps}}
+interface, adopting the C3K empirical stellar spectral library
+(spanning 2750--9100~\AA\ at $R \equiv \lambda/\mathrm{FWHM} \approx
+3000$, or ${\approx}42$~\kms), MIST stellar isochrones
+\citep{choi16a,dotter16a}, and a Chabrier \citep{chabrier03a} initial
+mass function (IMF) from $0.1-100$~\msun.
 
 We model the star-formation history (SFH) nonparametrically as a
 piecewise-constant function over five lookback-time bins, following the
@@ -402,31 +406,32 @@ the exclusion boundary poorly defined \citep{leja19a}.
 We normalize each template to the flux density produced at 10~pc by one solar
 mass of stars formed at the tabulated lookback time,
 \begin{equation}
-  F_\lambda\,\bigl[\mathrm{erg\,s^{-1}\,cm^{-2}\,\text{\AA}^{-1}\,M_\odot^{-1}}\bigr]
+  F_\lambda\,\bigl[\mathrm{erg\,s^{-1}\,cm^{-2}\,\text{\AA}^{-1}\,\msun^{-1}}\bigr]
   \;=\; \frac{L_\odot}{4\pi(10\,\mathrm{pc})^2}\,\frac{L_\lambda}{L_\odot},
   \label{eq:fnorm}
 \end{equation}
-so that the fitted non-negative coefficients $\mathbf{c} \geq 0$ carry units
-of $M_\odot$, up to an overall mass normalization $\mathcal{M}_0 =
-10^{10}\,M_\odot$ that sets the internal dynamic range.
+so that the fitted non-negative coefficients $\mathbf{c} \geq 0$ carry
+units of \msun, up to an overall mass normalization $\mathcal{M}_0 =
+10^{10}\,\msun$ that sets the internal dynamic range.
 
 We store templates on a hybrid wavelength grid in which pixels span
 $\Delta v = 25$~\kms\ in velocity (constant $\Delta\ln\lambda$) over
-2750--9100~\AA; outside this range we retain the native, nonuniform FSPS
-wavelength grid. The constant-velocity core enables stellar velocity-dispersion
-broadening via a fixed-width Gaussian kernel in $\ln\lambda$ space, which we
-apply efficiently via FFT, as we describe in \S\ref{sssec:vdisp}.
+2750--9100~\AA; outside this range we retain the native, nonuniform
+FSPS wavelength grid. The constant-velocity core enables stellar
+velocity-dispersion broadening via a fixed-width Gaussian kernel in
+$\ln\lambda$ space, which we apply efficiently via a fast Fourier
+transform (FFT) (see \S\ref{sssec:vdisp}).
 
-We additionally include three auxiliary emission components in the template
-library: infrared dust emission following the \citet{draine07a} interstellar
-dust model, which we normalize to unit bolometric luminosity and scale during
-fitting by the absorbed stellar luminosity to enforce energy balance
-(\S\ref{sssec:dust}); a \citet{nenkova08a} clumpy AGN torus template,
-parameterized by optical depth, which we apply optionally when fitting AGN
-host galaxies; and the \citet{vestergaard01a} empirical UV/optical iron
-emission template for broad-line AGN. We incorporate all three within the same
-non-negative coefficient framework as the SPS templates. Table~\ref{table:templates}
-summarizes the full template grid.
+We additionally include three auxiliary emission components in the
+template library: infrared dust emission following the
+\citet{draine07a} interstellar dust model, which we normalize to unit
+bolometric luminosity and scale during fitting by the absorbed stellar
+luminosity to enforce energy balance (\S\ref{sssec:dust}); a
+\citet{nenkova08a} clumpy AGN torus template, parameterized by optical
+depth, which we apply optionally when fitting AGN host galaxies; and
+the \citet{vestergaard01a} empirical UV/optical iron emission template
+for broad-line AGN. We incorporate all three within the same
+non-negative coefficient framework as the SPS templates.
 
 %\input{tables/table-templates}
 
@@ -535,34 +540,38 @@ after the primary fit, before the spectrum is passed to the emission-line fitter
 
 We model the attenuation of the stellar continuum as a uniform foreground screen,
 \begin{equation}
-  f_\lambda^\mathrm{att}(\lambda)
-  \;=\; f_\lambda(\lambda)\,\exp\!\bigl(-\tauv\,k(\lambda)\bigr),
+  f_\lambda^\mathrm{att}(\lambda) = f_\lambda(\lambda)\,e^{-\tauv k(\lambda)},
+% f_\lambda^\mathrm{att}(\lambda) = f_\lambda(\lambda)\,\exp\!\bigl(-\tauv\,k(\lambda)\bigr),
   \label{eq:atten}
 \end{equation}
-\noindent where
+
+\noindent where $f_\lambda$ is the unattenuated template flux, $\tauv$
+is the $V$-band optical depth, and
+
 \begin{equation}
-  k(\lambda) \;=\; \left(\frac{\lambda}{5500\,\text{\AA}}\right)^{-0.7},
+  k(\lambda) \;=\;
+  \left(\frac{\lambda}{5500\,\text{\AA}}\right)^{\alpha}
   \label{eq:kl}
 \end{equation}
 
-\noindent $f_\lambda$ is the unattenuated template flux, and $\tauv
-\in [0,2]$ is the single free parameter, the $V$-band optical
-depth. The power-law index $-0.7$ is the \citet{charlot00a}
-birth-cloud slope, consistent with the \citet{calzetti00a} attenuation
-law shortward of $\sim$6000~\AA.  Absorbed photons are re-emitted in
-the infrared following energy balance: we scale the \citet{draine07a}
-dust emission template $f_\lambda^\mathrm{dust}$ (normalized to unit
-bolometric luminosity) by the absorbed luminosity,
+\noindent is the attenuation curve, which we model as a simple power
+law with fixed power-law index $\alpha=-0.7$ based on the
+\citet{charlot00a} birth-cloud model.
+%, consistent with the \citet{calzetti00a} attenuation law shortward of $\sim$6000~\AA.
+Absorbed photons are re-emitted in the infrared following energy
+balance: we scale the \citet{draine07a} dust emission template
+$f_\lambda^\mathrm{dust}$ (normalized to unit bolometric luminosity)
+by the absorbed luminosity,
 \begin{equation}
-  L_\mathrm{abs}
-  \;=\; \int_0^\infty f_\lambda(\lambda)
-        \bigl[1 - \exp(-\tauv\,k(\lambda))\bigr]\,d\lambda,
+  L_\mathrm{abs} = \int_0^\infty f_\lambda(\lambda) (1 - e^{-\tauv
+    k(\lambda)})\,d\lambda,
+%  L_\mathrm{abs} = \int_0^\infty f_\lambda(\lambda) \bigl[1 -
+%    \exp(-\tauv\,k(\lambda))\bigr]\,d\lambda,
 \end{equation}
 so that the total model conserves bolometric luminosity:
 \begin{equation}
-  f_\lambda^\mathrm{tot}(\lambda)
-  \;=\; f_\lambda^\mathrm{att}(\lambda)
-        \;+\; L_\mathrm{abs}\,f_\lambda^\mathrm{dust}(\lambda).
+  f_\lambda^\mathrm{tot}(\lambda) = f_\lambda^\mathrm{att}(\lambda) +
+  L_\mathrm{abs}\,f_\lambda^\mathrm{dust}(\lambda).
   \label{eq:ftot}
 \end{equation}
 The dust emission template uses default parameters ($q_\mathrm{PAH}=3.5$,
@@ -588,7 +597,7 @@ where $T_\mathrm{IGM}(\lambda,z)$ is the \citet{inoue14a} IGM
 transmission accounting for Ly$\alpha$ forest and Lyman-limit
 attenuation, $\mathcal{F}_0 = 10^{17}$ converts to our internal flux
 units of $10^{-17}$~erg~s$^{-1}$~cm$^{-2}$~\AA$^{-1}$, and
-$\mathcal{M}_0 = 10^{10}\,M_\odot$ is the mass normalization. We combine
+$\mathcal{M}_0 = 10^{10}\,\msun$ is the mass normalization. We combine
 the scalar prefactor and IGM transmission into a single array
 (\texttt{zfactors}) evaluated once per object at initialization and
 reused for all template evaluations during fitting.
@@ -608,27 +617,32 @@ evaluation. For $\vdisp > 500$~\kms\ we fall back to direct pixel-space
 convolution.
 
 We fit $\vdisp$ using only the 3800--6000~\AA\ rest-frame window, which
-captures the Ca~H\&K break, $G$-band, Mg~\textsc{b}, and Fe absorption
+captures the Ca~H\&K break, $G$-band, Mg$b$, and Fe absorption
 features sensitive to velocity broadening, and only when the spectrum
 satisfies $\lambda_\mathrm{min}^\mathrm{rest} < 3800$~\AA\ and
 $\lambda_\mathrm{max}^\mathrm{rest} > 4800$~\AA. The fit uses only
 templates without nebular emission and with $\tauv = 0$, which have
-negligible effect on the absorption features. We employ a two-stage
-strategy: we first perform a $\chi^2$ grid scan over $N = 5$ values of
-$\vdisp$ evenly spaced in $[75,\,500]$~\kms, accepting the result only if
-$\Delta\chi^2 \geq 25$ and the minimum does not fall at a boundary; if
-the scan succeeds, we then refine the estimate with a Trust-Region
-Reflective (TRF) optimizer initialized at the grid minimum. When
-wavelength coverage or signal-to-noise is insufficient, we fix $\vdisp =
-250$~\kms---close to the knee of the velocity-dispersion function at
-$z = 0$--$1.5$ \citep[e.g.,][]{bezanson11a}---and use pre-convolved
-templates cached as \texttt{flux\_nomvdisp}. This nominal value is an
-overestimate for the emission-line galaxies targeted by DESI, but the
-effect on the continuum fit is small because those objects are observed
-primarily in the rest-frame UV where stellar absorption features are weak.
+negligible effect on the absorption features.
+
+We employ a two-stage strategy: we first perform a $\chi^2$ grid scan
+over $N = 5$ values of $\vdisp$ evenly spaced in $[75,\,500]$~\kms,
+accepting the result only if $\Delta\chi^2 \geq 25$ and the minimum
+does not fall at a boundary; if the scan succeeds, we then refine the
+estimate with a Trust-Region Reflective (TRF) optimizer initialized at
+the grid minimum \citep{branch99a}. When wavelength coverage or
+signal-to-noise is insufficient, we fix $\vdisp = 250$~\kms---close to
+the knee of the velocity-dispersion function at $z = 0$--$1.5$
+\citep[e.g.,][]{bezanson11a}---and use pre-convolved templates cached
+as \texttt{flux\_nomvdisp}. This nominal value is an overestimate for
+the emission-line galaxies targeted by DESI, but the effect on the
+continuum fit is small because those objects are observed primarily in
+the rest-frame UV where stellar absorption features are weak.
 
 \subsubsection{Fitting Algorithm}
 \label{sssec:fitting}
+
+\todo{Explicitly mention the priors in this section, $\tauv \in
+  [0,2]$.}
 
 We fit the stellar continuum by minimizing the weighted sum of squared
 spectroscopic and photometric residuals,
@@ -781,7 +795,7 @@ and $\sigma = s/c$ is the line width in log-$\lambda$ units. The total
 line flux is
 \begin{equation}
   \Phi \;=\; \sqrt{2\pi}\,A\,\lambda^*\,\sigma
-       \;=\; \sqrt{2\pi}\,A\,\lambda^*\,s/c,
+       \;=\; \sqrt{2\pi}\,A\,\lambda^*\,\frac{s}{c},
   \label{eq:flux_phys}
 \end{equation}
 which is independent of the instrumental pixel grid and resolution
@@ -932,28 +946,7 @@ freedom exceeds the degrees of freedom added by the relaxation;
 otherwise we retain the primary result. We record this comparison in the
 output columns \texttt{DELTA\_KINECHI2} and \texttt{DELTA\_KINENDOF}.
 
-\begin{deluxetable}{cc}
-\tablecaption{Emission-Line Free Parameters and Bounds\label{table:priors}}
-\tablewidth{0pt}
-\tablehead{
-  \colhead{Parameter} &
-  \colhead{Bounds}
-}
-\startdata
-\multicolumn{2}{c}{\textbf{Narrow-line model}} \\
-$\sigma_{\mathrm{narrow}}$     & 1--750~\kms \\
-$(\Delta v)_{\mathrm{narrow}}$ & $\pm500$~\kms \\
-\multicolumn{2}{c}{\textbf{Broad-line model}} \\
-$\sigma_{\mathrm{narrow}}$     & 1--750~\kms \\
-$\sigma_{\mathrm{broad}}$      & 1--10,000~\kms \\
-$(\Delta v)_{\mathrm{narrow}}$ & $\pm500$~\kms \\
-$(\Delta v)_{\mathrm{broad}}$  & $\pm2500$~\kms \\
-\enddata
-\tablecomments{Optimizer bounds for the free kinematic parameters in
-  the narrow-only and narrow+broad emission-line models
-  (\S\ref{sssec:kinematic}). Broad-line UV and AGN permitted lines use
-  the broad-line bounds.}
-\end{deluxetable}
+\input{tables/table-kinematic-bounds}
 
 \subsection{Spectrophotometric and Physical Properties}
 \label{ssec:quantities}

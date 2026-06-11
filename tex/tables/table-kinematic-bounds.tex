@@ -1,0 +1,24 @@
+\setlength{\tabcolsep}{1cm}
+\begin{deluxetable*}{cc}
+\tablecaption{Emission-Line Free Parameters and Bounds\label{table:priors}}
+\tablewidth{0pt}
+\tablehead{
+  \colhead{Parameter} &
+  \colhead{Bounds}
+}
+\startdata
+\multicolumn{2}{c}{\textbf{Narrow-line model}} \\
+$\sigma_{\mathrm{narrow}}$     & 1--750~\kms \\
+$(\Delta v)_{\mathrm{narrow}}$ & $\pm500$~\kms \\
+\multicolumn{2}{c}{\textbf{Broad-line model}} \\
+$\sigma_{\mathrm{narrow}}$     & 1--750~\kms \\
+$\sigma_{\mathrm{broad}}$      & 1--10,000~\kms \\
+$(\Delta v)_{\mathrm{narrow}}$ & $\pm500$~\kms \\
+$(\Delta v)_{\mathrm{broad}}$  & $\pm2500$~\kms \\
+\enddata
+\tablecomments{Optimizer bounds for the free kinematic parameters in
+  the narrow-only and narrow+broad emission-line models
+  (\S\ref{sssec:kinematic}). Broad-line UV and AGN permitted lines use
+  the broad-line bounds.}
+\end{deluxetable*}
+\setlength{\tabcolsep}{6pt}  % restore default
