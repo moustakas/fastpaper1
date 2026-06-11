@@ -44,7 +44,8 @@ EXTDIR  = os.path.join(REPODIR, 'external')
 # silently drops any requested column not present in the catalog.
 _REF_BASE_COLS = [
     'TARGETID', 'RA', 'DEC', 'Z', 'ZWARN', 'SURVEY', 'PROGRAM', 'HEALPIX',
-    'LOGMSTAR', 'SFR', 'TAUV', 'VDISP', 'DN4000',
+    'LOGMSTAR', 'LOGMSTAR_IVAR', 'SFR', 'SFR_IVAR', 'TAUV', 'TAUV_IVAR',
+    'VDISP', 'VDISP_IVAR', #'DN4000', 'DN4000_IVAR',
 ]
 _SV_TARGET_COLS = {
     'sv1':     ['SV1_DESI_TARGET', 'SV1_BGS_TARGET', 'SV1_MWS_TARGET'],
@@ -141,10 +142,10 @@ def prepare_zouhu(ntest=None, survey=None, specprod=DEFAULT_SPECPROD, verbose=Fa
     """Prepare the Zou et al. (CIGALE) SED-fitting catalogs.
 
     Loa (DR2) Source:
-        /global/cfs/cdirs/desicollab/users/zouhu/vac/dr2/
+        /dvs_ro/cfs/cdirs/desicollab/users/zouhu/vac/dr2/
         dr2_galaxy_sedfitting_v1.0.fits
     Iron (DR1) Source:
-        /global/cfs/cdirs/desi/public/dr1/vac/dr1/stellar-mass-emline/
+        /dvs_ro/cfs/cdirs/desi/public/dr1/vac/dr1/stellar-mass-emline/
 
     IMF: Chabrier
     Cosmology: H0=70 km/s/Mpc (h=0.7)
@@ -164,30 +165,40 @@ def prepare_zouhu(ntest=None, survey=None, specprod=DEFAULT_SPECPROD, verbose=Fa
 
     """
     _zouhu_path = {
-        'loa': '/global/cfs/cdirs/desicollab/users/zouhu/vac/dr2/dr2_galaxy_sedfitting_v1.0.fits',
-        'iron': '/global/cfs/cdirs/desi/public/dr1/vac/dr1/stellar-mass-emline/v1.0/dr1_galaxy_stellarmass_lineinfo_v1.0.fits',
+        'loa': '/dvs_ro/cfs/cdirs/desicollab/users/zouhu/vac/dr2/dr2_galaxy_sedfitting_v1.0.fits',
+        'iron': '/dvs_ro/cfs/cdirs/desi/public/dr1/vac/dr1/stellar-mass-emline/v1.0/dr1_galaxy_stellarmass_lineinfo_v1.0.fits',
     }
     zouhu_path = _zouhu_path[specprod]
     if not os.path.exists(zouhu_path):
         raise FileNotFoundError(f'Zou et al. catalog not found: {zouhu_path}')
 
-    prefix = 'zouhu'
+    shortcat = 'zouhu'
     h_zouhu = 0.7
     dlogm   = 2. * np.log10(h_zouhu)  # ≈ −0.309 dex; additive to log10 mass
     h2      = h_zouhu**2.             # = 0.49; multiplicative to linear SFR
 
-    _readcols = {
-        'loa': ['FLUX_SCALE', 'AV_CG_15', 'AVERR_CG_15', 'SFR_CG_15',
-                'SFRERR_CG_15', 'MASS_CG_15', 'MASSERR_CG_15', ],
-        'iron': ['FLUX_SCALE', 'AV_CG_15', 'AVERR_CG_15', 'SFR_CG_15',
-                 'SFRERR_CG_15', 'MASS_CG_15', 'MASSERR_CG_15', ],
+    _columns = {
+        'loa': {
+            'readcols': ['TARGETID', 'TARGET_RA', 'TARGET_DEC', 'Z', 'FLUX_SCALE', 'AV_CG_15',
+                         'AVERR_CG_15', 'SFR_CG_15', 'SFRERR_CG_15', 'MASS_CG_15',
+                         'MASSERR_CG_15', ],
+            'newcols': ['TARGETID', 'RA', 'DEC', 'Z', 'APERCORR', 'TAUV', 'TAUV_ERR', 'SFR',
+                        'SFR_ERR', 'LOGMSTAR', 'LOGMSTAR_ERR', ],
+        },
+        'iron': {
+            'readcols': ['TARGETID', 'TARGET_RA', 'TARGET_DEC', 'Z', 'FLUX_SCALE', 'AV_CG',
+                         'AVERR_CG', 'SFR_CG', 'SFRERR_CG', 'MASS_CG', 'MASSERR_CG', ],
+            'newcols': ['TARGETID', 'RA', 'DEC', 'Z', 'APERCORR', 'TAUV', 'TAUV_ERR', 'SFR',
+                        'SFR_ERR', 'LOGMSTAR', 'LOGMSTAR_ERR', ],
+        },
     }
-    readcols = _readcols[specprod]
+    readcols = _columns[specprod]['readcols']
+    newcols = _columns[specprod]['newcols']
 
     if verbose:
         print(f'Reading index columns from {zouhu_path} ...')
     with fitsio.FITS(zouhu_path) as fits:
-        idx = fits[1].read(columns=['TARGETID', 'SURVEY', 'PROGRAM'])
+        idx = fits[1].read(columns=['SURVEY', 'PROGRAM'])
     idx_survey  = _decode_str_col(idx['SURVEY'])
     idx_program = _decode_str_col(idx['PROGRAM'])
     if verbose:
@@ -196,7 +207,7 @@ def prepare_zouhu(ntest=None, survey=None, specprod=DEFAULT_SPECPROD, verbose=Fa
     for surv, program in SURVEY_PROGRAMS:
         if survey is not None and surv != survey:
             continue
-        outfile = os.path.join(EXTDIR, f'{prefix}-{specprod}-{surv}-{program}.fits')
+        outfile = os.path.join(EXTDIR, f'{shortcat}-{specprod}-{surv}-{program}.fits')
 
         # Row indices for this survey+program combination
         rows = np.where((idx_survey == surv) & (idx_program == program))[0]
@@ -204,22 +215,24 @@ def prepare_zouhu(ntest=None, survey=None, specprod=DEFAULT_SPECPROD, verbose=Fa
             print(f'  {surv}-{program}: no rows found; skipping')
             continue
         if verbose:
-            print(f'\n  {surv}/{program}: {len(rows):,} {prefix} rows')
+            print(f'\n  {surv}/{program}: {len(rows):,} {shortcat} rows')
 
         # --ntest: random subsample of the external catalog
         if ntest is not None:
             rng  = np.random.default_rng(42)
             rows = rng.choice(rows, min(ntest, len(rows)), replace=False)
             if verbose:
-                print(f'    ntest subsample: {len(rows):,} {prefix} rows')
+                print(f'    ntest subsample: {len(rows):,} {shortcat} rows')
 
         # Read the selected rows from disk
         with fitsio.FITS(zouhu_path) as fits:
             ext = Table(fits[1].read(columns=readcols, rows=rows))
+        ext.rename_columns(readcols, newcols)
 
-        # Read the reference FastSpecFit catalog for this survey+program
+        # Read the reference FastSpecFit catalog for this
+        # survey+program; always read from DR2/Loa!
         try:
-            ref = read_fastspec(surv, program, specprod=specprod,
+            ref = read_fastspec(surv, program, specprod=DEFAULT_SPECPROD,
                                 columns=_ref_columns(surv), verbose=verbose)
         except (FileNotFoundError, ValueError) as exc:
             print(f'  {surv}/{program}: cannot read reference — {exc}, skipping')
@@ -241,33 +254,25 @@ def prepare_zouhu(ntest=None, survey=None, specprod=DEFAULT_SPECPROD, verbose=Fa
         out   = ref[i_ref].copy()
         ext_m = ext[i_ext]
 
-        # --- stellar mass [log10(M/M_sun), h=1] ---
-        # MASS_CG_* is linear M_star / M_sun; log and apply h correction.
-        # Propagate linear error to dex: sigma_log = sigma_lin / (M * ln10).
-        # Guard against non-positive masses (bad fits → NaN).
-        for suffix in ('CG_15', 'CG_5'):
-            mass  = ext_m[f'MASS_{suffix}'].astype(float).copy()
-            merr  = ext_m[f'MASSERR_{suffix}'].astype(float).copy()
-            bad   = mass <= 0
-            mass[bad] = np.nan
-            merr[bad] = np.nan
-            out[f'LOGMSTAR_{suffix}']  = np.log10(mass) + dlogm
-            out[f'LOGMSTARE_{suffix}'] = merr / (mass * np.log(10))
+        # convert stellar mass [Msun, linear] to log10(M/M_sun), h=1
+        mstar = ext_m['LOGMSTAR'].astype(float).copy()
+        mstarerr = ext_m['LOGMSTAR_ERR'].astype(float).copy()
+        bad = (mstar <= 0.) | (mstarerr <= 0.) | np.isnan(mstar) | np.isnan(mstarerr)
+        mstar[bad] = np.nan
+        mstarerr[bad] = np.nan
+        out[f'LOGMSTAR_{shortcat.upper()}']  = np.log10(mstar) + dlogm
+        out[f'LOGMSTAR_ERR_{shortcat.upper()}'] = mstarerr / (mstar * np.log(10))
 
-        # --- SFR [M_sun/yr, linear, h=1] ---
-        out['SFR_CG_15']  = ext_m['SFR_CG_15']    * h2
-        out['SFRE_CG_15'] = ext_m['SFRERR_CG_15'] * h2
-        out['SFR_CG_5']   = ext_m['SFR_CG_5']     * h2
-        out['SFRE_CG_5']  = ext_m['SFRERR_CG_5']  * h2
+        # convert SFR [M_sun/yr, linear] to h=1
+        out[f'SFR_{shortcat.upper()}']  = ext_m['SFR'] * h2
+        out[f'SFR_ERR_{shortcat.upper()}'] = ext_m['SFR_ERR'] * h2
 
-        # --- dust attenuation: AV → TAUV = AV / 1.086 ---
-        out['TAUV_CG_15']    = ext_m['AV_CG_15']    / 1.086
-        out['TAUVERR_CG_15'] = ext_m['AVERR_CG_15'] / 1.086
-        out['TAUV_CG_5']     = ext_m['AV_CG_5']     / 1.086
-        out['TAUVERR_CG_5']  = ext_m['AVERR_CG_5']  / 1.086
+        # convert dust attenuation AV → TAUV = AV / 1.086
+        out[f'TAUV_{shortcat.upper()}']  = ext_m['TAUV'] / 1.086
+        out[f'TAUV_ERR_{shortcat.upper()}'] = ext_m['TAUV_ERR'] / 1.086
 
-        # --- aperture correction factor (dimensionless, no conversion) ---
-        out['APERCORR'] = ext_m['FLUX_SCALE']
+        # aperture correction factor
+        out[f'APERCORR_{shortcat.upper()}'] = ext_m['APERCORR']
 
         out.write(outfile, overwrite=True)
 

@@ -16,7 +16,7 @@ from glob import glob
 from astropy.table import Table, hstack, vstack
 import fitsio
 
-_DESI_VAC = '/global/cfs/cdirs/desi/vac'
+_DESI_VAC = '/dvs_ro/cfs/cdirs/desi/vac'
 
 # Per-specprod catalog directory paths.  Add entries here as new specprods
 # are released; set a value to None when the path is not yet known.
@@ -26,12 +26,12 @@ _SPECPROD_CONFIG = {
         'fastphot': f'{_DESI_VAC}/dr2/fastphot/loa/v1.0/catalogs',
     },
     'iron': {
-        'fastspec': None,  # TBD (DR1)
-        'fastphot': None,  # TBD (DR1)
+        'fastspec': f'{_DESI_VAC}/dr1/fastspecfit/iron/v3.0/catalogs',
+        'fastphot': f'{_DESI_VAC}/dr1/fastphot/loa/v1.0/catalogs',
     },
     'fuji': {
-        'fastspec': None,  # TBD (EDR)
-        'fastphot': None,  # TBD (EDR)
+        'fastspec': f'{_DESI_VAC}/edr/fastspecfit/fuji/v3.2/catalogs',
+        'fastphot': None,
     },
 }
 
@@ -83,6 +83,7 @@ def _read_extensions(filepath, extensions, columns=None):
     Returns
     -------
     astropy.table.Table
+
     """
     parts = []
     seen = set()
@@ -91,10 +92,10 @@ def _read_extensions(filepath, extensions, columns=None):
         for i, ext in enumerate(extensions):
             ext_cols = set(c.upper() for c in fits[ext].get_colnames())
 
-            if i == 0:
-                # METADATA: always full
-                read_cols = None
-            elif columns is not None:
+            #if i == 0:
+            #    # METADATA: always full
+            #    read_cols = None
+            if columns is not None:
                 want = (set(c.upper() for c in columns) & ext_cols) - seen
                 if not want:
                     seen.update(ext_cols)
@@ -161,6 +162,7 @@ def read_fastspec(survey='main', program='dark', specprod=DEFAULT_SPECPROD,
         HEALPIX, RA, DEC, Z, ZWARN, SPECTYPE, DESI_TARGET, BGS_TARGET,
         MWS_TARGET. From SPECPHOT: LOGMSTAR (h=1), SFR (h=1), AGE, TAUV, VDISP,
         DN4000. From FASTSPEC: emission-line fluxes, EWs, kinematics.
+
     """
     return _read_vac(
         specprod, 'fastspec',
@@ -449,6 +451,7 @@ def read_fastphot(survey='main', program='dark', specprod=DEFAULT_SPECPROD,
         HEALPIX, RA, DEC, Z, ZWARN, SPECTYPE, DESI_TARGET, BGS_TARGET,
         MWS_TARGET. From SPECPHOT: LOGMSTAR (h=1), SFR (h=1), AGE, TAUV, VDISP,
         DN4000.
+
     """
     return _read_vac(
         specprod, 'fastphot',
