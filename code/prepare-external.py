@@ -72,12 +72,12 @@ def _decode_str_col(col):
 
 
 def cross_match_radec(ref, ext, ext_z_col='Z', ext_ra_col='RA', ext_dec_col='DEC',
-                      verbose=False):
+                      photo_z_tol=None, verbose=False):
     """Match ref and ext on sky position, then check redshift consistency.
 
     Used for external (non-DESI) catalogs that have no TARGETID. For each ref
     object the nearest ext neighbor is found; pairs are kept only if the
-    separation is < MAX_SEP_ARCSEC and |Δv| < MAX_DV_KMS.
+    separation is < MAX_SEP_ARCSEC and the redshift criterion is satisfied.
 
     Parameters
     ----------
@@ -87,6 +87,9 @@ def cross_match_radec(ref, ext, ext_z_col='Z', ext_ra_col='RA', ext_dec_col='DEC
         External catalog; must have positional and redshift columns.
     ext_z_col, ext_ra_col, ext_dec_col : str
         Column names in ext.
+    photo_z_tol : float or None
+        If set, use the photometric-redshift criterion |Δz|/(1+z_ref) < photo_z_tol
+        instead of the default spectroscopic criterion |Δv| < MAX_DV_KMS.
     verbose : bool
 
     Returns
@@ -103,8 +106,12 @@ def cross_match_radec(ref, ext, ext_z_col='Z', ext_ra_col='RA', ext_dec_col='DEC
     idx_ext, sep, _ = c_ref.match_to_catalog_sky(c_ext)
     pos_ok = sep.arcsec < MAX_SEP_ARCSEC
 
-    dv    = np.abs(ref['Z'] - ext[ext_z_col][idx_ext]) * C_LIGHT
-    z_ok  = dv < MAX_DV_KMS
+    if photo_z_tol is not None:
+        dz   = np.abs(ref['Z'] - ext[ext_z_col][idx_ext]) / (1. + ref['Z'])
+        z_ok = dz < photo_z_tol
+    else:
+        dv   = np.abs(ref['Z'] - ext[ext_z_col][idx_ext]) * C_LIGHT
+        z_ok = dv < MAX_DV_KMS
 
     keep  = pos_ok & z_ok
     i_ref = np.where(keep)[0]
@@ -113,8 +120,8 @@ def cross_match_radec(ref, ext, ext_z_col='Z', ext_ra_col='RA', ext_dec_col='DEC
     n_fail_pos = int((~pos_ok).sum())
     n_fail_z   = int((pos_ok & ~z_ok).sum())
     if verbose or n_fail_z or n_fail_pos:
-        print(f'    Position matches: {pos_ok.sum():,}  →  after Δv cut: {keep.sum():,}'
-              f'  (Δv failures: {n_fail_z}, position failures: {n_fail_pos})')
+        print(f'    Position matches: {pos_ok.sum():,}  →  after z cut: {keep.sum():,}'
+              f'  (z failures: {n_fail_z}, position failures: {n_fail_pos})')
 
     return i_ref, i_ext
 
@@ -524,6 +531,108 @@ def prepare_gswlcx2(survey=None, verbose=False):
 
 
 # ---------------------------------------------------------------------------
+# Weaver et al. (COSMOS2020 / photometric, no TARGETID or SURVEY/PROGRAM)
+# ---------------------------------------------------------------------------
+
+def prepare_cosmos2020(survey=None, verbose=False):
+    """Prepare the Weaver et al. COSMOS2020 photometric catalog.
+
+    Source:
+        /dvs_ro/homes/i/ioannis/ioannis/fastspecfit/laelbg-templates/
+        COSMOS2020_FARMER_R1_v2.1_p3.fits
+
+    No TARGETID or SURVEY/PROGRAM columns. Matched to FastSpecFit reference by
+    sky position (< 1.5 arcsec). Because redshifts are photometric, the
+    consistency check uses |Δz|/(1+z_ref) < 0.2. The full catalog is read
+    once, immediately trimmed of non-finite lp_zBEST and lp_mass_best rows,
+    then matched per survey/program.
+
+    IMF: Chabrier (same as FastSpecFit — no IMF correction needed).
+    Cosmology: h=0.7, OmegaM=0.3, OmegaL=0.7; FastSpecFit stores values at h=1.
+
+    Unit conversions applied:
+        LOGMSTAR_h1 = lp_mass_best + 2·log10(0.7)      (≈ −0.309 dex; additive)
+        SFR_h1      = 10^(lp_SFR_best + 2·log10(0.7))  [M_sun/yr, linear]
+
+    Note: uncertainties (lp_mass_inf/sup, lp_SFR_inf/sup) are not yet included
+    and should be added in a future update.
+
+    References:
+        Weaver et al. (2022) — https://iopscience.iop.org/article/10.3847/1538-4365/ac3078
+        IRSA catalog page   — https://irsa.ipac.caltech.edu/data/COSMOS/tables/cosmos2020/
+
+    """
+    shortcat    = 'cosmos2020'
+    cosmos_path = (
+        '/dvs_ro/homes/i/ioannis/ioannis/fastspecfit/laelbg-templates/'
+        'COSMOS2020_FARMER_R1_v2.1_p3.fits'
+    )
+    if not os.path.exists(cosmos_path):
+        raise FileNotFoundError(f'COSMOS2020 catalog not found: {cosmos_path}')
+
+    h_cosmos = 0.7
+    dlogm    = 2.0 * np.log10(h_cosmos)  # ≈ −0.309 dex
+
+    readcols = ['ID', 'ALPHA_J2000', 'DELTA_J2000', 'lp_zBEST',
+                'lp_mass_best', 'lp_SFR_best', 'FLAG_COMBINED']
+
+    if verbose:
+        print(f'Reading {cosmos_path} ...')
+    with fitsio.FITS(cosmos_path) as fits:
+        ext_full = Table(fits[1].read(columns=readcols))
+    ext_full.rename_columns(
+        ['ALPHA_J2000', 'DELTA_J2000', 'lp_zBEST', 'lp_mass_best', 'lp_SFR_best'],
+        ['RA',          'DEC',          'Z',         'LOGMSTAR',     'LOGSFR'],
+    )
+    if verbose:
+        print(f'  ... read {len(ext_full):,} rows')
+
+    good     = np.isfinite(ext_full['Z']) & np.isfinite(ext_full['LOGMSTAR'])
+    ext_full = ext_full[good]
+    if verbose:
+        print(f'  ... {len(ext_full):,} rows after trimming non-finite Z and LOGMSTAR')
+
+    for surv, program in SURVEY_PROGRAMS:
+        if survey is not None and surv != survey:
+            continue
+        outfile = os.path.join(EXTDIR, f'{shortcat}-{surv}-{program}.fits')
+
+        try:
+            ref = read_fastspec(surv, program, specprod=DEFAULT_SPECPROD,
+                                columns=_ref_columns(surv), verbose=verbose)
+        except (FileNotFoundError, ValueError) as exc:
+            print(f'  {surv}/{program}: cannot read reference — {exc}, skipping')
+            continue
+
+        i_ref, i_ext = cross_match_radec(ref, ext_full, photo_z_tol=0.2, verbose=verbose)
+        if len(i_ref) == 0:
+            print(f'  {surv}/{program}: no matches after consistency checks, skipping')
+            continue
+        print(f'  {surv}/{program}: {len(i_ref):,} matched → {outfile}')
+
+        out   = ref[i_ref].copy()
+        ext_m = ext_full[i_ext]
+
+        # COSMOS ID (useful for cross-referencing with other COSMOS catalogs)
+        out[f'ID_{shortcat.upper()}'] = ext_m['ID']
+
+        # stellar mass [log10(M/M_sun), h=1]: already log, additive h correction
+        out[f'LOGMSTAR_{shortcat.upper()}'] = ext_m['LOGMSTAR'] + dlogm
+        # (uncertainties lp_mass_inf/sup not yet included)
+
+        # SFR: log10(M_sun/yr) at h=0.7 → linear M_sun/yr at h=1
+        out[f'SFR_{shortcat.upper()}'] = np.power(10., ext_m['LOGSFR'] + dlogm)
+        # (uncertainties lp_SFR_inf/sup not yet included)
+
+        # quality flag
+        out[f'FLAG_COMBINED_{shortcat.upper()}'] = ext_m['FLAG_COMBINED']
+
+        out.write(outfile, overwrite=True)
+
+    print('Done.')
+
+
+# ---------------------------------------------------------------------------
 # Ross et al. fundamental-plane catalog (Iron only, not a formal DESI VAC)
 # ---------------------------------------------------------------------------
 
@@ -621,6 +730,8 @@ def main():
                         help='Prepare the Siudek et al. CIGALE-AGN catalog (DR1/iron only).')
     parser.add_argument('--gswlcx2', action='store_true',
                         help='Prepare the Salim et al. GSWLC-X2 catalog (SDSS; matched by sky position).')
+    parser.add_argument('--cosmos2020', action='store_true',
+                        help='Prepare the Weaver et al. COSMOS2020 photometric catalog.')
     parser.add_argument('--fpcatalog', action='store_true',
                         help='Prepare the Ross et al. fundamental-plane catalog (DR1/iron only).')
     parser.add_argument('--specprod', default=DEFAULT_SPECPROD,
@@ -639,6 +750,9 @@ def main():
 
     if args.gswlcx2:
         prepare_gswlcx2(survey=args.survey, verbose=args.verbose)
+
+    if args.cosmos2020:
+        prepare_cosmos2020(survey=args.survey, verbose=args.verbose)
 
     if args.fpcatalog:
         prepare_fpcatalog(survey=args.survey, verbose=args.verbose)

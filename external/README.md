@@ -17,6 +17,7 @@ All output columns are standardized to **h=1, Chabrier IMF** before writing.
 - [Zou et al. (CIGALE) — `zouhu`](#zou-et-al-cigale--zouhu)
 - [Siudek et al. (CIGALE-AGN) — `cigaleagn`](#siudek-et-al-cigale-agn--cigaleagn)
 - [Salim et al. (GSWLC-X2) — `gswlcx2`](#salim-et-al-gswlc-x2--gswlcx2)
+- [Weaver et al. (COSMOS2020) — `cosmos2020`](#weaver-et-al-cosmos2020--cosmos2020)
 - [Ross et al. (fundamental plane) — `fpcatalog`](#ross-et-al-fundamental-plane--fpcatalog)
 
 ---
@@ -119,6 +120,42 @@ redshift (|Δv| < 1000 km/s). Output files are named
 | `SFR_ERR_GSWLCX2` | M_sun/yr | 1σ uncertainty |
 | `TAUV_GSWLCX2` | — | V-band optical depth (converted from AV) |
 | `TAUV_ERR_GSWLCX2` | — | 1σ uncertainty |
+
+---
+
+## Weaver et al. (COSMOS2020) — `cosmos2020`
+
+| Property | Value |
+|---|---|
+| Short name | `cosmos2020` |
+| Method | CIGALE SED fitting of multi-band photometry (LePhare photo-z) |
+| Lead | J. R. Weaver |
+| IMF | Chabrier |
+| H0 | 70 km/s/Mpc (h = 0.7); OmegaM = 0.3, OmegaL = 0.7 |
+| Specprods | N/A (photometric catalog; matched by sky position) |
+| Source | `/dvs_ro/homes/i/ioannis/ioannis/fastspecfit/laelbg-templates/COSMOS2020_FARMER_R1_v2.1_p3.fits` |
+
+**References:**
+- Weaver et al. (2022) — https://iopscience.iop.org/article/10.3847/1538-4365/ac3078
+- IRSA catalog page — https://irsa.ipac.caltech.edu/data/COSMOS/tables/cosmos2020/
+
+No TARGETID or SURVEY/PROGRAM columns. The catalog is read once, trimmed of
+objects with non-finite photometric redshift or stellar mass, then matched to
+each reference by sky position (< 1.5 arcsec) with a relaxed redshift
+criterion of |Δz|/(1+z_ref) < 0.2. Output files are named
+`cosmos2020-{survey}-{program}.fits` (no specprod component).
+
+**Note:** Uncertainties (`lp_mass_inf/sup`, `lp_SFR_inf/sup`) are not yet
+included and should be added in a future update.
+
+**Output columns** (after unit conversion to h=1):
+
+| Column | Units | Description |
+|---|---|---|
+| `ID_COSMOS2020` | — | COSMOS2020 source ID (for cross-referencing) |
+| `LOGMSTAR_COSMOS2020` | log10(M/M_sun) | Stellar mass at h=1 |
+| `SFR_COSMOS2020` | M_sun/yr | SFR at h=1 (linear; converted from log) |
+| `FLAG_COMBINED_COSMOS2020` | — | Combined quality flag |
 
 ---
 
