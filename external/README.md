@@ -27,6 +27,11 @@ All output columns are standardized to **h=1, Chabrier IMF** before writing.
 | Loa source | `/dvs_ro/cfs/cdirs/desicollab/users/zouhu/vac/dr2/dr2_galaxy_sedfitting_v1.0.fits` |
 | Iron source | `/dvs_ro/cfs/cdirs/desi/public/dr1/vac/dr1/stellar-mass-emline/v1.0/dr1_galaxy_stellarmass_lineinfo_v1.0.fits` |
 
+**References:**
+- Zou et al. (2024) — https://iopscience.iop.org/article/10.3847/1538-4357/ad1409
+- Sui et al. (2026) — https://iopscience.iop.org/article/10.3847/1538-3881/ae63b5
+- DR1 VAC documentation — https://data.desi.lbl.gov/doc/releases/dr1/vac/stellar-mass-emline/
+
 Two photometric variants exist: 5-band tractor + 10-band spectrophotometry
 (`_CG_15`) and 5-band tractor only (`_CG_5`). Only `_CG_15` is included in
 the prepared files.
@@ -42,3 +47,33 @@ the prepared files.
 | `TAUV_ZOUHU` | — | V-band optical depth (converted from AV) |
 | `TAUV_ERR_ZOUHU` | — | 1σ uncertainty |
 | `APERCORR_ZOUHU` | — | Aperture correction factor |
+
+---
+
+## Siudek et al. (CIGALE-AGN) — `cigaleagn`
+
+| Property | Value |
+|---|---|
+| Short name | `cigaleagn` |
+| Method | CIGALE SED fitting (AGN contribution included) |
+| Lead | Malgorzata Siudek |
+| IMF | Chabrier |
+| H0 | 70.4 km/s/Mpc (h = 0.704, WMAP7) |
+| Specprods | `iron` (DR1 only) |
+| Source | `/dvs_ro/cfs/cdirs/desi/public/dr1/vac/dr1/cigale/iron/v1.2/IronPhysProp_v1.2.fits` |
+
+**References:**
+- Siudek et al. (2025) — https://www.aanda.org/articles/aa/full_html/2025/08/aa55463-25/aa55463-25.html
+- DR1 VAC documentation — https://data.desi.lbl.gov/doc/releases/dr1/vac/cigale/
+
+**Output columns** (after unit conversion to h=1):
+
+| Column | Units | Description |
+|---|---|---|
+| `LOGMSTAR_CIGALEAGN` | log10(M/M_sun) | Stellar mass at h=1 |
+| `LOGMSTAR_ERR_CIGALEAGN` | dex | 1σ uncertainty |
+| `SFR_CIGALEAGN` | M_sun/yr | SFR at h=1 (linear; converted from log) |
+| `SFR_ERR_CIGALEAGN` | M_sun/yr | 1σ uncertainty |
+| `FLAG_LOGMSTAR_CIGALEAGN` | — | Mass PDF quality flag; good fits: 0.2 < flag < 5.0 |
+| `FLAG_LOGSFR_CIGALEAGN` | — | SFR PDF quality flag; good fits: 0.2 < flag < 5.0 |
+| `AGNFRAC_CIGALEAGN` | — | AGN fraction |

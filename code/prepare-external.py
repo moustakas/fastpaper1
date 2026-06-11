@@ -283,6 +283,128 @@ def prepare_zouhu(ntest=None, survey=None, specprod=DEFAULT_SPECPROD, verbose=Fa
 
 
 # ---------------------------------------------------------------------------
+# Siudek et al. (CIGALE-AGN / Iron only)
+# ---------------------------------------------------------------------------
+
+def prepare_cigaleagn(ntest=None, survey=None, verbose=False):
+    """Prepare the Siudek et al. CIGALE-AGN catalog (DR1/Iron only).
+
+    Source:
+        /dvs_ro/cfs/cdirs/desi/public/dr1/vac/dr1/cigale/iron/v1.2/
+        IronPhysProp_v1.2.fits
+
+    IMF: Chabrier (same as FastSpecFit — no IMF correction needed).
+    Cosmology: WMAP7, H0=70.4 km/s/Mpc (h=0.704); FastSpecFit stores values at h=1.
+
+    LOGM is already in log10 space; the h correction is purely additive:
+        LOGMSTAR_h1  = LOGM + 2·log10(0.704)              (≈ −0.305 dex)
+        LOGMSTAR_ERR unchanged (dex errors are additive-h-invariant)
+
+    LOGSFR is converted to linear to match the FastSpecFit VAC convention:
+        SFR_h1      = 10^(LOGSFR + 2·log10(0.704))        [M_sun/yr, linear]
+        SFR_ERR_h1  = SFR_h1 × LOGSFR_ERR × ln(10)       (dex → linear propagation)
+
+    Quality flags are stored in the output for use in figure code:
+        Good masses:  0.2 < FLAG_MASSPDF < 5.0
+        Good SFRs:    0.2 < FLAG_SFRPDF  < 5.0
+
+    References:
+        Siudek et al. (2025) — https://www.aanda.org/articles/aa/full_html/2025/08/aa55463-25/aa55463-25.html
+        DR1 VAC documentation — https://data.desi.lbl.gov/doc/releases/dr1/vac/cigale/
+
+    """
+    shortcat = 'cigaleagn'
+    specprod = 'iron'  # no Loa version exists
+
+    cigaleagn_path = (
+        '/dvs_ro/cfs/cdirs/desi/public/dr1/vac/dr1/cigale/iron/v1.2/'
+        'IronPhysProp_v1.2.fits'
+    )
+    if not os.path.exists(cigaleagn_path):
+        raise FileNotFoundError(f'CIGALE-AGN catalog not found: {cigaleagn_path}')
+
+    h_cigaleagn = 0.704
+    dlogm       = 2.0 * np.log10(h_cigaleagn)  # ≈ −0.305 dex
+
+    if verbose:
+        print(f'Reading index columns from {cigaleagn_path} ...')
+    with fitsio.FITS(cigaleagn_path) as fits:
+        idx = fits[1].read(columns=['SURVEY', 'PROGRAM'])
+    idx_survey  = _decode_str_col(idx['SURVEY'])
+    idx_program = _decode_str_col(idx['PROGRAM'])
+    if verbose:
+        print(f'  ... read {len(idx):,} rows')
+
+    for surv, program in SURVEY_PROGRAMS:
+        if survey is not None and surv != survey:
+            continue
+        outfile = os.path.join(EXTDIR, f'{shortcat}-{specprod}-{surv}-{program}.fits')
+
+        rows = np.where((idx_survey == surv) & (idx_program == program))[0]
+        if len(rows) == 0:
+            print(f'  {surv}-{program}: no rows found; skipping')
+            continue
+        if verbose:
+            print(f'\n  {surv}/{program}: {len(rows):,} {shortcat} rows')
+
+        if ntest is not None:
+            rng  = np.random.default_rng(42)
+            rows = rng.choice(rows, min(ntest, len(rows)), replace=False)
+            if verbose:
+                print(f'    ntest subsample: {len(rows):,} {shortcat} rows')
+
+        readcols = ['TARGETID', 'RA', 'DEC', 'Z',
+                    'LOGM', 'LOGM_ERR', 'LOGSFR', 'LOGSFR_ERR',
+                    'FLAG_MASSPDF', 'FLAG_SFRPDF', 'AGNFRAC']
+        with fitsio.FITS(cigaleagn_path) as fits:
+            ext = Table(fits[1].read(columns=readcols, rows=rows))
+        ext.rename_columns(['LOGM', 'LOGM_ERR', 'FLAG_MASSPDF', 'FLAG_SFRPDF'],
+                           ['LOGMSTAR', 'LOGMSTAR_ERR', 'FLAG_LOGMSTAR', 'FLAG_LOGSFR'])
+
+        try:
+            ref = read_fastspec(surv, program, specprod=DEFAULT_SPECPROD,
+                                columns=_ref_columns(surv), verbose=verbose)
+        except (FileNotFoundError, ValueError) as exc:
+            print(f'  {surv}/{program}: cannot read reference — {exc}, skipping')
+            continue
+
+        if ntest is not None:
+            rng = np.random.default_rng(42)
+            ref = ref[rng.choice(len(ref), min(ntest, len(ref)), replace=False)]
+            if verbose:
+                print(f'    ntest subsample: {len(ref):,} reference rows')
+
+        i_ref, i_ext = cross_match(ref, ext, verbose=verbose)
+        if len(i_ref) == 0:
+            print(f'  {surv}/{program}: no matches after consistency checks, skipping')
+            continue
+        print(f'  {surv}/{program}: {len(i_ref):,} matched → {outfile}')
+
+        out   = ref[i_ref].copy()
+        ext_m = ext[i_ext]
+
+        # stellar mass [log10(M/M_sun), h=1]: already log, additive h correction only
+        out[f'LOGMSTAR_{shortcat.upper()}']     = ext_m['LOGMSTAR']     + dlogm
+        out[f'LOGMSTAR_ERR_{shortcat.upper()}'] = ext_m['LOGMSTAR_ERR']  # dex unchanged
+
+        # SFR: log10(M_sun/yr) at h=0.704 → linear M_sun/yr at h=1
+        sfr_h1 = np.power(10., ext_m['LOGSFR'] + dlogm)
+        out[f'SFR_{shortcat.upper()}']     = sfr_h1
+        out[f'SFR_ERR_{shortcat.upper()}'] = sfr_h1 * ext_m['LOGSFR_ERR'] * np.log(10.)
+
+        # quality flags (cuts applied in figure code, not here)
+        out[f'FLAG_LOGMSTAR_{shortcat.upper()}'] = ext_m['FLAG_LOGMSTAR']
+        out[f'FLAG_LOGSFR_{shortcat.upper()}']   = ext_m['FLAG_LOGSFR']
+
+        # AGN fraction
+        out[f'AGNFRAC_{shortcat.upper()}'] = ext_m['AGNFRAC']
+
+        out.write(outfile, overwrite=True)
+
+    print('Done.')
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -293,6 +415,8 @@ def main():
     )
     parser.add_argument('--zouhu', action='store_true',
                         help='Prepare the Zou et al. CIGALE catalog (DR2/loa or DR1/iron).')
+    parser.add_argument('--cigaleagn', action='store_true',
+                        help='Prepare the Siudek et al. CIGALE-AGN catalog (DR1/iron only).')
     parser.add_argument('--specprod', default=DEFAULT_SPECPROD,
                         help='Spectroscopic production name.')
     parser.add_argument('--ntest', type=int, default=None, metavar='N',
@@ -314,6 +438,9 @@ def main():
     if args.zouhu:
         prepare_zouhu(ntest=args.ntest, survey=survey,
                       specprod=args.specprod, verbose=args.verbose)
+
+    if args.cigaleagn:
+        prepare_cigaleagn(ntest=args.ntest, survey=survey, verbose=args.verbose)
 
 
 if __name__ == '__main__':
