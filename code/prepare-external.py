@@ -564,7 +564,7 @@ def prepare_cosmos2020(survey=None, verbose=False):
     """
     shortcat    = 'cosmos2020'
     cosmos_path = (
-        '/dvs_ro/homes/i/ioannis/ioannis/fastspecfit/laelbg-templates/'
+        '/dvs_ro/cfs/cdirs/desicollab/users/ioannis/fastspecfit/external/'
         'COSMOS2020_FARMER_R1_v2.1_p3.fits'
     )
     if not os.path.exists(cosmos_path):

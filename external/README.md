@@ -133,7 +133,7 @@ redshift (|Δv| < 1000 km/s). Output files are named
 | IMF | Chabrier |
 | H0 | 70 km/s/Mpc (h = 0.7); OmegaM = 0.3, OmegaL = 0.7 |
 | Specprods | N/A (photometric catalog; matched by sky position) |
-| Source | `/dvs_ro/homes/i/ioannis/ioannis/fastspecfit/laelbg-templates/COSMOS2020_FARMER_R1_v2.1_p3.fits` |
+| Source | `/dvs_ro/cfs/cdirs/desicollab/users/ioannis/fastspecfit/external/COSMOS2020_FARMER_R1_v2.1_p3.fits` |
 
 **References:**
 - Weaver et al. (2022) — https://iopscience.iop.org/article/10.3847/1538-4365/ac3078
