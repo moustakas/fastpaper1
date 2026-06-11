@@ -14,7 +14,7 @@ LOGMSTAR, SFR, TAUV, …) side-by-side with standardized external columns, all a
 h=1 and Chabrier IMF, ready for direct comparison.
 
 Usage (from repo root or code/):
-    python code/prepare-external.py --cigale [--specprod loa] [--ntest N] [--verbose]
+    python code/prepare-external.py --zouhu [--specprod loa] [--ntest N] [--verbose]
 """
 
 import os, sys, argparse
@@ -87,6 +87,7 @@ def cross_match(ref, ext, ext_z_col='Z', ext_ra_col='RA', ext_dec_col='DEC',
     -------
     i_ref, i_ext : ndarray of int
         Indices into ref and ext of matched, consistency-checked pairs.
+
     """
     ref_map = {int(tid): i for i, tid in enumerate(ref['TARGETID'])}
 
@@ -133,15 +134,17 @@ def cross_match(ref, ext, ext_z_col='Z', ext_ra_col='RA', ext_dec_col='DEC',
 
 
 # ---------------------------------------------------------------------------
-# CIGALE  (Zou et al. DR2)
+# Zou et al. (Iron, Loa - CIGALE)
 # ---------------------------------------------------------------------------
 
-def prepare_cigale(ntest=None, survey=None, specprod=DEFAULT_SPECPROD, verbose=False):
-    """Prepare the CIGALE SED-fitting catalog (Zou et al. DR2).
+def prepare_zouhu(ntest=None, survey=None, specprod=DEFAULT_SPECPROD, verbose=False):
+    """Prepare the Zou et al. (CIGALE) SED-fitting catalogs.
 
-    Source:
+    Loa (DR2) Source:
         /global/cfs/cdirs/desicollab/users/zouhu/vac/dr2/
         dr2_galaxy_sedfitting_v1.0.fits
+    Iron (DR1) Source:
+        /global/cfs/cdirs/desi/public/dr1/vac/dr1/stellar-mass-emline/
 
     IMF: Chabrier (same as FastSpecFit — no IMF correction needed).
     Cosmology: H0=70 km/s/Mpc (h=0.7); FastSpecFit stores values at h=1.
@@ -158,53 +161,52 @@ def prepare_cigale(ntest=None, survey=None, specprod=DEFAULT_SPECPROD, verbose=F
 
     Assumption: MASS_CG_15 / MASS_CG_5 are log10(M_star / M_sun). If they
     are instead linear stellar masses, the h-correction logic must be revised.
+
     """
-    cigale_path = (
-        '/global/cfs/cdirs/desicollab/users/zouhu/vac/dr2/'
-        'dr2_galaxy_sedfitting_v1.0.fits'
+    _zouhu_path = {
+        'loa': '/global/cfs/cdirs/desicollab/users/zouhu/vac/dr2/dr2_galaxy_sedfitting_v1.0.fits',
+        'iron': '/global/cfs/cdirs/desi/public/dr1/vac/dr1/stellar-mass-emline/v1.0/dr1_galaxy_stellarmass_lineinfo_v1.0.fits',
     )
-    if not os.path.exists(cigale_path):
-        raise FileNotFoundError(f'CIGALE catalog not found: {cigale_path}')
+    zouhu_path = _zouhu_path[specprod]
+    if not os.path.exists(zouhu_path):
+        raise FileNotFoundError(f'Zou et al. catalog not found: {zouhu_path}')
 
-    outdir = os.path.join(EXTDIR, 'cigale', specprod)
-    os.makedirs(outdir, exist_ok=True)
+    prefix = 'zouhu'
+    h_zouhu = 0.7
+    dlogm   = 2.0 * np.log10(h_zouhu)  # ≈ −0.309 dex; additive to log10 mass
+    h2      = h_zouhu ** 2             # = 0.49; multiplicative to linear SFR
 
-    h_cigale = 0.7
-    dlogm    = 2.0 * np.log10(h_cigale)  # ≈ −0.309 dex; additive to log10 mass
-    h2       = h_cigale ** 2             # = 0.49; multiplicative to linear SFR
-
-    # Read only the index columns once to enable cheap row selection per survey/program
     if verbose:
-        print(f'Reading index columns from {cigale_path} ...')
-    with fitsio.FITS(cigale_path) as fits:
+        print(f'Reading index columns from {zouhu_path} ...')
+    with fitsio.FITS(zouhu_path) as fits:
         idx = fits[1].read(columns=['TARGETID', 'SURVEY', 'PROGRAM'])
     idx_survey  = _decode_str_col(idx['SURVEY'])
     idx_program = _decode_str_col(idx['PROGRAM'])
     if verbose:
-        print(f'  {len(idx):,} total rows')
+        print(f'  ... read {len(idx):,} rows')
 
     for surv, program in SURVEY_PROGRAMS:
         if survey is not None and surv != survey:
             continue
-        outfile = os.path.join(outdir, f'{surv}-{program}.fits')
+        outfile = os.path.join(EXTDIR, f'{prefix}-{specprod}-{surv}-{program}.fits')
 
-        # Row indices in the CIGALE file for this survey+program combination
+        # Row indices for this survey+program combination
         rows = np.where((idx_survey == surv) & (idx_program == program))[0]
         if len(rows) == 0:
-            print(f'  {surv}/{program}: no CIGALE rows found, skipping')
+            print(f'  {surv}-{program}: no rows found; skipping')
             continue
         if verbose:
-            print(f'\n  {surv}/{program}: {len(rows):,} CIGALE rows')
+            print(f'\n  {surv}/{program}: {len(rows):,} {prefix} rows')
 
         # --ntest: random subsample of the external catalog
         if ntest is not None:
             rng  = np.random.default_rng(42)
             rows = rng.choice(rows, min(ntest, len(rows)), replace=False)
             if verbose:
-                print(f'    ntest subsample: {len(rows):,} CIGALE rows')
+                print(f'    ntest subsample: {len(rows):,} {prefix} rows')
 
         # Read the selected rows from disk
-        with fitsio.FITS(cigale_path) as fits:
+        with fitsio.FITS(zouhu_path) as fits:
             ext = Table(fits[1].read(rows=rows))
 
         # Read the reference FastSpecFit catalog for this survey+program
@@ -257,7 +259,7 @@ def prepare_cigale(ntest=None, survey=None, specprod=DEFAULT_SPECPROD, verbose=F
         out['TAUVERR_CG_5']  = ext_m['AVERR_CG_5']  / 1.086
 
         # --- aperture correction factor (dimensionless, no conversion) ---
-        out['FLUX_SCALE'] = ext_m['FLUX_SCALE']
+        out['APERCORR'] = ext_m['FLUX_SCALE']
 
         out.write(outfile, overwrite=True)
 
@@ -273,7 +275,7 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description=__doc__,
     )
-    parser.add_argument('--cigale', action='store_true',
+    parser.add_argument('--zouhu', action='store_true',
                         help='Prepare the CIGALE catalog (Zou et al. DR2).')
     parser.add_argument('--specprod', default=DEFAULT_SPECPROD,
                         help='Spectroscopic production name.')
@@ -293,9 +295,9 @@ def main():
     if args.ntest is not None and survey is None:
         survey = 'sv3'
 
-    if args.cigale:
-        prepare_cigale(ntest=args.ntest, survey=survey,
-                       specprod=args.specprod, verbose=args.verbose)
+    if args.zouhu:
+        prepare_zouhu(ntest=args.ntest, survey=survey,
+                      specprod=args.specprod, verbose=args.verbose)
 
 
 if __name__ == '__main__':
