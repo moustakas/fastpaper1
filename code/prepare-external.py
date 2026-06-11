@@ -18,7 +18,7 @@ LOGMSTAR, SFR, TAUV, …) side-by-side with standardized external columns, all
 converted to h=1 and Chabrier IMF, ready for direct comparison.
 
 Usage (from repo root or code/):
-    python code/prepare-external.py --zouhu [--specprod loa|iron] [--ntest N] [--verbose]
+    python code/prepare-external.py --zouhu [--specprod loa|iron] [--verbose]
 
 """
 import os, sys, argparse
@@ -29,9 +29,9 @@ import fitsio
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util import read_fastspec, DEFAULT_SPECPROD
 
-C_LIGHT       = 2.998e5  # km/s
-MAX_DV_KMS    = 1000.0   # redshift-consistency threshold [km/s]
-MAX_SEP_ARCSEC = 1.5     # positional-consistency threshold [arcsec]
+C_LIGHT        = 2.998e5  # km/s
+MAX_DV_KMS     = 1000.0   # redshift-consistency threshold [km/s]
+MAX_SEP_ARCSEC = 1.5      # positional-consistency threshold [arcsec]
 
 SURVEY_PROGRAMS = [
     ('sv3',  'bright'),
@@ -190,8 +190,7 @@ def cross_match(ref, ext, ext_z_col='Z', ext_ra_col='RA', ext_dec_col='DEC',
 # Zou et al. (Iron, Loa - CIGALE)
 # ---------------------------------------------------------------------------
 
-
-def prepare_zouhu(ntest=None, survey=None, specprod=DEFAULT_SPECPROD, verbose=False):
+def prepare_zouhu(survey=None, specprod=DEFAULT_SPECPROD, verbose=False):
     """Prepare the Zou et al. (CIGALE) SED-fitting catalogs.
 
     Loa (DR2) Source:
@@ -245,7 +244,7 @@ def prepare_zouhu(ntest=None, survey=None, specprod=DEFAULT_SPECPROD, verbose=Fa
         },
     }
     readcols = _columns[specprod]['readcols']
-    newcols = _columns[specprod]['newcols']
+    newcols  = _columns[specprod]['newcols']
 
     if verbose:
         print(f'Reading index columns from {zouhu_path} ...')
@@ -261,7 +260,6 @@ def prepare_zouhu(ntest=None, survey=None, specprod=DEFAULT_SPECPROD, verbose=Fa
             continue
         outfile = os.path.join(EXTDIR, f'{shortcat}-{specprod}-{surv}-{program}.fits')
 
-        # Row indices for this survey+program combination
         rows = np.where((idx_survey == surv) & (idx_program == program))[0]
         if len(rows) == 0:
             print(f'  {surv}-{program}: no rows found; skipping')
@@ -269,33 +267,16 @@ def prepare_zouhu(ntest=None, survey=None, specprod=DEFAULT_SPECPROD, verbose=Fa
         if verbose:
             print(f'\n  {surv}/{program}: {len(rows):,} {shortcat} rows')
 
-        # --ntest: random subsample of the external catalog
-        if ntest is not None:
-            rng  = np.random.default_rng(42)
-            rows = rng.choice(rows, min(ntest, len(rows)), replace=False)
-            if verbose:
-                print(f'    ntest subsample: {len(rows):,} {shortcat} rows')
-
-        # Read the selected rows from disk
         with fitsio.FITS(zouhu_path) as fits:
             ext = Table(fits[1].read(columns=readcols, rows=rows))
         ext.rename_columns(readcols, newcols)
 
-        # Read the reference FastSpecFit catalog for this
-        # survey+program; always read from DR2/Loa!
         try:
             ref = read_fastspec(surv, program, specprod=DEFAULT_SPECPROD,
                                 columns=_ref_columns(surv), verbose=verbose)
         except (FileNotFoundError, ValueError) as exc:
             print(f'  {surv}/{program}: cannot read reference — {exc}, skipping')
             continue
-
-        # --ntest: random subsample of the reference too
-        if ntest is not None:
-            rng = np.random.default_rng(42)
-            ref = ref[rng.choice(len(ref), min(ntest, len(ref)), replace=False)]
-            if verbose:
-                print(f'    ntest subsample: {len(ref):,} reference rows')
 
         i_ref, i_ext = cross_match(ref, ext, verbose=verbose)
         if len(i_ref) == 0:
@@ -335,7 +316,7 @@ def prepare_zouhu(ntest=None, survey=None, specprod=DEFAULT_SPECPROD, verbose=Fa
 # Siudek et al. (CIGALE-AGN / Iron only)
 # ---------------------------------------------------------------------------
 
-def prepare_cigaleagn(ntest=None, survey=None, verbose=False):
+def prepare_cigaleagn(survey=None, verbose=False):
     """Prepare the Siudek et al. CIGALE-AGN catalog (DR1/Iron only).
 
     Source:
@@ -396,12 +377,6 @@ def prepare_cigaleagn(ntest=None, survey=None, verbose=False):
         if verbose:
             print(f'\n  {surv}/{program}: {len(rows):,} {shortcat} rows')
 
-        if ntest is not None:
-            rng  = np.random.default_rng(42)
-            rows = rng.choice(rows, min(ntest, len(rows)), replace=False)
-            if verbose:
-                print(f'    ntest subsample: {len(rows):,} {shortcat} rows')
-
         readcols = ['TARGETID', 'RA', 'DEC', 'Z',
                     'LOGM', 'LOGM_ERR', 'LOGSFR', 'LOGSFR_ERR',
                     'FLAG_MASSPDF', 'FLAG_SFRPDF', 'AGNFRAC']
@@ -416,12 +391,6 @@ def prepare_cigaleagn(ntest=None, survey=None, verbose=False):
         except (FileNotFoundError, ValueError) as exc:
             print(f'  {surv}/{program}: cannot read reference — {exc}, skipping')
             continue
-
-        if ntest is not None:
-            rng = np.random.default_rng(42)
-            ref = ref[rng.choice(len(ref), min(ntest, len(ref)), replace=False)]
-            if verbose:
-                print(f'    ntest subsample: {len(ref):,} reference rows')
 
         i_ref, i_ext = cross_match(ref, ext, verbose=verbose)
         if len(i_ref) == 0:
@@ -457,7 +426,7 @@ def prepare_cigaleagn(ntest=None, survey=None, verbose=False):
 # Salim et al. (GSWLC-X2 / SDSS-based, no TARGETID)
 # ---------------------------------------------------------------------------
 
-def prepare_gswlcx2(ntest=None, survey=None, verbose=False):
+def prepare_gswlcx2(survey=None, verbose=False):
     """Prepare the Salim et al. GALEX-SDSS-WISE Legacy Catalog (GSWLC-X2).
 
     Source:
@@ -515,14 +484,6 @@ def prepare_gswlcx2(ntest=None, survey=None, verbose=False):
     if verbose:
         print(f'  ... read {len(ext_full):,} rows')
 
-    # --ntest: subsample once before the survey/program loop
-    if ntest is not None:
-        rng      = np.random.default_rng(42)
-        ext_full = ext_full[rng.choice(len(ext_full), min(ntest, len(ext_full)),
-                                       replace=False)]
-        if verbose:
-            print(f'    ntest subsample: {len(ext_full):,} {shortcat} rows')
-
     for surv, program in SURVEY_PROGRAMS:
         if survey is not None and surv != survey:
             continue
@@ -534,12 +495,6 @@ def prepare_gswlcx2(ntest=None, survey=None, verbose=False):
         except (FileNotFoundError, ValueError) as exc:
             print(f'  {surv}/{program}: cannot read reference — {exc}, skipping')
             continue
-
-        if ntest is not None:
-            rng = np.random.default_rng(42)
-            ref = ref[rng.choice(len(ref), min(ntest, len(ref)), replace=False)]
-            if verbose:
-                print(f'    ntest subsample: {len(ref):,} reference rows')
 
         i_ref, i_ext = cross_match_radec(ref, ext_full, verbose=verbose)
         if len(i_ref) == 0:
@@ -585,31 +540,20 @@ def main():
                         help='Prepare the Salim et al. GSWLC-X2 catalog (SDSS; matched by sky position).')
     parser.add_argument('--specprod', default=DEFAULT_SPECPROD,
                         help='Spectroscopic production name.')
-    parser.add_argument('--ntest', type=int, default=None, metavar='N',
-                        help='Random subsample of N rows from each catalog '
-                             '(for testing; note: independent subsamples may yield '
-                             'few or no cross-matches).')
     parser.add_argument('--survey', default=None, choices=['sv3', 'main'],
-                        help='Restrict preparation to this survey. '
-                             'Defaults to sv3 when --ntest is set, all surveys otherwise.')
+                        help='Restrict preparation to this survey (default: all surveys).')
     parser.add_argument('--verbose', action='store_true',
                         help='Print progress while reading and matching.')
     args = parser.parse_args()
 
-    # When testing, default to sv3 (smaller catalogs) unless the user says otherwise.
-    survey = args.survey
-    if args.ntest is not None and survey is None:
-        survey = 'sv3'
-
     if args.zouhu:
-        prepare_zouhu(ntest=args.ntest, survey=survey,
-                      specprod=args.specprod, verbose=args.verbose)
+        prepare_zouhu(survey=args.survey, specprod=args.specprod, verbose=args.verbose)
 
     if args.cigaleagn:
-        prepare_cigaleagn(ntest=args.ntest, survey=survey, verbose=args.verbose)
+        prepare_cigaleagn(survey=args.survey, verbose=args.verbose)
 
     if args.gswlcx2:
-        prepare_gswlcx2(ntest=args.ntest, survey=survey, verbose=args.verbose)
+        prepare_gswlcx2(survey=args.survey, verbose=args.verbose)
 
 
 if __name__ == '__main__':
