@@ -496,7 +496,7 @@ def mstar_redshift(verbose=False):
     chunks = []
     for program in ('bright', 'dark'):
         cat = read_fastspec('sv3', program, specprod=DEFAULT_SPECPROD,
-                            columns=['LOGMSTAR'], verbose=verbose)
+                            columns=['LOGMSTAR', 'Z', 'ZWARN'], verbose=verbose)
         chunks.append(cat[good_galaxies(cat)])
     cat = vstack(chunks)
     if verbose:
