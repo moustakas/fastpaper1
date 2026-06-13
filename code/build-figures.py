@@ -11,7 +11,7 @@ Each flag generates one figure written to tex/figures/.
 import sys, os, argparse, pdb
 import numpy as np
 import matplotlib.pyplot as plt
-from astropy.table import vstack, join
+from astropy.table import Table, vstack, join
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util import (read_fastspec, read_fastphot, plot_style,
@@ -398,26 +398,28 @@ def compare_mstar_external(verbose=False):
 
     for ri, cat in enumerate(catalogs):
         # load and stack all files for this row
-        ref_l, ext_l, flag_l, bgs_l, desi_l = [], [], [], [], []
+        ref_l, ext_l, flag_l, bgs_l, desi_l, goodz_l = [], [], [], [], [], []
         for fn in cat['files']:
             path = os.path.join(extdir, fn)
             if verbose:
                 print(f'Reading {path}')
-            d = fitsio.read(path)
+            d = Table(fitsio.read(path))
             ref_l.append(d['LOGMSTAR'].astype(float))
             ext_l.append(d[cat['ext_col']].astype(float))
             if 'flag_col' in cat:
                 flag_l.append(d[cat['flag_col']].astype(float))
             bgs_l.append(d['SV3_BGS_TARGET'].astype(np.int64))
             desi_l.append(d['SV3_DESI_TARGET'].astype(np.int64))
+            goodz_l.append(good_redshift(d, 'sv3'))
 
-        ref  = np.concatenate(ref_l)
-        ext  = np.concatenate(ext_l)
-        bgs  = np.concatenate(bgs_l)
-        desi = np.concatenate(desi_l)
-        flag = np.concatenate(flag_l) if flag_l else None
+        ref   = np.concatenate(ref_l)
+        ext   = np.concatenate(ext_l)
+        bgs   = np.concatenate(bgs_l)
+        desi  = np.concatenate(desi_l)
+        goodz = np.concatenate(goodz_l)
+        flag  = np.concatenate(flag_l) if flag_l else None
 
-        base = np.isfinite(ref) & (ref > 0) & np.isfinite(ext) & (ext > 0)
+        base = np.isfinite(ref) & (ref > 0) & np.isfinite(ext) & (ext > 0) & goodz
         if flag is not None:
             base &= (flag > 0.2) & (flag < 5.0)
 
