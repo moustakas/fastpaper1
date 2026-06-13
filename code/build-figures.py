@@ -712,6 +712,7 @@ def bpt_agn(verbose=False):
                   contour_lw=2.0, outlier_ms=2, background=True)
     ax.set_xlim(p1_range)
     ax.set_ylim(p3_range)
+    ax.yaxis.set_major_locator(plt.MultipleLocator(0.5))
     ax.set_xlabel(r'P$_{1}$')
     ax.set_ylabel(r'P$_{3}$')
     #ax.set_xlabel(
@@ -735,12 +736,13 @@ def bpt_agn(verbose=False):
             p1 = (-0.96 + np.sqrt(np.clip(0.6584 + 0.56*f, 0.0, None))) / 0.28
         return np.where(f <= 0.0, -0.53, np.where(f >= 1.0, 0.51, p1))
 
-    fagn_ticks = [0.00, 0.25, 0.50, 0.75, 1.00]
+    fagn_ticks = [0.00, 0.50, 1.00]
     ax2 = ax.twiny()
     ax2.set_xlim(p1_range)
     ax2.set_xticks([float(_fagn_to_p1(f)) for f in fagn_ticks])
     ax2.set_xticklabels([f'{f:.2f}' for f in fagn_ticks])
-    ax2.set_xlabel(r'$f_{\rm AGN}$ (Jin et al. 2021)', labelpad=8)
+    ax2.set_xlabel(r'$f_{\rm AGN}$', labelpad=8)
+    ax2.grid(False)
 
     fig.tight_layout()
 
