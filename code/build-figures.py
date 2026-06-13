@@ -725,23 +725,22 @@ def bpt_agn(verbose=False):
     #    r' + 0.81\,\log_{10}[\mathrm{O\,III}]/\mathrm{H}\beta$'
     #)
 
-    # twin x-axis: map P1 → f_AGN via Jin et al. (2021) piecewise relation
-    def _p1_to_fagn(p1):
-        p1 = np.asarray(p1, dtype=float)
-        f  = 0.14*p1**2 + 0.96*p1 + 0.47
-        return np.where(p1 <= -0.53, 0.0,
-               np.where(p1 >=  0.51, 1.0, np.clip(f, 0.0, 1.0)))
-
+    # Twin x-axis: f_AGN labels at their P1 breakpoints (Jin et al. 2021).
+    # twiny() + manual ticks avoids secondary_xaxis() choking on the
+    # piecewise-constant flat regions (f=0 for P1≤-0.53, f=1 for P1≥0.51).
     def _fagn_to_p1(f):
+        """P1 value at which f_AGN first reaches f (quadratic-piece inverse)."""
         f = np.asarray(f, dtype=float)
         with np.errstate(invalid='ignore'):
             p1 = (-0.96 + np.sqrt(np.clip(0.6584 + 0.56*f, 0.0, None))) / 0.28
         return np.where(f <= 0.0, -0.53, np.where(f >= 1.0, 0.51, p1))
 
-    ax2 = ax.secondary_xaxis('top', functions=(_p1_to_fagn, _fagn_to_p1))
-    ax2.set_xticks(_p1_to_fagn(_fagn_to_p1([0.0, 0.25, 0.5, 0.75, 1.0]))
-    #ax2.set_xticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
-    ax2.set_xlabel(r'$f_{\rm AGN}$', labelpad=8)
+    fagn_ticks = [0.00, 0.25, 0.50, 0.75, 1.00]
+    ax2 = ax.twiny()
+    ax2.set_xlim(p1_range)
+    ax2.set_xticks([float(_fagn_to_p1(f)) for f in fagn_ticks])
+    ax2.set_xticklabels([f'{f:.2f}' for f in fagn_ticks])
+    ax2.set_xlabel(r'$f_{\rm AGN}$ (Jin et al. 2021)', labelpad=8)
 
     fig.tight_layout()
 
