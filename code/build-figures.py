@@ -633,8 +633,8 @@ def bpt_agn(verbose=False):
     """
     bpt_xrange = [-2.0, 0.8]
     bpt_yrange = [-1.2, 1.5]
-    p1_range   = [-0.3, 1.5]
-    p3_range   = [-1.3, 1.0]
+    p1_range   = [-1.3, 1.0]
+    p3_range   = [-0.3, 1.5]
 
     cols = ['OIII_5007_FLUX', 'OIII_5007_FLUX_IVAR',
             'HBETA_FLUX',     'HBETA_FLUX_IVAR',
@@ -691,10 +691,10 @@ def bpt_agn(verbose=False):
     m = (y >= bpt_yrange[0]) & (y <= bpt_yrange[1])
     ax.plot(x[m], y[m], 'k--', lw=1.5, label='Kauffmann et al. (2003)')
 
-    x = np.linspace(bpt_xrange[0], 0.46, 300)
-    y = 0.61 / (x - 0.47) + 1.19
-    m = (y >= bpt_yrange[0]) & (y <= bpt_yrange[1])
-    ax.plot(x[m], y[m], 'k-', lw=1.5, label='Kewley et al. (2001)')
+    #x = np.linspace(bpt_xrange[0], 0.46, 300)
+    #y = 0.61 / (x - 0.47) + 1.19
+    #m = (y >= bpt_yrange[0]) & (y <= bpt_yrange[1])
+    #ax.plot(x[m], y[m], 'k-', lw=1.5, label='Kewley et al. (2001)')
 
     ax.set_xlim(bpt_xrange)
     ax.set_ylim(bpt_yrange)
