@@ -678,7 +678,7 @@ def bpt_agn(verbose=False):
     cmap  = make_class_cmap(color)
 
     plot_style(talk=True, font_scale=0.85, palette='colorblind')
-    fig, axes = plt.subplots(1, 2, figsize=(13, 6))
+    fig, axes = plt.subplots(1, 2, figsize=(13, 7))
 
     # --- left: BPT diagram ---
     ax = axes[0]
@@ -712,16 +712,18 @@ def bpt_agn(verbose=False):
                   contour_lw=2.0, outlier_ms=2, background=True)
     ax.set_xlim(p1_range)
     ax.set_ylim(p3_range)
-    ax.set_xlabel(
-        r'$P_1 = 0.63\,\log_{10}[\mathrm{N\,II}]/\mathrm{H}\alpha'
-        r' + 0.51\,\log_{10}[\mathrm{S\,II}]/\mathrm{H}\alpha'
-        r' + 0.59\,\log_{10}[\mathrm{O\,III}]/\mathrm{H}\beta$'
-    )
-    ax.set_ylabel(
-        r'$P_3 = -0.46\,\log_{10}[\mathrm{N\,II}]/\mathrm{H}\alpha'
-        r' - 0.37\,\log_{10}[\mathrm{S\,II}]/\mathrm{H}\alpha'
-        r' + 0.81\,\log_{10}[\mathrm{O\,III}]/\mathrm{H}\beta$'
-    )
+    ax.set_xlabel(r'P$_{1}$')
+    ax.set_ylabel(r'P$_{3}$')
+    #ax.set_xlabel(
+    #    r'$P_1 = 0.63\,\log_{10}[\mathrm{N\,II}]/\mathrm{H}\alpha'
+    #    r' + 0.51\,\log_{10}[\mathrm{S\,II}]/\mathrm{H}\alpha'
+    #    r' + 0.59\,\log_{10}[\mathrm{O\,III}]/\mathrm{H}\beta$'
+    #)
+    #ax.set_ylabel(
+    #    r'$P_3 = -0.46\,\log_{10}[\mathrm{N\,II}]/\mathrm{H}\alpha'
+    #    r' - 0.37\,\log_{10}[\mathrm{S\,II}]/\mathrm{H}\alpha'
+    #    r' + 0.81\,\log_{10}[\mathrm{O\,III}]/\mathrm{H}\beta$'
+    #)
 
     # twin x-axis: map P1 → f_AGN via Jin et al. (2021) piecewise relation
     def _p1_to_fagn(p1):
@@ -737,8 +739,9 @@ def bpt_agn(verbose=False):
         return np.where(f <= 0.0, -0.53, np.where(f >= 1.0, 0.51, p1))
 
     ax2 = ax.secondary_xaxis('top', functions=(_p1_to_fagn, _fagn_to_p1))
-    ax2.set_xticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
-    ax2.set_xlabel(r'$f_{\rm AGN}$ (Jin et al. 2021)', labelpad=8)
+    ax2.set_xticks(_p1_to_fagn(_fagn_to_p1([0.0, 0.25, 0.5, 0.75, 1.0]))
+    #ax2.set_xticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+    ax2.set_xlabel(r'$f_{\rm AGN}$', labelpad=8)
 
     fig.tight_layout()
 
