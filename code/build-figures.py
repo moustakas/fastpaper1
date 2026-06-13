@@ -484,13 +484,12 @@ def compare_mstar_external(verbose=False):
 def mstar_redshift(verbose=False):
     """M* vs. redshift for BGS, LRG, and ELG from sv3 (bright + dark programs).
 
-    Single panel with per-class colored contours and outlier scatter points;
-    no Hess background so all three classes are visible simultaneously.
+    Three-panel figure (one per target class) with Hess background and smoothed
+    contours; panels share the y-axis (stellar mass) and use the same redshift
+    range.
     Output: tex/figures/mstar-redshift.pdf
     """
-    from matplotlib.lines import Line2D
-
-    zrange   = [-0.02, 1.62]
+    zrange   = [-0.05, 1.65]
     mstarlim = [6, 13]
 
     chunks = []
@@ -502,34 +501,34 @@ def mstar_redshift(verbose=False):
     if verbose:
         print(f'Total after quality cuts: {len(cat):,}')
 
-    groups = target_class_groups(cat, 'sv3')
+    groups = [g for g in target_class_groups(cat, 'sv3')
+              if g['label'] in ('BGS', 'LRG', 'ELG')]
 
     plot_style(talk=True, font_scale=0.85, palette='colorblind')
-    fig, ax = plt.subplots(figsize=(8, 6))
+    fig, axes = plt.subplots(1, 3, figsize=(13, 5), sharey=True)
+    fig.subplots_adjust(wspace=0.05)
 
-    handles = []
-    for g in groups:
-        if g['label'] == 'Other':
-            continue
+    for ax, g in zip(axes, groups):
         sub = cat[g['mask']]
+        color = g['color']
         hess_contours(ax, sub['Z'], sub['LOGMSTAR'],
                       zrange, mstarlim,
                       bins=60, smooth=1.0,
-                      cmap=make_class_cmap(g['color']),
-                      contour_color=g['color'], contour_lw=2.0,
-                      outlier_ms=2, background=False)
-        handles.append(Line2D([0], [0], color=g['color'], lw=2,
-                              label=f"{g['label']} ($N={len(sub):,}$)"))
+                      cmap=make_class_cmap(color),
+                      contour_color=color, contour_lw=2.0,
+                      outlier_ms=2, background=True)
+        ax.set_xlim(zrange)
+        ax.set_ylim(mstarlim)
+        ax.set_xlabel('Redshift')
+        ax.set_title(g['label'], color=color, fontweight='bold')
+        ax.text(0.96, 0.96, f"$N={len(sub):,}$",
+                transform=ax.transAxes, fontsize='small',
+                va='top', ha='right',
+                bbox=dict(facecolor='white', edgecolor='none', alpha=0.75, pad=2))
         if verbose:
             print(f"  {g['label']}: {len(sub):,} galaxies")
 
-    ax.set_xlim(zrange)
-    ax.set_ylim(mstarlim)
-    ax.set_xlabel('Redshift')
-    ax.set_ylabel(MSTAR_LABEL)
-    ax.legend(handles=handles, loc='upper left', framealpha=0.75)
-
-    fig.tight_layout()
+    axes[0].set_ylabel(MSTAR_LABEL)
 
     outfile = os.path.join(FIGDIR, 'mstar-redshift.pdf')
     fig.savefig(outfile, dpi=150, bbox_inches='tight')
