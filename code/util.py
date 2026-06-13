@@ -477,6 +477,32 @@ def nmad(x):
     return 1.4826 * np.median(np.abs(x - np.median(x)))
 
 
+def jiyan_p1p3(log_nii_ha, log_sii_ha, log_oiii_hb):
+    """Ji & Yan (2020) P1 and P3 line-ratio projections for AGN/SF separation.
+
+    Parameters
+    ----------
+    log_nii_ha  : array_like
+        log10([NII] 6584 / Hα)
+    log_sii_ha  : array_like
+        log10(([SII] 6716 + [SII] 6731) / Hα)
+    log_oiii_hb : array_like
+        log10([OIII] 5007 / Hβ)
+
+    Returns
+    -------
+    P1, P3 : ndarray, ndarray
+        P1 =  0.63 * log([NII]/Hα) + 0.51 * log([SII]/Hα) + 0.59 * log([OIII]/Hβ)
+        P3 = −0.46 * log([NII]/Hα) − 0.37 * log([SII]/Hα) + 0.81 * log([OIII]/Hβ)
+    """
+    n = np.asarray(log_nii_ha,  dtype=float)
+    s = np.asarray(log_sii_ha,  dtype=float)
+    o = np.asarray(log_oiii_hb, dtype=float)
+    P1 =  0.63 * n + 0.51 * s + 0.59 * o
+    P3 = -0.46 * n - 0.37 * s + 0.81 * o
+    return P1, P3
+
+
 def _good_fiberstatus(cat):
     """Fiber status mask: allow only RESTRICTED and VARIABLE bits."""
     from desispec.maskbits import fibermask
@@ -537,13 +563,13 @@ def good_redshift(cat, survey, fiberstatus_cut=True, ignore_emline=False):
     has_oii = all(c in cat.colnames for c in _OII_COLS)
     if not ignore_emline and has_oii and is_elg.any():
         oii_flux = cat['OII_3726_FLUX'] + cat['OII_3729_FLUX']
-        ivar_sum = cat['OII_3726_FLUX_IVAR'] + cat['OII_3729_FLUX_IVAR']
+        # cast to float64 before multiplying to avoid float32 overflow
+        ivar_a   = np.array(cat['OII_3726_FLUX_IVAR'], dtype=np.float64)
+        ivar_b   = np.array(cat['OII_3729_FLUX_IVAR'], dtype=np.float64)
+        ivar_sum = ivar_a + ivar_b
         with np.errstate(divide='ignore', invalid='ignore'):
             # harmonic sum of IVARs; zero wherever both (or either) are zero
-            oii_ivar = np.where(
-                ivar_sum > 0,
-                cat['OII_3726_FLUX_IVAR'] * cat['OII_3729_FLUX_IVAR'] / ivar_sum,
-                0.0)
+            oii_ivar = np.where(ivar_sum > 0, ivar_a * ivar_b / ivar_sum, 0.0)
             oii_snr = np.log10(oii_flux * np.sqrt(oii_ivar))
             dc2     = np.log10(np.maximum(cat['DELTACHI2'], 1e-10))
         good_elg = ((oii_flux > 0) & (oii_ivar > 0) &

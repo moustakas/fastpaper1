@@ -16,7 +16,7 @@ from astropy.table import Table, vstack, join
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util import (read_fastspec, read_fastphot, plot_style,
                   corner_plot, hess_contours, DEFAULT_SPECPROD,
-                  nmad, good_galaxies, good_redshift, make_class_cmap)
+                  nmad, good_galaxies, good_redshift, jiyan_p1p3, make_class_cmap)
 
 REPODIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIGDIR  = os.path.join(REPODIR, 'tex', 'figures')
@@ -618,6 +618,112 @@ def ewoii_dn4000(verbose=False):
 
 
 # ---------------------------------------------------------------------------
+# bpt-agn
+# ---------------------------------------------------------------------------
+
+def bpt_agn(verbose=False):
+    """BPT diagram and Ji & Yan (2020) P1-P3 projection for BGS from sv3/bright.
+
+    Left panel : [OIII] 5007/Hβ vs [NII] 6584/Hα with Kauffmann et al. (2003)
+                 and Kewley et al. (2001) demarcation lines.
+    Right panel: P3 vs P1 (Ji & Yan 2020).
+    Both panels show the same sample: BGS galaxies passing good_galaxies and
+    S/N > 3 on all six diagnostic lines.
+    Output: tex/figures/bpt-agn.pdf
+    """
+    bpt_xrange = [-2.0, 0.8]
+    bpt_yrange = [-1.2, 1.5]
+    p1_range   = [-0.3, 1.5]
+    p3_range   = [-1.3, 1.0]
+
+    cols = ['OIII_5007_FLUX', 'OIII_5007_FLUX_IVAR',
+            'HBETA_FLUX',     'HBETA_FLUX_IVAR',
+            'NII_6584_FLUX',  'NII_6584_FLUX_IVAR',
+            'HALPHA_FLUX',    'HALPHA_FLUX_IVAR',
+            'SII_6716_FLUX',  'SII_6716_FLUX_IVAR',
+            'SII_6731_FLUX',  'SII_6731_FLUX_IVAR']
+
+    cat = read_fastspec('sv3', 'bright', specprod=DEFAULT_SPECPROD,
+                        columns=cols, verbose=verbose)
+    cat = cat[good_galaxies(cat, survey='sv3')]
+
+    groups   = target_class_groups(cat, 'sv3')
+    bgs_mask = next(g['mask'] for g in groups if g['label'] == 'BGS')
+    cat      = cat[bgs_mask]
+    if verbose:
+        print(f'BGS after good_galaxies: {len(cat):,}')
+
+    # uniform S/N > 3 on all six lines
+    with np.errstate(invalid='ignore'):
+        sncut = (
+            (cat['OIII_5007_FLUX'] * np.sqrt(cat['OIII_5007_FLUX_IVAR']) > 3) &
+            (cat['HBETA_FLUX']     * np.sqrt(cat['HBETA_FLUX_IVAR'])     > 3) &
+            (cat['NII_6584_FLUX']  * np.sqrt(cat['NII_6584_FLUX_IVAR'])  > 3) &
+            (cat['HALPHA_FLUX']    * np.sqrt(cat['HALPHA_FLUX_IVAR'])    > 3) &
+            (cat['SII_6716_FLUX']  * np.sqrt(cat['SII_6716_FLUX_IVAR'])  > 3) &
+            (cat['SII_6731_FLUX']  * np.sqrt(cat['SII_6731_FLUX_IVAR'])  > 3)
+        )
+    cat = cat[sncut]
+    if verbose:
+        print(f'  After S/N>3 cuts: {len(cat):,}')
+
+    log_nii_ha  = np.log10(cat['NII_6584_FLUX']  / cat['HALPHA_FLUX'])
+    log_oiii_hb = np.log10(cat['OIII_5007_FLUX'] / cat['HBETA_FLUX'])
+    log_sii_ha  = np.log10((cat['SII_6716_FLUX'] + cat['SII_6731_FLUX'])
+                            / cat['HALPHA_FLUX'])
+
+    p1, p3 = jiyan_p1p3(log_nii_ha, log_sii_ha, log_oiii_hb)
+
+    color = TARGET_CLASS_COLORS['BGS']
+    cmap  = make_class_cmap(color)
+
+    plot_style(talk=True, font_scale=0.85, palette='colorblind')
+    fig, axes = plt.subplots(1, 2, figsize=(13, 6))
+
+    # --- left: BPT diagram ---
+    ax = axes[0]
+    hess_contours(ax, log_nii_ha, log_oiii_hb, bpt_xrange, bpt_yrange,
+                  bins=60, smooth=1.0, cmap=cmap, contour_color=color,
+                  contour_lw=2.0, outlier_ms=2, background=True)
+
+    x = np.linspace(bpt_xrange[0], 0.04, 300)
+    y = 0.61 / (x - 0.05) + 1.3
+    m = (y >= bpt_yrange[0]) & (y <= bpt_yrange[1])
+    ax.plot(x[m], y[m], 'k--', lw=1.5, label='Kauffmann et al. (2003)')
+
+    x = np.linspace(bpt_xrange[0], 0.46, 300)
+    y = 0.61 / (x - 0.47) + 1.19
+    m = (y >= bpt_yrange[0]) & (y <= bpt_yrange[1])
+    ax.plot(x[m], y[m], 'k-', lw=1.5, label='Kewley et al. (2001)')
+
+    ax.set_xlim(bpt_xrange)
+    ax.set_ylim(bpt_yrange)
+    ax.set_xlabel(r'$\log_{10}\,[\mathrm{N\,II}]\,\lambda6584\,/\,\mathrm{H}\alpha$')
+    ax.set_ylabel(r'$\log_{10}\,[\mathrm{O\,III}]\,\lambda5007\,/\,\mathrm{H}\beta$')
+    ax.legend(loc='lower left', fontsize='small', framealpha=0.75)
+    ax.text(0.96, 0.96, f'$N={len(cat):,}$',
+            transform=ax.transAxes, fontsize='small', va='top', ha='right',
+            bbox=dict(facecolor='white', edgecolor='none', alpha=0.75, pad=2))
+
+    # --- right: P3 vs P1 ---
+    ax = axes[1]
+    hess_contours(ax, p1, p3, p1_range, p3_range,
+                  bins=60, smooth=1.0, cmap=cmap, contour_color=color,
+                  contour_lw=2.0, outlier_ms=2, background=True)
+    ax.set_xlim(p1_range)
+    ax.set_ylim(p3_range)
+    ax.set_xlabel(r'$P_1$')
+    ax.set_ylabel(r'$P_3$')
+
+    fig.tight_layout()
+
+    outfile = os.path.join(FIGDIR, 'bpt-agn.pdf')
+    fig.savefig(outfile, dpi=150, bbox_inches='tight')
+    print(f'Wrote {outfile}')
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
 # compare-vdisp
 # ---------------------------------------------------------------------------
 
@@ -718,6 +824,8 @@ def main():
                         help='M* vs. redshift for BGS, LRG, ELG (sv3).')
     parser.add_argument('--ewoii-dn4000', action='store_true',
                         help='log EW([OII]) vs. Dn(4000) for BGS, LRG, ELG (sv3).')
+    parser.add_argument('--bpt-agn', action='store_true',
+                        help='BPT and Ji & Yan (2020) P1-P3 diagram for BGS (sv3/bright).')
     parser.add_argument('--compare-vdisp', action='store_true',
                         help='Velocity dispersion comparison: FastSpecFit vs pPXF.')
     parser.add_argument('--specprod', default=DEFAULT_SPECPROD,
@@ -748,6 +856,9 @@ def main():
 
     if args.ewoii_dn4000:
         ewoii_dn4000(verbose=args.verbose)
+
+    if args.bpt_agn:
+        bpt_agn(verbose=args.verbose)
 
     if args.compare_vdisp:
         compare_vdisp(verbose=args.verbose)
