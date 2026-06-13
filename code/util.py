@@ -40,6 +40,27 @@ DEFAULT_SPECPROD = 'loa'
 # survey+program combinations split into 12 nside=1 healpix files
 _SPLIT_COMBOS = {('main', 'bright'), ('main', 'dark')}
 
+# Columns always returned from METADATA regardless of the caller's ``columns``
+# argument.  All survey-specific targeting bit names are listed here; columns
+# absent from a given file are silently skipped by _read_extensions.
+_DEFAULT_COLUMNS = frozenset({
+    'TARGETID', 'SURVEY', 'PROGRAM', 'HEALPIX',
+    'RA', 'DEC', 'Z', 'ZERR', 'ZWARN', 'SPECTYPE',
+    # main-survey targeting bits
+    'DESI_TARGET', 'BGS_TARGET', 'MWS_TARGET', 'SCND_TARGET', 'ETC_TARGET',
+    # SV1
+    'SV1_DESI_TARGET', 'SV1_BGS_TARGET', 'SV1_MWS_TARGET',
+    'SV1_SCND_TARGET', 'SV1_ETC_TARGET',
+    # SV2
+    'SV2_DESI_TARGET', 'SV2_BGS_TARGET', 'SV2_MWS_TARGET',
+    'SV2_SCND_TARGET', 'SV2_ETC_TARGET',
+    # SV3
+    'SV3_DESI_TARGET', 'SV3_BGS_TARGET', 'SV3_MWS_TARGET',
+    'SV3_SCND_TARGET', 'SV3_ETC_TARGET',
+    # CMX
+    'CMX_TARGET',
+})
+
 
 def _catfiles(specprod, vactype, survey, program):
     """Return sorted list of catalog paths for a specprod/survey/program combination."""
@@ -158,12 +179,15 @@ def read_fastspec(survey='main', program='dark', specprod=DEFAULT_SPECPROD,
     Returns
     -------
     astropy.table.Table
-        Merged catalog. Key columns from METADATA: TARGETID, SURVEY, PROGRAM,
-        HEALPIX, RA, DEC, Z, ZWARN, SPECTYPE, DESI_TARGET, BGS_TARGET,
-        MWS_TARGET. From SPECPHOT: LOGMSTAR (h=1), SFR (h=1), AGE, TAUV, VDISP,
-        DN4000. From FASTSPEC: emission-line fluxes, EWs, kinematics.
+        Merged catalog. Key columns always present: TARGETID, SURVEY, PROGRAM,
+        HEALPIX, RA, DEC, Z, ZERR, ZWARN, SPECTYPE, and all survey-specific
+        targeting bit columns that exist in the file (DESI_TARGET, BGS_TARGET,
+        MWS_TARGET, SV3_DESI_TARGET, etc.). Additional columns from SPECPHOT
+        and FASTSPEC are controlled by ``columns``.
 
     """
+    if columns is not None:
+        columns = list(set(columns) | _DEFAULT_COLUMNS)
     return _read_vac(
         specprod, 'fastspec',
         ['METADATA', 'SPECPHOT', 'FASTSPEC'],
@@ -522,12 +546,15 @@ def read_fastphot(survey='main', program='dark', specprod=DEFAULT_SPECPROD,
     Returns
     -------
     astropy.table.Table
-        Merged catalog. Key columns from METADATA: TARGETID, SURVEY, PROGRAM,
-        HEALPIX, RA, DEC, Z, ZWARN, SPECTYPE, DESI_TARGET, BGS_TARGET,
-        MWS_TARGET. From SPECPHOT: LOGMSTAR (h=1), SFR (h=1), AGE, TAUV, VDISP,
-        DN4000.
+        Merged catalog. Key columns always present: TARGETID, SURVEY, PROGRAM,
+        HEALPIX, RA, DEC, Z, ZERR, ZWARN, SPECTYPE, and all survey-specific
+        targeting bit columns that exist in the file (DESI_TARGET, BGS_TARGET,
+        MWS_TARGET, SV3_DESI_TARGET, etc.). Additional columns from SPECPHOT
+        are controlled by ``columns``.
 
     """
+    if columns is not None:
+        columns = list(set(columns) | _DEFAULT_COLUMNS)
     return _read_vac(
         specprod, 'fastphot',
         ['METADATA', 'SPECPHOT'],
