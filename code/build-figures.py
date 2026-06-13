@@ -15,7 +15,8 @@ from astropy.table import vstack, join
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util import (read_fastspec, read_fastphot, plot_style,
-                  corner_plot, hess_contours, DEFAULT_SPECPROD)
+                  corner_plot, hess_contours, DEFAULT_SPECPROD,
+                  nmad, good_galaxies, make_class_cmap)
 
 REPODIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIGDIR  = os.path.join(REPODIR, 'tex', 'figures')
@@ -23,14 +24,17 @@ FIGDIR  = os.path.join(REPODIR, 'tex', 'figures')
 # axis label for log stellar mass stored at h=1
 MSTAR_LABEL = r'$\log_{10}\,(\mathcal{M}_{*}\,h^{-2}\,/\,\mathcal{M}_{\odot})$'
 
-
-# ---------------------------------------------------------------------------
-# Quality cuts
-# ---------------------------------------------------------------------------
-
-def good_galaxies(cat):
-    """Standard boolean mask: good redshift and successful mass fit."""
-    return (cat['ZWARN'] == 0) & (cat['Z'] > 0.001) & (cat['LOGMSTAR'] > 0)
+# Colorblind-friendly (Okabe-Ito) colors for DESI target classes.
+# Used for contours; pass make_class_cmap(color) to hess_contours for the background.
+TARGET_CLASS_COLORS = {
+    'BGS':   '#1B7837',  # forest green
+    #'BGS':   '#009E73',  # bluish green
+    'LRG':   '#D55E00',  # vermillion
+    'ELG':   '#0072B2',  # blue
+    'QSO':   '#CC79A7',  # reddish purple
+    'MWS':   '#56B4E9',  # sky blue
+    'Other': '#999999',  # gray
+}
 
 
 # ---------------------------------------------------------------------------
@@ -131,7 +135,7 @@ def sps_models(verbose=False):
 
     fig.tight_layout()
 
-    outfile = os.path.join(FIGDIR, 'sps-models.png')
+    outfile = os.path.join(FIGDIR, 'sps-models.pdf')
     fig.savefig(outfile, dpi=150, bbox_inches='tight')
     print(f'Wrote {outfile}')
     plt.close(fig)
@@ -177,10 +181,10 @@ def target_class_groups(cat, survey):
     is_other = ~(is_bgs | is_lrg | is_elg)
 
     return [
-        {'label': 'BGS',   'color': 'darkgreen', 'mask': is_bgs},
-        {'label': 'LRG',   'color': 'darkred',   'mask': is_lrg},
-        {'label': 'ELG',   'color': 'darkblue',  'mask': is_elg},
-        {'label': 'Other', 'color': 'black',      'mask': is_other},
+        {'label': 'BGS',   'color': TARGET_CLASS_COLORS['BGS'],   'mask': is_bgs},
+        {'label': 'LRG',   'color': TARGET_CLASS_COLORS['LRG'],   'mask': is_lrg},
+        {'label': 'ELG',   'color': TARGET_CLASS_COLORS['ELG'],   'mask': is_elg},
+        {'label': 'Other', 'color': TARGET_CLASS_COLORS['Other'], 'mask': is_other},
     ]
 
 
@@ -332,8 +336,203 @@ def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD,
     fig = mstar_corner(mass_cat, labels, groups=groups,
                        split_contours=split_contours, mstarlim=mstarlim)
 
-    outfile = os.path.join(FIGDIR, f'compare-mstar-{specprod}-{survey}{suffix}.png')
+    outfile = os.path.join(FIGDIR, f'compare-mstar-{specprod}-{survey}{suffix}.pdf')
     fig.savefig(outfile, bbox_inches='tight', dpi=150)
+    print(f'Wrote {outfile}')
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
+# compare-mstar-external
+# ---------------------------------------------------------------------------
+
+def compare_mstar_external(verbose=False):
+    """3×3 grid: FastSpecFit stellar masses vs external catalogs, split by target class.
+
+    Rows: Zou+CIGALE (loa), CIGALE-AGN (iron), GSWLC-X2 (bright/BGS only).
+    Columns: BGS | LRG | ELG.  GSWLC-X2 populates BGS only; other cells hidden.
+    Each panel uses a class-colored Hess background with thick colored contours.
+    Output: tex/figures/compare-mstar-external.pdf
+
+    """
+    import fitsio
+    from desitarget.sv3.sv3_targetmask import desi_mask as sv3_mask
+
+    extdir = os.path.join(REPODIR, 'external')
+    mstarlim = [6, 13]
+    all_classes = ['BGS', 'LRG', 'ELG']
+
+    catalogs = [
+        dict(
+            files=['zouhu-loa-sv3-bright.fits', 'zouhu-loa-sv3-dark.fits'],
+            ext_col='LOGMSTAR_ZOUHU',
+            label='Zou et al. (CIGALE)',
+            classes=['BGS', 'LRG', 'ELG'],
+        ),
+        dict(
+            files=['cigaleagn-iron-sv3-bright.fits', 'cigaleagn-iron-sv3-dark.fits'],
+            ext_col='LOGMSTAR_CIGALEAGN',
+            flag_col='FLAG_LOGMSTAR_CIGALEAGN',
+            label='Siudek et al. (CIGALE-AGN)',
+            classes=['BGS', 'LRG', 'ELG'],
+        ),
+        dict(
+            files=['gswlcx2-sv3-bright.fits'],
+            ext_col='LOGMSTAR_GSWLCX2',
+            label='Salim et al. (GSWLC-X2)',
+            classes=['BGS'],
+        ),
+    ]
+
+    # bottom visible row per column (for x-axis label placement)
+    bottom_row = {}
+    for ci, cls in enumerate(all_classes):
+        for ri in range(len(catalogs) - 1, -1, -1):
+            if cls in catalogs[ri]['classes']:
+                bottom_row[ci] = ri
+                break
+
+    plot_style(talk=True, font_scale=0.85, palette='colorblind')
+    fig, axes = plt.subplots(3, 3, figsize=(13, 12))
+    fig.subplots_adjust(hspace=0.08, wspace=0.08)
+
+    for ri, cat in enumerate(catalogs):
+        # load and stack all files for this row
+        ref_l, ext_l, flag_l, bgs_l, desi_l = [], [], [], [], []
+        for fn in cat['files']:
+            path = os.path.join(extdir, fn)
+            if verbose:
+                print(f'Reading {path}')
+            d = fitsio.read(path)
+            ref_l.append(d['LOGMSTAR'].astype(float))
+            ext_l.append(d[cat['ext_col']].astype(float))
+            if 'flag_col' in cat:
+                flag_l.append(d[cat['flag_col']].astype(float))
+            bgs_l.append(d['SV3_BGS_TARGET'].astype(np.int64))
+            desi_l.append(d['SV3_DESI_TARGET'].astype(np.int64))
+
+        ref  = np.concatenate(ref_l)
+        ext  = np.concatenate(ext_l)
+        bgs  = np.concatenate(bgs_l)
+        desi = np.concatenate(desi_l)
+        flag = np.concatenate(flag_l) if flag_l else None
+
+        base = np.isfinite(ref) & (ref > 0) & np.isfinite(ext) & (ext > 0)
+        if flag is not None:
+            base &= (flag > 0.2) & (flag < 5.0)
+
+        for ci, cls in enumerate(all_classes):
+            ax = axes[ri, ci]
+
+            if cls not in cat['classes']:
+                ax.set_visible(False)
+                continue
+
+            if cls == 'BGS':
+                cmask = base & (bgs != 0)
+            elif cls == 'LRG':
+                cmask = base & ((desi & int(sv3_mask['LRG'])) != 0)
+            else:  # ELG
+                cmask = base & ((desi & int(sv3_mask['ELG'])) != 0)
+
+            r, e = ref[cmask], ext[cmask]
+            delta = e - r
+            color = TARGET_CLASS_COLORS[cls]
+
+            hess_contours(ax, r, e, mstarlim, mstarlim, bins=60,
+                          cmap=make_class_cmap(color),
+                          contour_color=color, contour_lw=2.0)
+            ax.plot(mstarlim, mstarlim, 'k--', lw=1.5, zorder=5)
+            ax.set_xlim(mstarlim)
+            ax.set_ylim(mstarlim)
+
+            # tick labels: left column and bottom visible row only
+            ax.tick_params(
+                labelleft=(ci == 0),
+                labelbottom=(ri == bottom_row[ci]),
+            )
+
+            # column title on top row
+            if ri == 0:
+                ax.set_title(cls, color=color, fontweight='bold')
+
+            # x-axis label on bottom visible row of this column
+            if ri == bottom_row[ci]:
+                ax.set_xlabel(MSTAR_LABEL + '\n[FastSpecFit]')
+
+            ax.text(0.04, 0.96,
+                    f'$N={len(r):,}$\n'
+                    f'$\\Delta_{{\\rm med}}={np.median(delta):+.3f}$\n'
+                    f'NMAD$={nmad(delta):.3f}$',
+                    transform=ax.transAxes, fontsize='small',
+                    va='top', ha='left',
+                    bbox=dict(facecolor='white', edgecolor='none', alpha=0.75, pad=2))
+
+        # y-axis label (catalog name) on leftmost cell of each row
+        axes[ri, 0].set_ylabel(MSTAR_LABEL + f"\n[{cat['label']}]")
+
+    outfile = os.path.join(FIGDIR, 'compare-mstar-external.pdf')
+    fig.savefig(outfile, dpi=150, bbox_inches='tight')
+    print(f'Wrote {outfile}')
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
+# mstar-redshift
+# ---------------------------------------------------------------------------
+
+def mstar_redshift(verbose=False):
+    """M* vs. redshift for BGS, LRG, and ELG from sv3 (bright + dark programs).
+
+    Single panel with per-class colored contours and outlier scatter points;
+    no Hess background so all three classes are visible simultaneously.
+    Output: tex/figures/mstar-redshift.pdf
+    """
+    from matplotlib.lines import Line2D
+
+    zrange   = [-0.02, 1.62]
+    mstarlim = [6, 13]
+
+    chunks = []
+    for program in ('bright', 'dark'):
+        cat = read_fastspec('sv3', program, specprod=DEFAULT_SPECPROD,
+                            columns=['LOGMSTAR'], verbose=verbose)
+        chunks.append(cat[good_galaxies(cat)])
+    cat = vstack(chunks)
+    if verbose:
+        print(f'Total after quality cuts: {len(cat):,}')
+
+    groups = target_class_groups(cat, 'sv3')
+
+    plot_style(talk=True, font_scale=0.85, palette='colorblind')
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    handles = []
+    for g in groups:
+        if g['label'] == 'Other':
+            continue
+        sub = cat[g['mask']]
+        hess_contours(ax, sub['Z'], sub['LOGMSTAR'],
+                      zrange, mstarlim,
+                      bins=60, smooth=1.0,
+                      cmap=make_class_cmap(g['color']),
+                      contour_color=g['color'], contour_lw=2.0,
+                      outlier_ms=2, background=False)
+        handles.append(Line2D([0], [0], color=g['color'], lw=2,
+                              label=f"{g['label']} ($N={len(sub):,}$)"))
+        if verbose:
+            print(f"  {g['label']}: {len(sub):,} galaxies")
+
+    ax.set_xlim(zrange)
+    ax.set_ylim(mstarlim)
+    ax.set_xlabel('Redshift')
+    ax.set_ylabel(MSTAR_LABEL)
+    ax.legend(handles=handles, loc='upper left', framealpha=0.75)
+
+    fig.tight_layout()
+
+    outfile = os.path.join(FIGDIR, 'mstar-redshift.pdf')
+    fig.savefig(outfile, dpi=150, bbox_inches='tight')
     print(f'Wrote {outfile}')
     plt.close(fig)
 
@@ -343,77 +542,78 @@ def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD,
 # ---------------------------------------------------------------------------
 
 def compare_vdisp(verbose=False):
-    """2×2 comparison of FastSpecFit stellar velocity dispersions vs pPXF and Portsmouth.
+    """FastSpecFit stellar velocity dispersions vs pPXF: scatter and S/N residuals.
 
     Data source: external/fpcatalog-iron-main-bright.fits (Ross et al. 2026).
-    Top row: scatter (Hess + contours); bottom row: absolute residuals vs sigma_FS.
-    Output: tex/figures/compare-vdisp.png
+    Top panel: Hess + contours of sigma_FS vs sigma_pPXF.
+    Bottom panel: absolute residuals Delta-sigma vs SNR_B (log-spaced 1–100).
+    Output: tex/figures/compare-vdisp.pdf
+
     """
     from matplotlib.gridspec import GridSpec
+    import fitsio
 
     extdir = os.path.join(REPODIR, 'external')
     catfile = os.path.join(extdir, 'fpcatalog-iron-main-bright.fits')
     if verbose:
         print(f'Reading {catfile}')
-    import fitsio
     d = fitsio.read(catfile)
 
     fs   = d['VDISP'].astype(float)
     ppxf = d['PPXF_VDISP_FPCATALOG'].astype(float)
-    port = d['PORTSMOUTH_SIGMA_STARS_FPCATALOG'].astype(float)
     ivar = d['VDISP_IVAR'].astype(float)
+    snr  = d['SNR_B'].astype(float)
 
-    good_fs   = (ivar > 0) & np.isfinite(fs) & (fs > 0)
-    good_ppxf = good_fs & np.isfinite(ppxf) & (ppxf > 0)
-    good_port = good_fs & np.isfinite(port) & (port > 0)
-
-    fs_p, ppxf_p = fs[good_ppxf], ppxf[good_ppxf]
-    fs_q, port_q = fs[good_port], port[good_port]
+    good = ((ivar > 0) & np.isfinite(fs) & (fs > 0)
+            & np.isfinite(ppxf) & (ppxf > 0) & (snr > 0))
+    fs_p, ppxf_p, snr_p = fs[good], ppxf[good], snr[good]
+    dpp = ppxf_p - fs_p
 
     sigrange = [30, 400]
     resrange = [-150, 150]
-    bins_main = 60
-    bins_res  = [60, 40]
+    snrrange = [0., 2.]          # log10(SNR_B): 1 to 100
+    snr_ticks = [1, 3, 10, 30, 100]
 
-    def _nmad(x):
-        return 1.4826 * np.median(np.abs(x - np.median(x)))
+    color = '#E69F00'  # Okabe-Ito amber; neutral (not class-specific)
+    #color = '#009E73'  # teal alternative
+    cmap  = make_class_cmap(color)
 
     plot_style(talk=True, font_scale=0.85, palette='colorblind')
 
-    fig = plt.figure(figsize=(7, 6))
-    gs = GridSpec(2, 1, figure=fig, height_ratios=[3, 1],
-                  hspace=0.05, wspace=0.08)
+    fig = plt.figure(figsize=(7, 7))
+    gs = GridSpec(2, 1, figure=fig, height_ratios=[3, 1], hspace=0.35)
 
-    ax_pp  = fig.add_subplot(gs[0, 0])
-    ax_rpp = fig.add_subplot(gs[1, 0], sharex=ax_pp)
+    ax_pp  = fig.add_subplot(gs[0])
+    ax_rpp = fig.add_subplot(gs[1])
 
-    # ---- top-left: FS vs pPXF ----
-    hess_contours(ax_pp, fs_p, ppxf_p, sigrange, sigrange, bins=bins_main)
-    ax_pp.plot(sigrange, sigrange, color='k', lw=1.5, ls='-')
+    # ---- top: FS vs pPXF ----
+    hess_contours(ax_pp, fs_p, ppxf_p, sigrange, sigrange, bins=60,
+                  cmap=cmap, contour_color=color, contour_lw=2.0)
+    ax_pp.plot(sigrange, sigrange, color='k', lw=1.5, ls='--', zorder=5)
     ax_pp.set_xlim(sigrange)
     ax_pp.set_ylim(sigrange)
-    ax_pp.set_ylabel(r'$\sigma_\star$ [pPXF] (km s$^{-1}$)')
-    ax_pp.tick_params(labelbottom=False)
-    dpp = ppxf_p - fs_p
+    ax_pp.set_xlabel(r'$\sigma$ [FastSpecFit] (km s$^{-1}$)')
+    ax_pp.set_ylabel(r'$\sigma$ [pPXF] (km s$^{-1}$)')
     ax_pp.text(0.04, 0.96,
-               f'$N={len(fs_p):,}$\n'
+               f'$N={len(fs_p):,}$ [main/bright]\n'
                f'$\\Delta_{{\\rm med}}={np.median(dpp):+.1f}$ km s$^{{-1}}$\n'
-               f'NMAD$={_nmad(dpp):.1f}$ km s$^{{-1}}$',
+               f'NMAD$={nmad(dpp):.1f}$ km s$^{{-1}}$',
                transform=ax_pp.transAxes, fontsize='small',
                va='top', ha='left',
                bbox=dict(facecolor='white', edgecolor='none', alpha=0.75, pad=2))
 
-    # ---- bottom-left: residuals pPXF ----
-    hess_contours(ax_rpp, fs_p, dpp, sigrange, resrange, bins=bins_res)
-    ax_rpp.axhline(0, color='k', lw=1, ls='--')
-    ax_rpp.set_xlim(sigrange)
+    # ---- bottom: residuals vs SNR_B (log x via log10 transform) ----
+    hess_contours(ax_rpp, np.log10(snr_p), dpp, snrrange, resrange, bins=[50, 40],
+                  cmap=cmap, contour_color=color, contour_lw=2.0)
+    ax_rpp.axhline(0, color='k', lw=1.5, ls='--', zorder=5)
+    ax_rpp.set_xlim(snrrange)
     ax_rpp.set_ylim(resrange)
-    ax_rpp.set_xlabel(r'$\sigma_\star$ [FastSpecFit] (km s$^{-1}$)')
-    ax_rpp.set_ylabel(r'$\Delta\sigma_\star$ (km s$^{-1}$)')
+    ax_rpp.set_xticks([np.log10(t) for t in snr_ticks])
+    ax_rpp.set_xticklabels([str(t) for t in snr_ticks])
+    ax_rpp.set_xlabel(r'$S/N_b$ (pixel$^{-1}$)')
+    ax_rpp.set_ylabel(r'$\Delta\sigma$ (km s$^{-1}$)')
 
-    fig.tight_layout()
-
-    outfile = os.path.join(FIGDIR, 'compare-vdisp.png')
+    outfile = os.path.join(FIGDIR, 'compare-vdisp.pdf')
     fig.savefig(outfile, dpi=150, bbox_inches='tight')
     print(f'Wrote {outfile}')
     plt.close(fig)
@@ -432,8 +632,12 @@ def main():
                         help='SPS template library figure.')
     parser.add_argument('--compare-mstar', action='store_true',
                         help='Stellar mass comparison: fastspec vs fastphot.')
+    parser.add_argument('--compare-mstar-external', action='store_true',
+                        help='Stellar mass comparison: FastSpecFit vs external catalogs.')
+    parser.add_argument('--mstar-redshift', action='store_true',
+                        help='M* vs. redshift for BGS, LRG, ELG (sv3).')
     parser.add_argument('--compare-vdisp', action='store_true',
-                        help='Velocity dispersion comparison: FastSpecFit vs pPXF and Portsmouth.')
+                        help='Velocity dispersion comparison: FastSpecFit vs pPXF.')
     parser.add_argument('--specprod', default=DEFAULT_SPECPROD,
                         help='Spectroscopic production name.')
     parser.add_argument('--main', action='store_true',
@@ -453,6 +657,12 @@ def main():
     if args.compare_mstar:
         compare_mstar(survey=survey, specprod=args.specprod,
                       split_contours=args.split_contours, verbose=args.verbose)
+
+    if args.compare_mstar_external:
+        compare_mstar_external(verbose=args.verbose)
+
+    if args.mstar_redshift:
+        mstar_redshift(verbose=args.verbose)
 
     if args.compare_vdisp:
         compare_vdisp(verbose=args.verbose)

@@ -394,8 +394,16 @@ def corner_plot(plotdata, labels, ranges, bins=50, truths=None, sigmas=None,
 
 
 def hess_contours(ax, x, y, xrange, yrange, bins=50, smooth=1.0,
-                  contour_levels=None, cmap='Blues', contour_lw=1.5):
-    """Hess diagram with smoothed cumulative contours, matching corner_plot style."""
+                  contour_levels=None, cmap='Blues', contour_lw=1.5,
+                  contour_color='k', outlier_ms=2, background=True):
+    """Hess diagram with smoothed cumulative contours, matching corner_plot style.
+
+    Points that fall outside the outermost contour are drawn as individual small
+    markers (size ``outlier_ms``); pass ``outlier_ms=0`` to suppress them.
+    The pcolormesh background is rasterized so PDF output stays compact.
+    Pass ``background=False`` to draw contours and outlier scatter only (no
+    pcolormesh), which is useful when overlaying multiple samples on one axes.
+    """
     from matplotlib.colors import LogNorm
     from scipy.ndimage import gaussian_filter
 
@@ -406,21 +414,58 @@ def hess_contours(ax, x, y, xrange, yrange, bins=50, smooth=1.0,
                                         range=[xrange, yrange])
     xc = 0.5 * (xedges[:-1] + xedges[1:])
     yc = 0.5 * (yedges[:-1] + yedges[1:])
-    ax.pcolormesh(xedges, yedges, H.T, norm=LogNorm(vmin=1), cmap=cmap)
+    if background:
+        ax.pcolormesh(xedges, yedges, H.T, norm=LogNorm(vmin=1), cmap=cmap,
+                      rasterized=True, zorder=1)
 
     Hs = gaussian_filter(H, smooth) if smooth > 0 else H
     flat = np.sort(Hs.flatten())[::-1]
     cumsum = np.cumsum(flat)
     total = cumsum[-1]
+    lvls = []
     if total > 0 and contour_levels:
-        lvls = []
         for frac in contour_levels:
             idx = np.searchsorted(cumsum, frac * total)
             lvls.append(flat[min(idx, len(flat) - 1)])
         lvls = sorted(v for v in set(lvls) if v > 0)
         if lvls:
             ax.contour(xc, yc, Hs.T, levels=lvls,
-                       colors='k', linewidths=contour_lw)
+                       colors=contour_color, linewidths=contour_lw, zorder=3)
+
+    # individual points outside the outermost contour, drawn above the Hess
+    # background (zorder=2) but below contours (zorder=3)
+    if lvls and outlier_ms > 0:
+        in_range = ((x >= xrange[0]) & (x <= xrange[1]) &
+                    (y >= yrange[0]) & (y <= yrange[1]))
+        xi = np.clip(np.digitize(x[in_range], xedges) - 1, 0, len(xc) - 1)
+        yi = np.clip(np.digitize(y[in_range], yedges) - 1, 0, len(yc) - 1)
+        outside = Hs[xi, yi] < lvls[0]
+        ax.scatter(x[in_range][outside], y[in_range][outside],
+                   s=outlier_ms, c=[contour_color], alpha=0.8,
+                   linewidths=0, zorder=2, rasterized=True)
+
+
+def nmad(x):
+    """Normalized median absolute deviation: 1.4826 * median(|x - median(x)|)."""
+    return 1.4826 * np.median(np.abs(x - np.median(x)))
+
+
+def good_galaxies(cat):
+    """Standard boolean mask: good redshift and successful mass fit."""
+    return (cat['ZWARN'] == 0) & (cat['Z'] > 0.001) & (cat['LOGMSTAR'] > 0)
+
+
+def make_class_cmap(color, lighten=0.3):
+    """White-to-lightened-color colormap for Hess diagram backgrounds.
+
+    The endpoint is mixed ``lighten`` fraction toward white so that the
+    densest bins stay visually lighter than the full class color, keeping
+    the contours (drawn in the full color) clearly visible.
+    """
+    from matplotlib.colors import LinearSegmentedColormap, to_rgb
+    rgb = np.array(to_rgb(color))
+    light_end = tuple((1.0 - lighten) * rgb + lighten * np.ones(3))
+    return LinearSegmentedColormap.from_list('', ['white', light_end])
 
 
 def plot_style(talk=True, font_scale=1.0, palette=None):
