@@ -634,7 +634,7 @@ def bpt_agn(verbose=False):
     bpt_xrange = [-2.0, 0.8]
     bpt_yrange = [-1.2, 1.5]
     p1_range   = [-1.3, 1.0]
-    p3_range   = [-0.3, 1.5]
+    p3_range   = [-0.4, 1.7]
 
     cols = ['OIII_5007_FLUX', 'OIII_5007_FLUX_IVAR',
             'HBETA_FLUX',     'HBETA_FLUX_IVAR',
@@ -712,8 +712,33 @@ def bpt_agn(verbose=False):
                   contour_lw=2.0, outlier_ms=2, background=True)
     ax.set_xlim(p1_range)
     ax.set_ylim(p3_range)
-    ax.set_xlabel(r'$P_1$')
-    ax.set_ylabel(r'$P_3$')
+    ax.set_xlabel(
+        r'$P_1 = 0.63\,\log_{10}[\mathrm{N\,II}]/\mathrm{H}\alpha'
+        r' + 0.51\,\log_{10}[\mathrm{S\,II}]/\mathrm{H}\alpha'
+        r' + 0.59\,\log_{10}[\mathrm{O\,III}]/\mathrm{H}\beta$'
+    )
+    ax.set_ylabel(
+        r'$P_3 = -0.46\,\log_{10}[\mathrm{N\,II}]/\mathrm{H}\alpha'
+        r' - 0.37\,\log_{10}[\mathrm{S\,II}]/\mathrm{H}\alpha'
+        r' + 0.81\,\log_{10}[\mathrm{O\,III}]/\mathrm{H}\beta$'
+    )
+
+    # twin x-axis: map P1 → f_AGN via Jin et al. (2021) piecewise relation
+    def _p1_to_fagn(p1):
+        p1 = np.asarray(p1, dtype=float)
+        f  = 0.14*p1**2 + 0.96*p1 + 0.47
+        return np.where(p1 <= -0.53, 0.0,
+               np.where(p1 >=  0.51, 1.0, np.clip(f, 0.0, 1.0)))
+
+    def _fagn_to_p1(f):
+        f = np.asarray(f, dtype=float)
+        with np.errstate(invalid='ignore'):
+            p1 = (-0.96 + np.sqrt(np.clip(0.6584 + 0.56*f, 0.0, None))) / 0.28
+        return np.where(f <= 0.0, -0.53, np.where(f >= 1.0, 0.51, p1))
+
+    ax2 = ax.secondary_xaxis('top', functions=(_p1_to_fagn, _fagn_to_p1))
+    ax2.set_xticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+    ax2.set_xlabel(r'$f_{\rm AGN}$ (Jin et al. 2021)', labelpad=8)
 
     fig.tight_layout()
 
