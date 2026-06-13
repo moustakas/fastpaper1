@@ -488,8 +488,9 @@ def mstar_redshift(verbose=False):
     contours; panels share the y-axis (stellar mass) and use the same redshift
     range.
     Output: tex/figures/mstar-redshift.pdf
+
     """
-    zrange   = [-0.05, 1.65]
+    zrange   = [-0.1, 1.8]
     mstarlim = [6, 13]
 
     chunks = []
@@ -505,7 +506,7 @@ def mstar_redshift(verbose=False):
               if g['label'] in ('BGS', 'LRG', 'ELG')]
 
     plot_style(talk=True, font_scale=0.85, palette='colorblind')
-    fig, axes = plt.subplots(1, 3, figsize=(13, 5), sharey=True)
+    fig, axes = plt.subplots(1, 3, figsize=(13, 4), sharey=True)
     fig.subplots_adjust(wspace=0.05)
 
     for ax, g in zip(axes, groups):
@@ -521,9 +522,9 @@ def mstar_redshift(verbose=False):
         ax.set_ylim(mstarlim)
         ax.set_xlabel('Redshift')
         ax.set_title(g['label'], color=color, fontweight='bold')
-        ax.text(0.96, 0.96, f"$N={len(sub):,}$",
+        ax.text(0.96, 0.06, f"$N={len(sub):,}$",
                 transform=ax.transAxes, fontsize='small',
-                va='top', ha='right',
+                va='bottom', ha='right',
                 bbox=dict(facecolor='white', edgecolor='none', alpha=0.75, pad=2))
         if verbose:
             print(f"  {g['label']}: {len(sub):,} galaxies")
