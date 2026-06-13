@@ -45,7 +45,10 @@ _SPLIT_COMBOS = {('main', 'bright'), ('main', 'dark')}
 # absent from a given file are silently skipped by _read_extensions.
 _DEFAULT_COLUMNS = frozenset({
     'TARGETID', 'SURVEY', 'PROGRAM', 'HEALPIX',
-    'RA', 'DEC', 'Z', 'ZERR', 'ZWARN', 'SPECTYPE',
+    'RA', 'DEC', 'Z', 'ZERR', 'ZWARN', 'DELTACHI2',
+    'COADD_FIBERSTATUS',
+    # OII doublet columns needed for the ELG redshift quality cut
+    'OII_3726_FLUX', 'OII_3729_FLUX', 'OII_3726_FLUX_IVAR', 'OII_3729_FLUX_IVAR',
     # main-survey targeting bits
     'DESI_TARGET', 'BGS_TARGET', 'MWS_TARGET', 'SCND_TARGET', 'ETC_TARGET',
     # SV1
@@ -474,9 +477,100 @@ def nmad(x):
     return 1.4826 * np.median(np.abs(x - np.median(x)))
 
 
-def good_galaxies(cat):
-    """Standard boolean mask: good redshift and successful mass fit."""
-    return (cat['ZWARN'] == 0) & (cat['Z'] > 0.001) & (cat['LOGMSTAR'] > 0)
+def _good_fiberstatus(cat):
+    """Fiber status mask: allow only RESTRICTED and VARIABLE bits."""
+    from desispec.maskbits import fibermask
+    okmask = fibermask.mask('RESTRICTED|VARIABLE')
+    return (cat['COADD_FIBERSTATUS'] & okmask) == cat['COADD_FIBERSTATUS']
+
+
+def good_redshift(cat, survey, fiberstatus_cut=True, ignore_emline=False):
+    """Per-class redshift quality mask.
+
+    Applies the standard DESI per-class cuts:
+      BGS  — ZWARN==0 & DELTACHI2>40
+      LRG  — ZWARN==0 & Z<1.5 & DELTACHI2>15
+      ELG  — OII S/N cut: log10(OII_FLUX * sqrt(OII_FLUX_IVAR)) > 0.9 - 0.2*log10(DELTACHI2)
+              (falls back to ZWARN==0 & DELTACHI2>15 if OII columns are absent or
+              ``ignore_emline=True``)
+      Other — ZWARN==0 & Z>0.001
+
+    Parameters
+    ----------
+    cat : astropy.table.Table
+        Must include ZWARN, DELTACHI2, Z, all survey-appropriate targeting bit
+        columns, and COADD_FIBERSTATUS (if fiberstatus_cut=True).
+    survey : str
+        DESI survey flavor: 'sv1', 'sv3', 'main', or 'special'.
+    fiberstatus_cut : bool
+        Apply fiber status mask (RESTRICTED and VARIABLE bits allowed).
+    ignore_emline : bool
+        Skip the OII emission-line cut for ELGs and use DELTACHI2>15 instead.
+
+    Returns
+    -------
+    numpy.ndarray of bool
+    """
+    if survey == 'sv3':
+        from desitarget.sv3.sv3_targetmask import desi_mask
+        desi_col, bgs_col = 'SV3_DESI_TARGET', 'SV3_BGS_TARGET'
+    elif survey == 'sv1':
+        from desitarget.sv1.sv1_targetmask import desi_mask
+        desi_col, bgs_col = 'SV1_DESI_TARGET', 'SV1_BGS_TARGET'
+    elif survey in ('main', 'special'):
+        from desitarget.targets import desi_mask
+        desi_col, bgs_col = 'DESI_TARGET', 'BGS_TARGET'
+    else:
+        raise ValueError(f'Unknown survey {survey!r}; expected sv1, sv3, main, or special.')
+
+    is_bgs = cat[bgs_col] != 0
+    is_lrg = (cat[desi_col] & int(desi_mask['LRG'])) != 0
+    is_elg = (cat[desi_col] & int(desi_mask['ELG'])) != 0
+
+    good_fs = _good_fiberstatus(cat) if fiberstatus_cut else np.ones(len(cat), bool)
+
+    good_bgs = (cat['ZWARN'] == 0) & (cat['DELTACHI2'] > 40) & good_fs
+    good_lrg = (cat['ZWARN'] == 0) & (cat['Z'] < 1.5) & (cat['DELTACHI2'] > 15) & good_fs
+
+    _OII_COLS = ('OII_3726_FLUX', 'OII_3729_FLUX',
+                 'OII_3726_FLUX_IVAR', 'OII_3729_FLUX_IVAR')
+    has_oii = all(c in cat.colnames for c in _OII_COLS)
+    if not ignore_emline and has_oii and is_elg.any():
+        oii_flux = cat['OII_3726_FLUX'] + cat['OII_3729_FLUX']
+        ivar_sum = cat['OII_3726_FLUX_IVAR'] + cat['OII_3729_FLUX_IVAR']
+        with np.errstate(divide='ignore', invalid='ignore'):
+            # harmonic sum of IVARs; zero wherever both (or either) are zero
+            oii_ivar = np.where(
+                ivar_sum > 0,
+                cat['OII_3726_FLUX_IVAR'] * cat['OII_3729_FLUX_IVAR'] / ivar_sum,
+                0.0)
+            oii_snr = np.log10(oii_flux * np.sqrt(oii_ivar))
+            dc2     = np.log10(np.maximum(cat['DELTACHI2'], 1e-10))
+        good_elg = ((oii_flux > 0) & (oii_ivar > 0) &
+                    (oii_snr > 0.9 - 0.2 * dc2) & good_fs)
+    else:
+        good_elg = (cat['ZWARN'] == 0) & (cat['DELTACHI2'] > 15) & good_fs
+
+    good_other = (cat['ZWARN'] == 0) & (cat['Z'] > 0.001)
+
+    return ((is_bgs & good_bgs) |
+            (is_lrg & good_lrg) |
+            (is_elg & good_elg) |
+            (~(is_bgs | is_lrg | is_elg) & good_other))
+
+
+def good_galaxies(cat, survey=None, fiberstatus_cut=True):
+    """Boolean mask: good redshift quality and successful stellar mass fit.
+
+    When ``survey`` is provided, applies per-class DELTACHI2 and fiber status
+    cuts via ``good_redshift``; otherwise falls back to ZWARN==0 & Z>0.001.
+    Always requires LOGMSTAR > 0.
+    """
+    if survey is not None:
+        good_z = good_redshift(cat, survey, fiberstatus_cut=fiberstatus_cut)
+    else:
+        good_z = (cat['ZWARN'] == 0) & (cat['Z'] > 0.001)
+    return good_z & (cat['LOGMSTAR'] > 0)
 
 
 def make_class_cmap(color, lighten=0.3):

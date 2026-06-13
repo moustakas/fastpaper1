@@ -16,7 +16,7 @@ from astropy.table import vstack, join
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util import (read_fastspec, read_fastphot, plot_style,
                   corner_plot, hess_contours, DEFAULT_SPECPROD,
-                  nmad, good_galaxies, make_class_cmap)
+                  nmad, good_galaxies, good_redshift, make_class_cmap)
 
 REPODIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIGDIR  = os.path.join(REPODIR, 'tex', 'figures')
@@ -497,7 +497,7 @@ def mstar_redshift(verbose=False):
     for program in ('bright', 'dark'):
         cat = read_fastspec('sv3', program, specprod=DEFAULT_SPECPROD,
                             columns=['LOGMSTAR'], verbose=verbose)
-        chunks.append(cat[good_galaxies(cat)])
+        chunks.append(cat[good_galaxies(cat, survey='sv3')])
     cat = vstack(chunks)
     if verbose:
         print(f'Total after quality cuts: {len(cat):,}')
