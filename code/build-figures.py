@@ -540,6 +540,84 @@ def mstar_redshift(verbose=False):
 
 
 # ---------------------------------------------------------------------------
+# ewoii-dn4000
+# ---------------------------------------------------------------------------
+
+def ewoii_dn4000(verbose=False):
+    """log10 EW([OII]) vs. Dn(4000) for BGS, LRG, and ELG from sv3 (bright + dark).
+
+    Single panel: combined grayscale Hess background for all galaxies, with
+    per-class colored contours overlaid.
+    Output: tex/figures/ewoii-dn4000.pdf
+    """
+    from matplotlib.lines import Line2D
+
+    dn4000_range = [0.9, 2.5]
+    ewoii_range  = [-1, 3]
+
+    cols = ['OII_3726_EW', 'OII_3729_EW', 'OII_3726_EW_IVAR', 'OII_3729_EW_IVAR',
+            'DN4000', 'DN4000_IVAR']
+
+    chunks = []
+    for program in ('bright', 'dark'):
+        cat = read_fastspec('sv3', program, specprod=DEFAULT_SPECPROD,
+                            columns=cols, verbose=verbose)
+        chunks.append(cat[good_galaxies(cat, survey='sv3')])
+    cat = vstack(chunks)
+    if verbose:
+        print(f'Total after good_galaxies: {len(cat):,}')
+
+    # S/N > 3 on individual EW measurements and on Dn(4000)
+    with np.errstate(invalid='ignore'):
+        sncut = ((cat['OII_3726_EW'] * np.sqrt(cat['OII_3726_EW_IVAR']) > 3) &
+                 (cat['OII_3729_EW'] * np.sqrt(cat['OII_3729_EW_IVAR']) > 3) &
+                 (cat['DN4000']      * np.sqrt(cat['DN4000_IVAR'])       > 3))
+    cat = cat[sncut]
+    if verbose:
+        print(f'  After S/N>3 cuts: {len(cat):,}')
+
+    dn4000    = np.array(cat['DN4000'], dtype=float)
+    log_ewoii = np.log10(cat['OII_3726_EW'] + cat['OII_3729_EW'])
+
+    groups = [g for g in target_class_groups(cat, 'sv3')
+              if g['label'] in ('BGS', 'LRG', 'ELG')]
+
+    plot_style(talk=True, font_scale=0.85, palette='colorblind')
+    fig, ax = plt.subplots(figsize=(7, 6))
+
+    # grayscale Hess background: all galaxies, no contours
+    hess_contours(ax, dn4000, log_ewoii, dn4000_range, ewoii_range,
+                  bins=60, smooth=1.0, cmap='Greys',
+                  contour_levels=[], outlier_ms=0, background=True)
+
+    # per-class colored contours (no background)
+    handles = []
+    for g in groups:
+        mask  = g['mask']
+        color = g['color']
+        hess_contours(ax, dn4000[mask], log_ewoii[mask], dn4000_range, ewoii_range,
+                      bins=60, smooth=1.0, contour_color=color, contour_lw=2.0,
+                      outlier_ms=2, background=False)
+        handles.append(Line2D([0], [0], color=color, lw=2,
+                              label=f"{g['label']} ($N={mask.sum():,}$)"))
+        if verbose:
+            print(f"  {g['label']}: {mask.sum():,} galaxies")
+
+    ax.set_xlim(dn4000_range)
+    ax.set_ylim(ewoii_range)
+    ax.set_xlabel(r'$D_n(4000)$')
+    ax.set_ylabel(r'$\log_{10}\,\mathrm{EW}([\mathrm{O\,II}])\,(\AA)$')
+    ax.legend(handles=handles, loc='upper right', framealpha=0.75)
+
+    fig.tight_layout()
+
+    outfile = os.path.join(FIGDIR, 'ewoii-dn4000.pdf')
+    fig.savefig(outfile, dpi=150, bbox_inches='tight')
+    print(f'Wrote {outfile}')
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
 # compare-vdisp
 # ---------------------------------------------------------------------------
 
@@ -638,6 +716,8 @@ def main():
                         help='Stellar mass comparison: FastSpecFit vs external catalogs.')
     parser.add_argument('--mstar-redshift', action='store_true',
                         help='M* vs. redshift for BGS, LRG, ELG (sv3).')
+    parser.add_argument('--ewoii-dn4000', action='store_true',
+                        help='log EW([OII]) vs. Dn(4000) for BGS, LRG, ELG (sv3).')
     parser.add_argument('--compare-vdisp', action='store_true',
                         help='Velocity dispersion comparison: FastSpecFit vs pPXF.')
     parser.add_argument('--specprod', default=DEFAULT_SPECPROD,
@@ -665,6 +745,9 @@ def main():
 
     if args.mstar_redshift:
         mstar_redshift(verbose=args.verbose)
+
+    if args.ewoii_dn4000:
+        ewoii_dn4000(verbose=args.verbose)
 
     if args.compare_vdisp:
         compare_vdisp(verbose=args.verbose)
