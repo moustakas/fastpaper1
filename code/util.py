@@ -570,7 +570,9 @@ def good_galaxies(cat, survey=None, fiberstatus_cut=True):
         good_z = good_redshift(cat, survey, fiberstatus_cut=fiberstatus_cut)
     else:
         good_z = (cat['ZWARN'] == 0) & (cat['Z'] > 0.001)
-    return good_z & (cat['LOGMSTAR'] > 0)
+    if 'LOGMSTAR' in cat.colnames:
+        good_z = good_z & (cat['LOGMSTAR'] > 0)
+    return good_z
 
 
 def make_class_cmap(color, lighten=0.3):
