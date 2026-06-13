@@ -359,7 +359,7 @@ sequence applied to a representative BGS target is given in \S\ref{sec:casestudy
 \label{ssec:templates}
 
 \begin{figure*}
-\includegraphics[width=6.5in]{figures/sps-models.png}
+\includegraphics[width=6.5in]{figures/sps-models.pdf}
 \caption{The five SPS templates that span the
   \fastspecfit\ star-formation history bins (\S\ref{ssec:templates}),
   computed at solar metallicity ($\log_{10}Z/Z_\odot=0$) with
@@ -528,11 +528,12 @@ infrared re-emission (\S\ref{sssec:dust}), cosmological redshifting with IGM abs
 (\S\ref{sssec:zfactors}), stellar velocity-dispersion broadening (\S\ref{sssec:vdisp}),
 and joint spectrophotometric fitting (\S\ref{sssec:fitting}). For each object we execute
 three fitting stages in sequence: we first determine $\vdisp$ from stellar absorption
-features; we then apply a per-band aperture correction to bring the fiber spectrum into
-agreement with broadband photometry; and finally we perform a joint spectrophotometric
-fit for the dust attenuation $\tauv$ and template coefficients $\mathbf{c}$
-simultaneously. A nonparametric smooth continuum correction removes low-level residuals
-after the primary fit, before the spectrum is passed to the emission-line fitter
+features (\S\ref{sssec:vdisp}); we then estimate a per-band aperture correction to
+place the fiber spectrum on the total-flux scale of the broadband photometry
+(\S\ref{sssec:apercorr}); and finally we perform a joint spectrophotometric fit for
+dust attenuation $\tauv$ and template coefficients $\mathbf{c}$ (\S\ref{sssec:fitting}).
+A nonparametric smooth continuum correction removes low-level residuals after the
+primary fit, before the spectrum is passed to the emission-line fitter
 (\S\ref{sssec:smooth}).
 
 \subsubsection{Dust Attenuation and Emission}
@@ -638,6 +639,28 @@ the emission-line galaxies targeted by DESI, but the effect on the
 continuum fit is small because those objects are observed primarily in
 the rest-frame UV where stellar absorption features are weak.
 
+\subsubsection{Aperture Correction}
+\label{sssec:apercorr}
+
+The DESI fiber subtends 1\farcs5 and intercepts only a fraction of the light from
+extended sources, while the Legacy Survey photometry measures total flux. We bridge
+this mismatch with a per-band aperture correction derived from the initial $\vdisp$
+fit. That fit yields a stellar continuum model normalized to the fiber spectrum; we
+synthesize photometry in the $g$, $r$, and $z$ bands and compare it to the Tractor
+total flux,
+\begin{equation}
+  \eta_f \;=\; \frac{F_f^\mathrm{total}}{F_f^\mathrm{model}},
+  \label{eq:apercorr}
+\end{equation}
+where $f \in \{g,\,r,\,z\}$. The scalar correction $\bar{\eta} =
+\mathrm{median}(\eta_g,\,\eta_r,\,\eta_z)$ is wavelength-independent. We scale the
+fiber spectrum and its inverse-variance array by $\bar{\eta}$ before the joint
+spectrophotometric fit, placing the spectrum on the total-flux scale; output model
+spectra are then divided by $\bar{\eta}$ to recover fiber-aperture units. The
+per-band values are stored as catalog columns \texttt{APERCORR\_G},
+\texttt{APERCORR\_R}, and \texttt{APERCORR\_Z}; large band-to-band scatter indicates
+strong color gradients within the fiber aperture.
+
 \subsubsection{Fitting Algorithm}
 \label{sssec:fitting}
 
@@ -669,28 +692,12 @@ $\mathbf{c}$,
 where $\boldsymbol{\Psi}$ is the weighted design matrix of
 velocity-broadened, attenuated, and synthesized templates, and
 $\mathbf{b}$ is the vector of weighted observations (spectra and
-photometry stacked). The VARPRO approach converges $\sim$$10\times$
+photometry stacked). The VARPRO approach converges $\sim10\times$
 faster than direct optimization over the full parameter vector by
 avoiding finite-differencing across all template coefficients. When
-$\vdisp$ is a free parameter, the separability is broken and we instead
-use \texttt{scipy.optimize.least\_squares} with the TRF method.
-
-Before the full spectrophotometric fit, we estimate a per-band aperture
-correction $\eta_f$ from the ratio of observed fiber photometry to
-synthesized model photometry from the initial $\vdisp$ fit,
-\begin{equation}
-  \eta_f \;=\;
-  \frac{F_{\lambda,f}^\mathrm{fiber,obs}}{F_{\lambda,f}^\mathrm{model}},
-  \label{eq:apercorr}
-\end{equation}
-and we apply the median $\bar{\eta}$ to scale the fiber spectrum (and its
-uncertainties) to total flux before the final joint fit. The full
-spectrophotometric fit then uses VARPRO with $\vdisp$ fixed at the value
-from \S\ref{sssec:vdisp} and templates that include nebular emission,
-fitting the aperture-corrected spectrum and broadband photometry
-simultaneously. The aperture correction may not be perfect for QSOs, but
-the template flexibility generally recovers the broadband SED shape
-\citep{cappellari22a}.
+$\vdisp$ is a free parameter, the separability is broken and we
+instead use \texttt{scipy.optimize.least\_squares} with the TRF
+method.
 
 \subsubsection{Smooth Continuum Correction}
 \label{sssec:smooth}
@@ -726,6 +733,8 @@ Two doublet pairs are treated as global kinematic anchors in both
 models: Si\,\textsc{iii}]~$\lambda$1892 is tied to
 C\,\textsc{iii}]~$\lambda$1908, and Mg\,\textsc{ii}~$\lambda\lambda$2796,2803
 shares a single kinematic solution with a free amplitude ratio.
+
+\input{tables/table-kinematic-bounds}
 
 We fit two profile models whose kinematic structure depends on whether a
 significant broad Balmer component is present
@@ -946,8 +955,6 @@ freedom exceeds the degrees of freedom added by the relaxation;
 otherwise we retain the primary result. We record this comparison in the
 output columns \texttt{DELTA\_KINECHI2} and \texttt{DELTA\_KINENDOF}.
 
-\input{tables/table-kinematic-bounds}
-
 \subsection{Spectrophotometric and Physical Properties}
 \label{ssec:quantities}
 
@@ -1139,6 +1146,8 @@ use to targets where the host-galaxy continuum dominates.
 \label{sec:vac}
 %% ============================================================
 
+\todo{Need a section overview/summary.}
+
 \subsection{Sample Selection}
 \label{ssec:sample}
 
@@ -1250,6 +1259,31 @@ clipping error in the internal flux uncertainty routine. We fix both issues in
 \fastspecfit{}~v3.2.0, and we will release updated catalogs in due course.
 
 
+\begin{figure*}
+\includegraphics[width=6.5in]{compare-mstar-external.pdf}
+\caption{ Comparison of \fastspecfit{} stellar masses with three
+  independent catalogs, organized by target class. Each row compares
+  \fastspecfit{} $\logmstar$ (x-axis; $h=1$, Chabrier IMF) against
+  masses from (top) \citet{zou24a} using CIGALE SED fitting of DR2
+  photometry, (middle) \citet{siudek25a} using CIGALE SED fitting with
+  AGN contributions fit to DR1 spectra and photometry, and (bottom)
+  \citet{salim16a,salim18a} using CIGALE SED fitting of
+  \textit{GALEX}$+$SDSS$+$\textit{WISE} photometry (GSWLC-X2). Columns
+  show BGS, LRG, and ELG subsamples; the GSWLC-X2 comparison is
+  restricted to BGS targets owing to negligible overlap with the other
+  classes. The logarithmically-scaled two-dimensional number density
+  is shown as a color map, with contours enclosing 50\%, 75\%, 95\%,
+  and 99.5\% of the joint distribution; individual galaxies outside
+  the outermost contour are shown as markers. Each panel lists the
+  matched sample size $N$, the median mass offset $\Delta_{\rm med}$
+  (external minus \fastspecfit{}) in dex, and the NMAD scatter. The
+  dashed line is the 1:1
+  relation.\label{fig:compare-mstar-external} \label{fig:mstar-external}}
+\end{figure*}
+
+%\texttt{kcorrect} \citep{blanton07a}
+%PROVABGS \citep{hahn24a}
+
 \subsection{Computational Performance}
 \label{ssec:performance}
 
@@ -1274,29 +1308,28 @@ quantify systematic offsets and scatter as a function of signal-to-noise ratio,
 redshift, and target class. \todo{Add summary of overall agreement and key
 findings.}
 
-\textit{Stellar velocity dispersions.}---Figure~\ref{fig:vdisp} compares
-\fastspecfit{} $\vdisp$ measurements against those from \texttt{pPXF}
-\citep{cappellari22a} for a matched sample of BGS galaxies with high
-signal-to-noise stellar continua. \todo{Quantify agreement: rms, bias.}
+In Figure~\ref{fig:mstar-external} we compare \fastspecfit{} stellar
+masses against independent estimates from CIGALE \citep{siudek24a} and
+... \todo{Describe agreement; highlight systematic offsets from
+  non-parametric vs.\ parametric SFH choices.}
 
 \begin{figure*}
-\includegraphics[width=6.5in]{ppxf-vdisp.png}
+\includegraphics[width=6.5in]{compare-vdisp.pdf}
 \caption{Comparison of \fastspecfit{} stellar velocity dispersions with
   those from \texttt{pPXF} \citep{cappellari22a} for a matched BGS
   sample.\label{fig:vdisp}}
 \end{figure*}
 
-\textit{Stellar masses.}---We compare \fastspecfit{} stellar masses against
-independent estimates from CIGALE \citep{siudek24a}, Prospector
-\citep{johnson21a}, \texttt{kcorrect} \citep{blanton07a}, and PROVABGS
-\citep{hahn24a}. \todo{Describe agreement; highlight systematic offsets from
-non-parametric vs.\ parametric SFH choices.}
+Figure~\ref{fig:vdisp} compares \fastspecfit{} $\vdisp$ measurements
+against those from \texttt{pPXF} \citep{cappellari22a} for a matched
+sample of BGS galaxies with high signal-to-noise stellar
+continua. \todo{Quantify agreement: rms, bias.}
 
-\textit{Emission-line fluxes and star-formation rates.}---We compare
-emission-line fluxes against \texttt{pPXF} \citep{cappellari22a}, the DESI
-\texttt{emlinefit} afterburner \citep{raichoor23a}, and the GSWLC catalog of
-\citet{salim16a} for targets in the SDSS footprint. \todo{Describe agreement
-and key diagnostics compared (H$\alpha$, [\ion{O}{2}]).}
+We compare emission-line fluxes against \texttt{pPXF}
+\citep{cappellari22a}, the DESI \texttt{emlinefit} afterburner
+\citep{raichoor23a}, and the GSWLC catalog of \citet{salim16a} for
+targets in the SDSS footprint. \todo{Describe agreement and key
+  diagnostics compared (H$\alpha$, [\ion{O}{2}]).}
 
 
 %% ============================================================

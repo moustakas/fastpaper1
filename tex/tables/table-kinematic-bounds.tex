@@ -1,24 +1,129 @@
-\setlength{\tabcolsep}{1cm}
-\begin{deluxetable*}{cc}
-\tablecaption{Emission-Line Free Parameters and Bounds\label{table:priors}}
+\setlength{\tabcolsep}{4pt}
+\begin{deluxetable*}{llllcc}
+\tablecaption{Emission-Line Kinematic Groups and Amplitude Constraints\label{table:kinematic}}
 \tablewidth{0pt}
 \tablehead{
-  \colhead{Parameter} &
-  \colhead{Bounds}
+  \colhead{Profile} &
+  \colhead{Group} &
+  \colhead{Anchor} &
+  \colhead{$\sigma$ (km\,s$^{-1}$)} &
+  \colhead{$|\Delta v|$ (km\,s$^{-1}$)} &
+  \colhead{$\Delta v$ released\tablenotemark{a}}
 }
 \startdata
-\multicolumn{2}{c}{\textbf{Narrow-line model}} \\
-$\sigma_{\mathrm{narrow}}$     & 1--750~\kms \\
-$(\Delta v)_{\mathrm{narrow}}$ & $\pm500$~\kms \\
-\multicolumn{2}{c}{\textbf{Broad-line model}} \\
-$\sigma_{\mathrm{narrow}}$     & 1--750~\kms \\
-$\sigma_{\mathrm{broad}}$      & 1--10,000~\kms \\
-$(\Delta v)_{\mathrm{narrow}}$ & $\pm500$~\kms \\
-$(\Delta v)_{\mathrm{broad}}$  & $\pm2500$~\kms \\
+%%
+%% ===== Global (both profiles) =====
+%%
+\multicolumn{6}{c}{\textbf{Global (both profiles)}} \\
+Global & Free UV/AGN & \nodata & 1--10{,}000 & $<$2{,}500 & \nodata \\
+\multicolumn{6}{l}{\hskip1.5em\textit{Lines (independent):}
+  Ly$\alpha$,
+  [\ion{N}{5}]~$\lambda$1240,
+  \ion{O}{1}~$\lambda$1304,
+  \ion{Si}{4}~$\lambda$1396,
+  \ion{C}{4}~$\lambda$1549,
+  \ion{He}{2}~$\lambda$1640,
+  \ion{Al}{3}~$\lambda$1857,
+  \ion{He}{2}~$\lambda$4686} \\
+Global & \ion{C}{3}] pair & \ion{C}{3}]~$\lambda$1908 & 1--10{,}000 & $<$2{,}500 & N \\
+\multicolumn{6}{l}{\hskip1.5em\textit{Member:} \ion{Si}{3}]~$\lambda$1892} \\
+Global & \ion{Mg}{2} pair & \ion{Mg}{2}~$\lambda$2803 & 1--10{,}000 & $<$2{,}500 & N \\
+\multicolumn{6}{l}{\hskip1.5em\textit{Member:} \ion{Mg}{2}~$\lambda$2796 (amplitude ratio free; see below)} \\
+%%
+%% ===== Narrow-only profile =====
+%%
+\hline
+\multicolumn{6}{c}{\textbf{Narrow-only profile (\texttt{linemodel\_nobroad})}} \\
+Narrow-only & Forbidden & [\ion{O}{3}]~$\lambda$5007 & 1--750 & $<$500 & Y \\
+\multicolumn{6}{l}{\hskip1.5em\textit{Members:}
+  [\ion{Ne}{5}]~$\lambda\lambda$3346,3426,
+  [\ion{O}{2}]~$\lambda\lambda$3726,3729,
+  [\ion{Ne}{3}]~$\lambda$3869,
+  [\ion{O}{3}]~$\lambda\lambda$4363,4959,} \\
+\multicolumn{6}{l}{\hskip1.5em
+  [\ion{N}{2}]~$\lambda$5755,
+  [\ion{O}{1}]~$\lambda$6300,
+  [\ion{S}{3}]~$\lambda$6312,
+  [\ion{N}{2}]~$\lambda\lambda$6548,6584,
+  [\ion{S}{2}]~$\lambda\lambda$6716,6731,} \\
+\multicolumn{6}{l}{\hskip1.5em
+  [\ion{Ar}{3}]~$\lambda$7135,
+  [\ion{O}{2}]~$\lambda\lambda$7320,7330,
+  [\ion{S}{3}]~$\lambda\lambda$9069,9532} \\
+Narrow-only & Narrow Balmer\,+\,\ion{He}{1} & H$\alpha$ & 1--750 & $<$500 & Y \\
+\multicolumn{6}{l}{\hskip1.5em\textit{Members:}
+  H6,
+  H$\epsilon$,
+  H$\delta$,
+  H$\gamma$,
+  H$\beta$,
+  \ion{He}{1}~$\lambda$4471,
+  \ion{He}{1}~$\lambda$5876} \\
+Narrow-only & Fixed ($A = 0$) & \nodata & \nodata & \nodata & \nodata \\
+\multicolumn{6}{l}{\hskip1.5em\textit{Lines:}
+  H$\alpha_{\rm b}$,
+  H$\beta_{\rm b}$,
+  H$\gamma_{\rm b}$,
+  H$\delta_{\rm b}$,
+  H$\epsilon_{\rm b}$,
+  H$6_{\rm b}$} \\
+%%
+%% ===== Narrow+broad profile =====
+%%
+\hline
+\multicolumn{6}{c}{\textbf{Narrow+broad profile (\texttt{linemodel\_broad})}} \\
+Narrow+broad & All narrow & H$\alpha$ & 1--750 & $<$500 & N \\
+\multicolumn{6}{l}{\hskip1.5em\textit{Members:}
+  [\ion{Ne}{5}]~$\lambda\lambda$3346,3426,
+  [\ion{O}{2}]~$\lambda\lambda$3726,3729,
+  [\ion{Ne}{3}]~$\lambda$3869,
+  [\ion{O}{3}]~$\lambda$4363,} \\
+\multicolumn{6}{l}{\hskip1.5em
+  [\ion{N}{2}]~$\lambda$5755,
+  [\ion{O}{1}]~$\lambda$6300,
+  [\ion{S}{3}]~$\lambda$6312,
+  [\ion{N}{2}]~$\lambda\lambda$6548,6584,
+  [\ion{S}{2}]~$\lambda\lambda$6716,6731,} \\
+\multicolumn{6}{l}{\hskip1.5em
+  [\ion{Ar}{3}]~$\lambda$7135,
+  [\ion{O}{2}]~$\lambda\lambda$7320,7330,
+  [\ion{S}{3}]~$\lambda\lambda$9069,9532,} \\
+\multicolumn{6}{l}{\hskip1.5em
+  H6,
+  H$\epsilon$,
+  H$\delta$,
+  H$\gamma$,
+  H$\beta$,
+  \ion{He}{1}~$\lambda$4471,
+  \ion{He}{1}~$\lambda$5876} \\
+Narrow+broad & [\ion{O}{3}] doublet & [\ion{O}{3}]~$\lambda$5007 & 1--750 & $<$500 & N \\
+\multicolumn{6}{l}{\hskip1.5em\textit{Member:} [\ion{O}{3}]~$\lambda$4959} \\
+Narrow+broad & Broad Balmer & H$\alpha_{\rm b}$ & 1--10{,}000 & $<$2{,}500 & N \\
+\multicolumn{6}{l}{\hskip1.5em\textit{Members:}
+  H$\beta_{\rm b}$,
+  H$\gamma_{\rm b}$,
+  H$\delta_{\rm b}$,
+  H$\epsilon_{\rm b}$,
+  H$6_{\rm b}$} \\
+%%
+%% ===== Amplitude constraints =====
+%%
+\hline
+\multicolumn{6}{c}{\textbf{Amplitude constraints}} \\
+\multicolumn{3}{c}{\textit{Fixed ratios} ($A_\mathrm{line} = f \cdot A_\mathrm{ref}$)} &
+\multicolumn{3}{c}{\textit{Free doublet ratios} ($r \equiv A_\mathrm{line}/A_\mathrm{ref}$)} \\
+\relax[\ion{N}{2}]~$\lambda$6548\,/\,$\lambda$6584 & $f = 1/3.033$ & & [\ion{O}{2}]~$\lambda$3726\,/\,$\lambda$3729 & $r_0 = 1$ & $r \in [0,2]$ \\
+\relax[\ion{O}{3}]~$\lambda$4959\,/\,$\lambda$5007 & $f = 1/2.964$ & & [\ion{S}{2}]~$\lambda$6731\,/\,$\lambda$6716  & $r_0 = 1$ & $r \in [0,2]$ \\
+\relax[\ion{O}{2}]~$\lambda$7330\,/\,$\lambda$7320 & $f = 1/1.225$ & & \ion{Mg}{2}~$\lambda$2796\,/\,$\lambda$2803   & $r_0 = 1$ & $r \in [0,10]$ \\
 \enddata
-\tablecomments{Optimizer bounds for the free kinematic parameters in
-  the narrow-only and narrow+broad emission-line models
-  (\S\ref{sssec:kinematic}). Broad-line UV and AGN permitted lines use
-  the broad-line bounds.}
+\tablenotetext{a}{Whether individual velocity shifts are freed in the final
+  optimization pass (\S\ref{sssec:kinematic}).  In groups marked Y, $\Delta v$
+  is released per member while $\sigma$ remains tied.  Global groups and the
+  narrow+broad profile perform no kinematic relaxation.}
+\tablecomments{All kinematic constraints, optimizer bounds, and amplitude ratios
+  are read from \texttt{data/emline-constraints.yaml} at startup.  Lines within
+  a group share a common velocity shift $\Delta v$ and width $\sigma$; the
+  anchor carries the free kinematic parameters.  Subscript~b denotes the broad
+  component of a Balmer line.}
 \end{deluxetable*}
 \setlength{\tabcolsep}{6pt}  % restore default
