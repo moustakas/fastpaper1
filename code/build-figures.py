@@ -24,6 +24,7 @@ FIGDIR  = os.path.join(REPODIR, 'tex', 'figures')
 
 # axis label for log stellar mass stored at h=1
 MSTAR_LABEL = r'$\log_{10}\,(\mathcal{M}_{*}\,h^{-2}\,/\,\mathcal{M}_{\odot})$'
+SFR_LABEL   = r'$\log_{10}\,(\mathrm{SFR}\,h^{-2}\,/\,M_\odot\,\mathrm{yr}^{-1})$'
 
 # Colorblind-friendly (Okabe-Ito) colors for DESI target classes.
 # Used for contours; pass make_class_cmap(color) to hess_contours for the background.
@@ -481,6 +482,145 @@ def compare_mstar_external(verbose=False):
 
 
 # ---------------------------------------------------------------------------
+# compare-sfr-external
+# ---------------------------------------------------------------------------
+
+def compare_sfr_external(verbose=False):
+    """3×3 grid: FastSpecFit SFRs vs external catalogs, split by target class.
+
+    Rows: Zou+CIGALE (loa), CIGALE-AGN (iron), GSWLC-X2 (bright/BGS only).
+    Columns: BGS | LRG | ELG.  GSWLC-X2 populates BGS only; other cells hidden.
+    Each panel uses a class-colored Hess background with thick colored contours.
+    Output: tex/figures/compare-sfr-external.pdf
+
+    """
+    import fitsio
+    from desitarget.sv3.sv3_targetmask import desi_mask as sv3_mask
+
+    extdir = os.path.join(REPODIR, 'external')
+    sfrlim = [-3, 2.5]
+    all_classes = ['BGS', 'LRG', 'ELG']
+
+    catalogs = [
+        dict(
+            files=['zouhu-loa-sv3-bright.fits', 'zouhu-loa-sv3-dark.fits'],
+            ext_col='SFR_ZOUHU',
+            label='Zou et al. (CIGALE)',
+            classes=['BGS', 'LRG', 'ELG'],
+        ),
+        dict(
+            files=['cigaleagn-iron-sv3-bright.fits', 'cigaleagn-iron-sv3-dark.fits'],
+            ext_col='SFR_CIGALEAGN',
+            flag_col='FLAG_LOGSFR_CIGALEAGN',
+            label='Siudek et al. (CIGALE-AGN)',
+            classes=['BGS', 'LRG', 'ELG'],
+        ),
+        dict(
+            files=['gswlcx2-sv3-bright.fits'],
+            ext_col='SFR_GSWLCX2',
+            label='Salim et al. (GSWLC-X2)',
+            classes=['BGS'],
+        ),
+    ]
+
+    # bottom visible row per column (for x-axis label placement)
+    bottom_row = {}
+    for ci, cls in enumerate(all_classes):
+        for ri in range(len(catalogs) - 1, -1, -1):
+            if cls in catalogs[ri]['classes']:
+                bottom_row[ci] = ri
+                break
+
+    plot_style(talk=True, font_scale=0.85, palette='colorblind')
+    fig, axes = plt.subplots(3, 3, figsize=(13, 12))
+    fig.subplots_adjust(hspace=0.08, wspace=0.08)
+
+    for ri, cat in enumerate(catalogs):
+        ref_l, ext_l, flag_l, bgs_l, desi_l, goodz_l = [], [], [], [], [], []
+        for fn in cat['files']:
+            path = os.path.join(extdir, fn)
+            if verbose:
+                print(f'Reading {path}')
+            d = Table(fitsio.read(path))
+            ref_l.append(d['SFR'].astype(float))
+            ext_l.append(d[cat['ext_col']].astype(float))
+            if 'flag_col' in cat:
+                flag_l.append(d[cat['flag_col']].astype(float))
+            bgs_l.append(d['SV3_BGS_TARGET'].astype(np.int64))
+            desi_l.append(d['SV3_DESI_TARGET'].astype(np.int64))
+            goodz_l.append(good_redshift(d, 'sv3'))
+
+        ref   = np.concatenate(ref_l)
+        ext   = np.concatenate(ext_l)
+        bgs   = np.concatenate(bgs_l)
+        desi  = np.concatenate(desi_l)
+        goodz = np.concatenate(goodz_l)
+        flag  = np.concatenate(flag_l) if flag_l else None
+
+        base = (np.isfinite(ref) & (ref > 0) &
+                np.isfinite(ext) & (ext > 0) & goodz)
+        if flag is not None:
+            base &= (flag > 0.2) & (flag < 5.0)
+
+        with np.errstate(divide='ignore', invalid='ignore'):
+            log_ref = np.where(base, np.log10(ref), np.nan)
+            log_ext = np.where(base, np.log10(ext), np.nan)
+
+        for ci, cls in enumerate(all_classes):
+            ax = axes[ri, ci]
+
+            if cls not in cat['classes']:
+                ax.set_visible(False)
+                continue
+
+            if cls == 'BGS':
+                cmask = base & (bgs != 0)
+            elif cls == 'LRG':
+                cmask = base & ((desi & int(sv3_mask['LRG'])) != 0)
+            else:  # ELG
+                cmask = base & ((desi & int(sv3_mask['ELG'])) != 0)
+
+            r, e = log_ref[cmask], log_ext[cmask]
+            in_range = ((r >= sfrlim[0]) & (r <= sfrlim[1]) &
+                        (e >= sfrlim[0]) & (e <= sfrlim[1]))
+            delta = e[in_range] - r[in_range]
+            color = TARGET_CLASS_COLORS[cls]
+
+            hess_contours(ax, r, e, sfrlim, sfrlim, bins=60,
+                          cmap=make_class_cmap(color),
+                          contour_color=color, contour_lw=2.0)
+            ax.plot(sfrlim, sfrlim, 'k--', lw=1.5, zorder=5)
+            ax.set_xlim(sfrlim)
+            ax.set_ylim(sfrlim)
+
+            ax.tick_params(
+                labelleft=(ci == 0),
+                labelbottom=(ri == bottom_row[ci]),
+            )
+
+            if ri == 0:
+                ax.set_title(cls, color=color, fontweight='bold')
+
+            if ri == bottom_row[ci]:
+                ax.set_xlabel(SFR_LABEL + '\n[FastSpecFit]')
+
+            ax.text(0.04, 0.96,
+                    f'$N={in_range.sum():,}$\n'
+                    f'$\\Delta_{{\\rm med}}={np.median(delta):+.3f}$\n'
+                    f'NMAD$={nmad(delta):.3f}$',
+                    transform=ax.transAxes, fontsize='small',
+                    va='top', ha='left',
+                    bbox=dict(facecolor='white', edgecolor='none', alpha=0.75, pad=2))
+
+        axes[ri, 0].set_ylabel(SFR_LABEL + f"\n[{cat['label']}]")
+
+    outfile = os.path.join(FIGDIR, 'compare-sfr-external.pdf')
+    fig.savefig(outfile, dpi=150, bbox_inches='tight')
+    print(f'Wrote {outfile}')
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
 # mstar-redshift
 # ---------------------------------------------------------------------------
 
@@ -770,7 +910,8 @@ def compare_vdisp(verbose=False):
     import fitsio
 
     extdir = os.path.join(REPODIR, 'external')
-    catfile = os.path.join(extdir, 'fpcatalog-iron-main-bright.fits')
+    catfile = os.path.join(extdir, 'fpcatalog-iron-sv3-bright.fits')
+    #catfile = os.path.join(extdir, 'fpcatalog-iron-main-bright.fits')
     if verbose:
         print(f'Reading {catfile}')
     d = fitsio.read(catfile)
@@ -790,7 +931,8 @@ def compare_vdisp(verbose=False):
     snrrange = [0., 2.]          # log10(SNR_B): 1 to 100
     snr_ticks = [1, 3, 10, 30, 100]
 
-    color = '#E69F00'  # Okabe-Ito amber; neutral (not class-specific)
+    color = '#56B4E9' # sky blue
+    #color = '#E69F00'  # Okabe-Ito amber; neutral (not class-specific)
     #color = '#009E73'  # teal alternative
     cmap  = make_class_cmap(color)
 
@@ -958,7 +1100,7 @@ def sfr_mstar_bgs(survey='sv3', specprod=DEFAULT_SPECPROD,
     ax.set_xlim(mstarlim)
     ax.set_ylim(sfrlim)
     ax.set_xlabel(MSTAR_LABEL)
-    ax.set_ylabel(r'$\log_{10}\,(\mathrm{SFR}(\mathrm{H}\alpha)\,h^{-2}\,/\,M_\odot\,\mathrm{yr}^{-1})$')
+    ax.set_ylabel(SFR_LABEL)
 
     if flag_agn and agn_mask.any():
         from matplotlib.lines import Line2D
@@ -998,6 +1140,8 @@ def main():
                         help='Stellar mass comparison: fastspec vs fastphot.')
     parser.add_argument('--compare-mstar-external', action='store_true',
                         help='Stellar mass comparison: FastSpecFit vs external catalogs.')
+    parser.add_argument('--compare-sfr-external', action='store_true',
+                        help='SFR comparison: FastSpecFit vs external catalogs.')
     parser.add_argument('--mstar-redshift', action='store_true',
                         help='M* vs. redshift for BGS, LRG, ELG (sv3).')
     parser.add_argument('--ewoii-dn4000', action='store_true',
@@ -1034,6 +1178,9 @@ def main():
 
     if args.compare_mstar_external:
         compare_mstar_external(verbose=args.verbose)
+
+    if args.compare_sfr_external:
+        compare_sfr_external(verbose=args.verbose)
 
     if args.mstar_redshift:
         mstar_redshift(verbose=args.verbose)
