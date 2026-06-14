@@ -856,7 +856,7 @@ def sfr_mstar_bgs(survey='sv3', specprod=DEFAULT_SPECPROD,
     Output: tex/figures/sfr-mstar-bgs.pdf
     """
     mstarlim = [7, 13]
-    sfrlim   = [-3, 3]
+    sfrlim   = [-3, 2.5]
     zlim     = [0.05, 0.4]
 
     cols = ['HALPHA_FLUX', 'HALPHA_FLUX_IVAR',
@@ -942,8 +942,8 @@ def sfr_mstar_bgs(survey='sv3', specprod=DEFAULT_SPECPROD,
                       outlier_ms=1, background=False)
 
     # Reference SFMS lines
-    logm = np.linspace(8., 12., 200)
-    #logm = np.linspace(mstarlim[0], mstarlim[1], 200)
+    #logm = np.linspace(8., 12., 200)
+    logm = np.linspace(mstarlim[0], mstarlim[1], 200)
 
     ## Speagle+2014: t=10.7 Gyr at z=0.2 (Planck 2018); Chabrier IMF; h-independent
     #_t = 10.7
@@ -953,12 +953,13 @@ def sfr_mstar_bgs(survey='sv3', specprod=DEFAULT_SPECPROD,
     # Renzini & Peng (2015): log SFR = 0.76*logM* - 7.64 (Kroupa, h=0.7)
     # h=0.7→h=1 intercept shift: 0.310*(0.76-1) = -0.074  →  -7.71  (Kroupa ≈ Chabrier)
     ax.plot(logm, 0.76*logm - 7.71,
-            'k-', lw=1.5, zorder=5, label=r'Renzini & Peng (2015)')
+            'k--', lw=1.5, zorder=5, label=r'Renzini & Peng (2015)')
 
     ax.set_xlim(mstarlim)
     ax.set_ylim(sfrlim)
     ax.set_xlabel(MSTAR_LABEL)
     ax.set_ylabel(r'$\log_{10}\,\mathrm{SFR}(H\alpha)\,(M_\odot\,\mathrm{yr}^{-1})$')
+    ax.set_ylabel(r'$\log_{10}\bigl(\mathrm{SFR}({\rm H}\alpha),h^{-2},/,M_\odot,\mathrm{yr}^{-1}\bigr)$')
 
     if flag_agn and agn_mask.any():
         from matplotlib.lines import Line2D
@@ -967,12 +968,12 @@ def sfr_mstar_bgs(survey='sv3', specprod=DEFAULT_SPECPROD,
         labels.append(f'AGN ($N={agn_mask.sum():,}$)')
         ax.legend(handles, labels, loc='upper left', fontsize='small', framealpha=0.75)
     else:
-        ax.legend(loc='upper left', fontsize='small', framealpha=0.75)
+        ax.legend(loc='lower right', fontsize='small', framealpha=0.75)
 
-    ax.text(0.96, 0.06,
-            f'$N_{{\\rm SF}}={len(cat_sf):,}$\n'
-            f'$\\langle z\\rangle={np.median(cat_sf["Z"]):.2f}$',
-            transform=ax.transAxes, fontsize='small', va='bottom', ha='right',
+    ax.text(0.06, 0.96,
+            f'$N={len(cat_sf):,}$,#\n'
+            #f'$\\langle z\\rangle={np.median(cat_sf["Z"]):.2f}$',
+            transform=ax.transAxes, fontsize='small', va='top', ha='left',
             bbox=dict(facecolor='white', edgecolor='none', alpha=0.75, pad=2))
 
     fig.tight_layout()
