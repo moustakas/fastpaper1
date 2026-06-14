@@ -855,8 +855,8 @@ def sfr_mstar_bgs(survey='sv3', specprod=DEFAULT_SPECPROD,
     use as a separate set of contours).
     Output: tex/figures/sfr-mstar-bgs.pdf
     """
-    mstarlim = [6, 13]
-    sfrlim   = [-5, 3]
+    mstarlim = [7, 13]
+    sfrlim   = [-3, 3]
     zlim     = [0.05, 0.4]
 
     cols = ['HALPHA_FLUX', 'HALPHA_FLUX_IVAR',
@@ -942,17 +942,18 @@ def sfr_mstar_bgs(survey='sv3', specprod=DEFAULT_SPECPROD,
                       outlier_ms=1, background=False)
 
     # Reference SFMS lines
-    logm = np.linspace(mstarlim[0], mstarlim[1], 200)
+    logm = np.linspace(8., 12., 200)
+    #logm = np.linspace(mstarlim[0], mstarlim[1], 200)
 
-    # Speagle+2014: t=10.7 Gyr at z=0.2 (Planck 2018); Chabrier IMF; h-independent
-    _t = 10.7
-    ax.plot(logm, (0.84 - 0.026*_t)*logm - (6.51 - 0.11*_t),
-            'k--', lw=1.5, zorder=5, label=r'Speagle et al. (2014), $z=0.2$')
+    ## Speagle+2014: t=10.7 Gyr at z=0.2 (Planck 2018); Chabrier IMF; h-independent
+    #_t = 10.7
+    #ax.plot(logm, (0.84 - 0.026*_t)*logm - (6.51 - 0.11*_t),
+    #        'k--', lw=1.5, zorder=5, label=r'Speagle et al. (2014), $z=0.2$')
 
     # Renzini & Peng (2015): log SFR = 0.76*logM* - 7.64 (Kroupa, h=0.7)
     # h=0.7→h=1 intercept shift: 0.310*(0.76-1) = -0.074  →  -7.71  (Kroupa ≈ Chabrier)
     ax.plot(logm, 0.76*logm - 7.71,
-            'k:', lw=1.5, zorder=5, label=r'Renzini & Peng (2015)')
+            'k-', lw=1.5, zorder=5, label=r'Renzini & Peng (2015)')
 
     ax.set_xlim(mstarlim)
     ax.set_ylim(sfrlim)
