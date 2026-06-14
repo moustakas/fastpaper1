@@ -617,27 +617,76 @@ pre-compute and cache the Fourier transforms of all templates for $\vdisp
 evaluation. For $\vdisp > 500$~\kms\ we fall back to direct pixel-space
 convolution.
 
-We fit $\vdisp$ using only the 3800--6000~\AA\ rest-frame window, which
-captures the Ca~H\&K break, $G$-band, Mg$b$, and Fe absorption
-features sensitive to velocity broadening, and only when the spectrum
-satisfies $\lambda_\mathrm{min}^\mathrm{rest} < 3800$~\AA\ and
-$\lambda_\mathrm{max}^\mathrm{rest} > 4800$~\AA. The fit uses only
-templates without nebular emission and with $\tauv = 0$, which have
-negligible effect on the absorption features.
+The C3K stellar library has a native spectral resolution of $R = 3000$,
+corresponding to a Gaussian broadening of $\sigma_\mathrm{C3K} =
+c\,/\,(R\,2\sqrt{2\ln 2}) \approx 42.4$~\kms. Because the optimizer
+searches for the \emph{additional} broadening required on top of this
+template resolution, the quantity it fits---which we denote
+$\vdisp^\mathrm{kern}$---is a convolution kernel rather than $\vdisp$
+itself. We recover the intrinsic stellar velocity dispersion by adding
+the template resolution in quadrature,
+\begin{equation}
+  \vdisp = \sqrt{(\vdisp^\mathrm{kern})^2 + \sigma_\mathrm{C3K}^2},
+  \label{eq:vdisptot}
+\end{equation}
+and we restrict the kernel to $\vdisp^\mathrm{kern} \in [50,\,500]$~\kms.
 
-We employ a two-stage strategy: we first perform a $\chi^2$ grid scan
-over $N = 5$ values of $\vdisp$ evenly spaced in $[75,\,500]$~\kms,
-accepting the result only if $\Delta\chi^2 \geq 25$ and the minimum
-does not fall at a boundary; if the scan succeeds, we then refine the
-estimate with a Trust-Region Reflective (TRF) optimizer initialized at
-the grid minimum \citep{branch99a}. When wavelength coverage or
-signal-to-noise is insufficient, we fix $\vdisp = 250$~\kms---close to
-the knee of the velocity-dispersion function at $z = 0$--$1.5$
-\citep[e.g.,][]{bezanson11a}---and use pre-convolved templates cached
-as \texttt{flux\_nomvdisp}. This nominal value is an overestimate for
-the emission-line galaxies targeted by DESI, but the effect on the
-continuum fit is small because those objects are observed primarily in
-the rest-frame UV where stellar absorption features are weak.
+We fit $\vdisp$ over the 3800--6000~\AA\ rest-frame window, which
+captures the Ca~H\&K break, $G$-band, H$\beta$, Mg~$b$, and Fe
+absorption features sensitive to velocity broadening, and only when the
+observed spectrum satisfies $\lambda_\mathrm{min}^\mathrm{rest} <
+3800$~\AA\ (so that Ca~H\&K is present) and
+$\lambda_\mathrm{max}^\mathrm{rest} > 4900$~\AA\ (so that the spectrum
+reaches at least H$\beta$, corresponding to $z \lesssim 1$ for DESI
+spectra). If either condition fails, we bypass the fit and adopt the
+$\sigma$--$M_\star$ fallback described below (Case~A).
+
+When wavelength coverage is sufficient, we employ a three-stage strategy.
+First, we perform a $\chi^2$ grid scan over $N = 6$ kernel values evenly
+spaced in $[50,\,500]$~\kms: at each grid point we convolve the
+line-free templates to that kernel with $\tauv = 0$ and solve for the
+template coefficients via linear least-squares over the vdisp wavelength
+window. We accept the scan only if $\Delta\chi^2 \geq 25$ and the
+best-fit kernel does not fall at either boundary; a failed scan triggers
+the $\sigma$--$M_\star$ fallback (Case~B). Second, if the scan succeeds,
+we refine the estimate with \texttt{scipy.optimize.least\_squares} using
+the Trust-Region Reflective (TRF) method \citep{branch99a}, fitting
+$\vdisp^\mathrm{kern}$ and $\tauv$ jointly over the vdisp wavelength
+window, initialized at the grid minimum. Third, we estimate
+\texttt{VDISP\_IVAR} from $n_\mathrm{Monte}$ noise realizations drawn
+from the observed flux errors, converting the inverse variance of the
+kernel to that of $\vdisp$ via the Jacobian,
+\begin{equation}
+  \mathrm{IVAR}(\vdisp) \;=\; \mathrm{IVAR}(\vdisp^\mathrm{kern})\,
+    \left(\frac{\vdisp}{\vdisp^\mathrm{kern}}\right)^{\!2};
+  \label{eq:vdisp_ivar}
+\end{equation}
+because $\vdisp > \vdisp^\mathrm{kern}$ by construction
+(Eq.~\ref{eq:vdisptot}), the fractional uncertainty on $\vdisp$ is
+smaller than on $\vdisp^\mathrm{kern}$.
+
+When $\vdisp$ cannot be independently measured---either because
+wavelength coverage is insufficient (Case~A) or the $\chi^2$ scan fails
+(Case~B)---we fall back to a physically motivated estimate from the
+stellar-mass--velocity-dispersion ($\sigma$--$M_\star$) scaling relation.
+We first run a preliminary continuum fit at the nominal kernel
+($\vdisp^\mathrm{kern}_\mathrm{nom} \approx 143.9$~\kms) to obtain
+template coefficients and a preliminary $M_\star$; we then apply
+\begin{equation}
+  \log_{10}(\vdisp/\kms) \;=\; a + b\,(\logmstar - 11),
+  \quad a = 2.30,\; b = 0.25,
+  \label{eq:sigma_mstar}
+\end{equation}
+and convert the inferred $\vdisp$ to the corresponding
+$\vdisp^\mathrm{kern}$ via Equation~\ref{eq:vdisptot}. If the
+preliminary fit yields no valid stellar mass ($M_\star \leq 0$), we
+instead adopt the hard fallback $\vdisp = 150$~\kms---\texttt{VDISP\_NOMINAL},
+which corresponds to $\vdisp^\mathrm{kern}_\mathrm{nom}$. In all
+fallback cases we set \texttt{VDISP\_IVAR}~$= 0$ to flag that $\vdisp$
+was not independently fitted. In \fastphot\ mode no velocity dispersion
+is fitted: we convolve all templates with
+$\vdisp^\mathrm{kern}_\mathrm{nom}$ and report $\vdisp = 150$~\kms\
+with \texttt{VDISP\_IVAR}~$= 0$.
 
 \subsubsection{Aperture Correction}
 \label{sssec:apercorr}
