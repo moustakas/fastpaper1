@@ -477,6 +477,68 @@ def nmad(x):
     return 1.4826 * np.median(np.abs(x - np.median(x)))
 
 
+def halpha_sfr(cat, snr_cut=3.0):
+    """Dust-corrected Hα SFR for objects with significant Hα and Hβ detections.
+
+    Applies an aperture correction (APERCORR), derives E(B-V) from the Balmer
+    decrement using a Cardelli+O'Donnell (R_V=3.1) extinction curve, and converts
+    to SFR via Hao et al. (2011) for a Chabrier IMF.
+
+    Parameters
+    ----------
+    cat : astropy.table.Table
+        Must include HALPHA_FLUX, HALPHA_FLUX_IVAR, HBETA_FLUX, HBETA_FLUX_IVAR,
+        APERCORR, Z.  Fluxes must be in units of 1e-17 erg/s/cm².
+    snr_cut : float
+        Minimum S/N required on both Hα and Hβ.
+
+    Returns
+    -------
+    log_sfr : numpy.ndarray
+        log10 SFR [M_sun/yr], NaN for objects that do not pass the S/N cut.
+    good : numpy.ndarray of bool
+        True where both lines exceed snr_cut.
+    """
+    from fastspecfit.cosmo import TabulatedDESI
+
+    ha_flux  = np.array(cat['HALPHA_FLUX'],      dtype=float)
+    hb_flux  = np.array(cat['HBETA_FLUX'],       dtype=float)
+    ha_ivar  = np.array(cat['HALPHA_FLUX_IVAR'], dtype=float)
+    hb_ivar  = np.array(cat['HBETA_FLUX_IVAR'], dtype=float)
+    apercorr = np.array(cat['APERCORR'],         dtype=float)
+    z        = np.array(cat['Z'],                dtype=float)
+
+    with np.errstate(invalid='ignore'):
+        good = (
+            (ha_flux * np.sqrt(ha_ivar) > snr_cut) &
+            (hb_flux * np.sqrt(hb_ivar) > snr_cut) &
+            (ha_flux > 0) & (hb_flux > 0) & (apercorr > 0)
+        )
+
+    # Cardelli+O'Donnell R_V=3.1: k(Hα)=2.53 at 6563 Å, k(Hβ)=3.61 at 4861 Å
+    k_ha, k_hb = 2.53, 3.61
+    with np.errstate(divide='ignore', invalid='ignore'):
+        ebv = np.where(
+            good,
+            np.maximum(2.5 / (k_hb - k_ha) * np.log10(ha_flux / hb_flux / 2.86), 0.0),
+            0.0,
+        )
+
+    # Aperture-corrected, dust-corrected Hα flux [erg/s/cm²]
+    f_ha_corr = ha_flux * apercorr * 10.0 ** (0.4 * k_ha * ebv) * 1e-17
+
+    # Luminosity distance [Mpc/h] → cm; h=1 convention matches LOGMSTAR in VAC
+    MPC_TO_CM = 3.0857e24
+    dlum_cm = TabulatedDESI().luminosity_distance(z) * MPC_TO_CM
+
+    l_ha = 4.0 * np.pi * dlum_cm ** 2 * f_ha_corr  # [erg/s]
+
+    with np.errstate(divide='ignore', invalid='ignore'):
+        log_sfr = np.where(good, np.log10(l_ha) - 41.27, np.nan)
+
+    return log_sfr, good
+
+
 def jiyan_p1p3(log_nii_ha, log_sii_ha, log_oiii_hb):
     """Ji & Yan (2020) P1 and P3 line-ratio projections for AGN/SF separation.
 

@@ -16,7 +16,8 @@ from astropy.table import Table, vstack, join
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util import (read_fastspec, read_fastphot, plot_style,
                   corner_plot, hess_contours, DEFAULT_SPECPROD,
-                  nmad, good_galaxies, good_redshift, jiyan_p1p3, make_class_cmap)
+                  nmad, good_galaxies, good_redshift, jiyan_p1p3, make_class_cmap,
+                  halpha_sfr)
 
 REPODIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIGDIR  = os.path.join(REPODIR, 'tex', 'figures')
@@ -835,6 +836,79 @@ def compare_vdisp(verbose=False):
 
 
 # ---------------------------------------------------------------------------
+# sfr-mstar-bgs
+# ---------------------------------------------------------------------------
+
+def sfr_mstar_bgs(survey='main', specprod=DEFAULT_SPECPROD, verbose=False):
+    """SFR(Hα) vs. stellar mass for BGS targets.
+
+    Requires S/N > 3 on both Hα and Hβ; applies APERCORR and a Balmer-decrement
+    dust correction (Cardelli+O'Donnell, R_V=3.1); SFR from Hao et al. (2011)
+    calibration (Chabrier IMF).  Overplots the Speagle et al. (2014) star-forming
+    main sequence at z=0.2 as a reference.
+    Output: tex/figures/sfr-mstar-bgs.pdf
+    """
+    mstarlim = [7, 12]
+    sfrlim   = [-3, 2]
+
+    cols = ['HALPHA_FLUX', 'HALPHA_FLUX_IVAR',
+            'HBETA_FLUX',  'HBETA_FLUX_IVAR',
+            'APERCORR', 'LOGMSTAR']
+
+    cat = read_fastspec(survey, 'bright', specprod=specprod,
+                        columns=cols, verbose=verbose)
+    cat = cat[good_galaxies(cat, survey=survey)]
+
+    groups   = target_class_groups(cat, survey)
+    bgs_mask = next(g['mask'] for g in groups if g['label'] == 'BGS')
+    cat      = cat[bgs_mask]
+    if verbose:
+        print(f'BGS after good_galaxies: {len(cat):,}')
+
+    log_sfr, good = halpha_sfr(cat, snr_cut=3.0)
+    cat     = cat[good]
+    log_sfr = log_sfr[good]
+    if verbose:
+        print(f'  After Hα/Hβ S/N>3 cut: {len(cat):,}')
+
+    color = TARGET_CLASS_COLORS['BGS']
+    cmap  = make_class_cmap(color)
+
+    plot_style(talk=True, font_scale=0.85, palette='colorblind')
+    fig, ax = plt.subplots(figsize=(7, 6))
+
+    hess_contours(ax, np.array(cat['LOGMSTAR'], dtype=float), log_sfr,
+                  mstarlim, sfrlim, bins=60, smooth=1.0,
+                  cmap=cmap, contour_color=color, contour_lw=2.0,
+                  outlier_ms=2, background=True)
+
+    # Speagle+2014 SFMS at z=0.2; cosmic age t≈10.7 Gyr (Planck 2018)
+    _t = 10.7
+    logm = np.linspace(mstarlim[0], mstarlim[1], 200)
+    log_sfr_ms = (0.84 - 0.026 * _t) * logm - (6.51 - 0.11 * _t)
+    ax.plot(logm, log_sfr_ms, 'k--', lw=1.5, zorder=5,
+            label=r'Speagle et al.\ (2014), $z=0.2$')
+
+    ax.set_xlim(mstarlim)
+    ax.set_ylim(sfrlim)
+    ax.set_xlabel(MSTAR_LABEL)
+    ax.set_ylabel(r'$\log_{10}\,\mathrm{SFR}(H\alpha)\,(M_\odot\,\mathrm{yr}^{-1})$')
+    ax.legend(loc='upper left', fontsize='small', framealpha=0.75)
+    ax.text(0.96, 0.06,
+            f'$N={len(cat):,}$\n'
+            f'$\\langle z\\rangle={np.median(cat["Z"]):.2f}$',
+            transform=ax.transAxes, fontsize='small', va='bottom', ha='right',
+            bbox=dict(facecolor='white', edgecolor='none', alpha=0.75, pad=2))
+
+    fig.tight_layout()
+
+    outfile = os.path.join(FIGDIR, 'sfr-mstar-bgs.pdf')
+    fig.savefig(outfile, dpi=150, bbox_inches='tight')
+    print(f'Wrote {outfile}')
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -857,6 +931,8 @@ def main():
                         help='BPT and Ji & Yan (2020) P1-P3 diagram for BGS (sv3/bright).')
     parser.add_argument('--compare-vdisp', action='store_true',
                         help='Velocity dispersion comparison: FastSpecFit vs pPXF.')
+    parser.add_argument('--sfr-mstar-bgs', action='store_true',
+                        help='SFR(Hα) vs. stellar mass for BGS targets.')
     parser.add_argument('--specprod', default=DEFAULT_SPECPROD,
                         help='Spectroscopic production name.')
     parser.add_argument('--main', action='store_true',
@@ -891,6 +967,9 @@ def main():
 
     if args.compare_vdisp:
         compare_vdisp(verbose=args.verbose)
+
+    if args.sfr_mstar_bgs:
+        sfr_mstar_bgs(survey=survey, specprod=args.specprod, verbose=args.verbose)
 
 
 if __name__ == '__main__':
