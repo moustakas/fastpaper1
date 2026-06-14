@@ -1028,7 +1028,7 @@ whether the stellar velocity dispersion is a free parameter.
 
 \todo{Mention \texttt{stackfit}}.
 
-\todo{Mention the \texttt{nophoto} option}.
+\todo{Mention the \texttt{ignore-photometry} option}.
 
 %% ============================================================
 \section{Illustrative Examples}
@@ -1071,7 +1071,7 @@ strong WISE detections anchor the infrared SED.
   \item Walk through each stage in sequence: line masker, velocity-dispersion
     fit, aperture correction, joint spectrophotometric continuum fit, smooth
     continuum correction, narrow+broad emission-line fit and model selection
-  \item Highlight the broad H$\alpha$ and H$\beta$ components and the
+  \item Highlight the broad \ha{} and \hb{} components and the
     $\Delta\chi^2$ criterion that selects the broad model
     (\S\ref{sssec:broadlines})
   \item Note how the aperture correction places the fiber spectrum on the
@@ -1088,7 +1088,7 @@ strong WISE detections anchor the infrared SED.
 
 Figure~\ref{fig:example_elg} shows an ELG at $z \approx 0.8$, where the DESI
 spectral window covers rest-frame $\sim$2000--5500~\AA\ and brings into view
-several emission lines beyond the \oii\ doublet: [\ion{Ne}{3}]~$\lambda3869$,
+several emission lines beyond the \oii{} doublet: [\ion{Ne}{3}]~$\lambda3869$,
 \hb, and \oiii. The faint, blue star-forming continuum tests the code's ability
 to recover accurate line fluxes and a physically meaningful stellar mass in the
 low-continuum regime typical of ELGs.
@@ -1246,25 +1246,19 @@ and we make all catalogs publicly accessible via
 \caption{Write me.\label{fig:compare_mstar}}
 \end{figure*}
 
-Figure~\ref{fig:compare_mstar} compares the stellar masses we derive using
-\fastspec{} and \fastphot{} for targets in common, illustrating the consistency
-between the spectrophotometric and photometry-only fitting modes.
+Figure~\ref{fig:compare_mstar} compares the stellar masses we derive
+using \fastspec{} and \fastphot{} for targets in common, illustrating
+the consistency between the spectrophotometric and photometry-only
+fitting modes.
 
-Two known issues affect the DR2 catalog. First, the inverse-variance estimates
-for emission-line fluxes and equivalent widths carry significant errors; users
-requiring precise flux uncertainties should apply appropriate caution and consult
-the online documentation for the latest status of corrections. Second, a small
-fraction of spectra with strong emission lines suffer poor line fits due to a
-clipping error in the internal flux uncertainty routine. We fix both issues in
-\fastspecfit{}~v3.2.0, and we will release updated catalogs in due course.
-
+Figure~\ref{fig:compare-mstar-external} does stuff.
 
 \begin{figure*}
 \includegraphics[width=6.5in]{compare-mstar-external.pdf}
-\caption{ Comparison of \fastspecfit{} stellar masses with three
+\caption{Comparison of \fastspecfit{} stellar masses with three
   independent catalogs, organized by target class. Each row compares
   \fastspecfit{} $\logmstar$ (x-axis; $h=1$, Chabrier IMF) against
-  masses from (top) \citet{zou24a} using CIGALE SED fitting of DR2
+  masses from (top) \citet{zou24b} using CIGALE SED fitting of DR2
   photometry, (middle) \citet{siudek25a} using CIGALE SED fitting with
   AGN contributions fit to DR1 spectra and photometry, and (bottom)
   \citet{salim16a,salim18a} using CIGALE SED fitting of
@@ -1277,8 +1271,15 @@ clipping error in the internal flux uncertainty routine. We fix both issues in
   the outermost contour are shown as markers. Each panel lists the
   matched sample size $N$, the median mass offset $\Delta_{\rm med}$
   (external minus \fastspecfit{}) in dex, and the NMAD scatter. The
-  dashed line is the 1:1
-  relation.\label{fig:compare-mstar-external} \label{fig:mstar-external}}
+  dashed line is the 1:1 relation.\label{fig:compare-mstar-external}}
+\end{figure*}
+
+
+Figure~\ref{fig:compare-sfr-external} does stuff.
+
+\begin{figure*}
+\includegraphics[width=6.5in]{compare-sfr-external.pdf}
+\caption{Write me\label{fig:compare-sfr-external}}
 \end{figure*}
 
 %\texttt{kcorrect} \citep{blanton07a}
@@ -1387,14 +1388,22 @@ studies of galaxy evolution over the past $\sim$10~Gyr.
 
 \begin{figure*}
 \includegraphics[width=6.5in]{figures/sfr-mstar-bgs.pdf}
-\caption{Write me.\label{fig:sfr_mstar}}
+\caption{Dust-corrected \ha{} star-formation rate versus stellar mass
+  for SV3 BGS galaxies at $0.05 < z < 0.4$ with $S/N > 3$ on both
+  \ha{} and \hb. The SFR is derived from the aperture-corrected,
+  Balmer-decrement-corrected \ha{} luminosity following
+  \citet{hao11a}, assuming a Chabrier IMF and the \citet{cardelli89a}
+  extinction law ($R_V = 3.1$). The sample includes star-forming
+  galaxies and AGN host galaxies. The dashed line shows the
+  star-forming main sequence from \citet{renzini15a}, converted to $h
+  = 1$. \label{fig:sfr_mstar}}
 \end{figure*}
 
-Figure~\ref{fig:sfr_mstar} shows the H$\alpha$-based star-formation rate as a
-function of stellar mass for BGS targets at $z \lesssim 0.4$, where H$\alpha$
-falls within the DESI spectral window. We convert H$\alpha$ luminosities to
+Figure~\ref{fig:sfr_mstar} shows the \ha{}-based star-formation rate as a
+function of stellar mass for BGS targets at $z \lesssim 0.4$, where \ha{}
+falls within the DESI spectral window. We convert \ha{} luminosities to
 SFRs following \citet{kennicutt98a}, correcting for dust attenuation using the
-Balmer decrement (H$\alpha$/H$\beta$) and adopting a Chabrier IMF. The
+Balmer decrement (\ha/\hb) and adopting a Chabrier IMF. The
 star-forming main sequence emerges clearly as a tight ridge, with a scatter of
 \todo{X}~dex and a normalization consistent with published measurements at
 comparable redshifts \todo{(cite)}. The population of passive galaxies below
@@ -1429,14 +1438,14 @@ between classes; note any redshift evolution within each class.}
 \caption{AGN diagnostics for BGS galaxies in the DESI SV3 bright
   program. Both panels show the same sample of $N = {N}$ galaxies with
   signal-to-noise ratio $>3$ detected in all six diagnostic emission
-  lines ([\ion{N}{2}] $\lambda6584$, H$\alpha$, [\ion{S}{2}]
+  lines ([\ion{N}{2}] $\lambda6584$, \ha{}, [\ion{S}{2}]
   $\lambda\lambda6716,6731$, [\ion{O}{3}] $\lambda5007$, and
-  H$\beta$). The background color map and contours show the number
+  \hb). The background color map and contours show the number
   density of objects. (Left) Classical BPT diagram
   \citep{baldwin81a}. The dashed curve shows the empirical
   star-forming/AGN demarcation of \citet{kauffmann03b}; galaxies above
   this line are AGN candidates. (Right) The $P_1$--$P_3$ projection of
-  \citet{jiyan20a}, which separates star-forming galaxies (low $P_1$)
+  \citet{ji20a}, which separates star-forming galaxies (low $P_1$)
   from AGN (high $P_1$). The top axis shows the AGN fraction
   $f_\mathrm{AGN}$ mapped from $P_1$ following
   \citet{jin21a}. \label{fig:bpt}}
@@ -1458,15 +1467,20 @@ star-forming fractions; note redshift or mass dependence.}
 and
 %$P_3 = -0.46,\log[\ion{N}{2}]/\ha - 0.37,\log[\ion{S}{2}]/\ha + 0.81,\log[\ion{O}{3}]/\hb$
 
-Be sure to cite \citet{ji201} and \citet{jin21a}.
+Be sure to cite \citet{ji20a} and \citet{jin21a}.
 
 \begin{figure*}
-%\includegraphics[width=6.5in]{figures/broad-line-fraction.png}
-\caption{Write me.\label{fig:broad_fraction}}
+\includegraphics[width=6.5in]{figures/broadhalpha-fraction-bgs.pdf}
+\caption{Fraction of SV3 BGS targets in $0.05 < z < 0.4$ with a broad
+  \ha{} component detected at $S/N > 3$ as a function of stellar
+  mass. Error bars indicate Wilson 68\% binomial confidence
+  intervals. The rising fraction toward higher stellar mass reflects
+  the increasing prevalence of broad-line (Type~1) AGN activity in
+  more massive galaxies. \label{fig:broad_fraction}}
 \end{figure*}
 
 Figure~\ref{fig:broad_fraction} shows the fraction of BGS galaxies whose
-H$\alpha$ profile requires a significant broad component, as determined by the
+\ha{} profile requires a significant broad component, as determined by the
 selection criterion described in \S\ref{sssec:broadlines}, as a function of
 stellar mass. The broad-line fraction rises steeply toward high stellar mass,
 reaching \todo{X}\% at $\logmstar \gtrsim 11$, consistent with the well-known
@@ -1658,6 +1672,16 @@ or color dependence? Variation across target classes?}
 %% ============================================================
 \section{EDR and DR1 Value-Added Catalogs}
 \label{sec:appendix_vacs}
+
+Two known issues affect the v1.0 DR2 catalog. First, the
+inverse-variance estimates for emission-line fluxes and equivalent
+widths carry significant errors; users requiring precise flux
+uncertainties should apply appropriate caution and consult the online
+documentation for the latest status of corrections. Second, a small
+fraction of spectra with strong emission lines suffer poor line fits
+due to a clipping error in the internal flux uncertainty routine. We
+fix both issues in \fastspecfit{}~v3.2.0, and we will release updated
+catalogs in due course.
 
 \begin{itemize}
   \item Fuji (EDR): $\sim$1.4M targets, \fastspecfit{} v2.5.0, released
