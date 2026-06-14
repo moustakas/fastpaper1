@@ -16,14 +16,17 @@ from glob import glob
 from astropy.table import Table, hstack, vstack
 import fitsio
 
-_DESI_VAC = '/dvs_ro/cfs/cdirs/desi/vac'
+#_DESI_VAC = '/dvs_ro/cfs/cdirs/desi/vac'
+_DESI_VAC = '/pscratch/sd/i/ioannis/fastspecfit'
 
 # Per-specprod catalog directory paths.  Add entries here as new specprods
 # are released; set a value to None when the path is not yet known.
 _SPECPROD_CONFIG = {
     'loa': {
-        'fastspec': f'{_DESI_VAC}/dr2/fastspecfit/loa/v1.0/catalogs',
-        'fastphot': f'{_DESI_VAC}/dr2/fastphot/loa/v1.0/catalogs',
+        'fastspec': f'{_DESI_VAC}/fastspec-3.5.0/loa/catalogs',
+        'fastphot': f'{_DESI_VAC}/fastphot-3.5.0/loa/catalogs',
+        #'fastspec': f'{_DESI_VAC}/dr2/fastspecfit/loa/v1.0/catalogs',
+        #'fastphot': f'{_DESI_VAC}/dr2/fastphot/loa/v1.0/catalogs',
     },
     'iron': {
         'fastspec': f'{_DESI_VAC}/dr1/fastspecfit/iron/v3.0/catalogs',
