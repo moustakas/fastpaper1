@@ -971,7 +971,7 @@ def sfr_mstar_bgs(survey='sv3', specprod=DEFAULT_SPECPROD,
         ax.legend(loc='lower right', fontsize='small', framealpha=0.75)
 
     ax.text(0.06, 0.96,
-            f'$N={len(cat_sf):,}$,#\n'
+            f'$N={len(cat_sf):,}$',
             #f'$\\langle z\\rangle={np.median(cat_sf["Z"]):.2f}$',
             transform=ax.transAxes, fontsize='small', va='top', ha='left',
             bbox=dict(facecolor='white', edgecolor='none', alpha=0.75, pad=2))
