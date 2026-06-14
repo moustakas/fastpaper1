@@ -477,6 +477,36 @@ def nmad(x):
     return 1.4826 * np.median(np.abs(x - np.median(x)))
 
 
+def wilson_binomial_ci(k, n, z=1.0):
+    """Wilson binomial confidence interval (asymmetric, suitable for plt.errorbar).
+
+    Parameters
+    ----------
+    k : array_like
+        Number of successes in each bin.
+    n : array_like
+        Total number of trials in each bin.
+    z : float
+        Number of standard deviations (default 1.0 → 68% CI).
+
+    Returns
+    -------
+    lo_err, hi_err : ndarray
+        Distances below and above the fraction p = k/n to the CI bounds.
+        Pass as ``yerr=[lo_err, hi_err]`` to ``plt.errorbar``.
+    """
+    k = np.asarray(k, dtype=float)
+    n = np.asarray(n, dtype=float)
+    p = k / n
+    z2 = z * z
+    n_plus = n + z2
+    center = (k + z2 / 2.0) / n_plus
+    margin = (z / n_plus) * np.sqrt(k * (n - k) / n + z2 / 4.0)
+    lo = np.clip(center - margin, 0.0, 1.0)
+    hi = np.clip(center + margin, 0.0, 1.0)
+    return p - lo, hi - p
+
+
 def halpha_sfr(cat, snr_cut=3.0):
     """Dust-corrected Hα SFR for objects with significant Hα and Hβ detections.
 

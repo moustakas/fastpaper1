@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util import (read_fastspec, read_fastphot, plot_style,
                   corner_plot, hess_contours, DEFAULT_SPECPROD,
                   nmad, good_galaxies, good_redshift, jiyan_p1p3, make_class_cmap,
-                  halpha_sfr)
+                  halpha_sfr, wilson_binomial_ci)
 
 REPODIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIGDIR  = os.path.join(REPODIR, 'tex', 'figures')
@@ -1126,6 +1126,86 @@ def sfr_mstar_bgs(survey='sv3', specprod=DEFAULT_SPECPROD,
 
 
 # ---------------------------------------------------------------------------
+# broadhalpha-fraction-bgs
+# ---------------------------------------------------------------------------
+
+def broadhalpha_fraction_bgs(survey='sv3', specprod=DEFAULT_SPECPROD,
+                              binwidth=0.1, verbose=False):
+    """Fraction of BGS targets with a well-detected broad Hα component vs. stellar mass.
+
+    Selection: sv3/bright, z=[0.05, 0.4], good_galaxies, BGS targets only.
+    Detection criterion: HALPHA_BROAD_FLUX * sqrt(HALPHA_BROAD_FLUX_IVAR) > 3.
+    Error bars: Wilson 68% (1σ) binomial confidence intervals.
+    Output: tex/figures/broadhalpha-fraction-bgs.pdf
+    """
+    mstarlim = [8, 12]
+    zlim     = [0.05, 0.4]
+
+    cols = ['LOGMSTAR', 'HALPHA_BROAD_FLUX', 'HALPHA_BROAD_FLUX_IVAR']
+    cat = read_fastspec(survey, 'bright', specprod=specprod,
+                        columns=cols, verbose=verbose)
+    cat = cat[good_galaxies(cat, survey=survey)]
+
+    groups   = target_class_groups(cat, survey)
+    bgs_mask = next(g['mask'] for g in groups if g['label'] == 'BGS')
+    zcut     = (cat['Z'] >= zlim[0]) & (cat['Z'] <= zlim[1])
+    cat      = cat[bgs_mask & zcut]
+    if verbose:
+        print(f'BGS after good_galaxies + z=[{zlim[0]},{zlim[1]}]: {len(cat):,}')
+
+    logmstar   = np.array(cat['LOGMSTAR'],             dtype=float)
+    broad_flux = np.array(cat['HALPHA_BROAD_FLUX'],     dtype=float)
+    broad_ivar = np.array(cat['HALPHA_BROAD_FLUX_IVAR'], dtype=float)
+
+    with np.errstate(invalid='ignore'):
+        detected = (broad_flux * np.sqrt(broad_ivar)) > 3.0
+
+    edges   = np.arange(mstarlim[0], mstarlim[1] + binwidth, binwidth)
+    centers = 0.5 * (edges[:-1] + edges[1:])
+    nbins   = len(centers)
+
+    frac   = np.full(nbins, np.nan)
+    lo_err = np.zeros(nbins)
+    hi_err = np.zeros(nbins)
+    ntot   = np.zeros(nbins, dtype=int)
+
+    for i, (lo, hi) in enumerate(zip(edges[:-1], edges[1:])):
+        in_bin = (logmstar >= lo) & (logmstar < hi) & np.isfinite(logmstar)
+        k = int(detected[in_bin].sum())
+        n = int(in_bin.sum())
+        ntot[i] = n
+        if n == 0:
+            continue
+        frac[i] = k / n
+        lo_err[i], hi_err[i] = wilson_binomial_ci(k, n)
+
+    good_bins = np.isfinite(frac) & (ntot > 0)
+
+    color = TARGET_CLASS_COLORS['BGS']
+    plot_style(talk=True, font_scale=0.85, palette='colorblind')
+    fig, ax = plt.subplots(figsize=(7, 5))
+
+    ax.errorbar(centers[good_bins], frac[good_bins],
+                yerr=[lo_err[good_bins], hi_err[good_bins]],
+                fmt='o', color=color, ms=5, lw=1.5, capsize=3)
+
+    ax.set_xlim(mstarlim)
+    ax.set_ylim(bottom=0)
+    ax.set_xlabel(MSTAR_LABEL)
+    ax.set_ylabel(r'Fraction with broad H$\alpha$ ($S/N>3$)')
+    ax.text(0.96, 0.96, f'$N_{{\\rm tot}}={len(cat):,}$',
+            transform=ax.transAxes, fontsize='small', va='top', ha='right',
+            bbox=dict(facecolor='white', edgecolor='none', alpha=0.75, pad=2))
+
+    fig.tight_layout()
+
+    outfile = os.path.join(FIGDIR, 'broadhalpha-fraction-bgs.pdf')
+    fig.savefig(outfile, dpi=150, bbox_inches='tight')
+    print(f'Wrote {outfile}')
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -1154,6 +1234,10 @@ def main():
                         help='SFR(Hα) vs. stellar mass for BGS targets.')
     parser.add_argument('--flag-agn', action='store_true',
                         help='Flag AGN in the sfr-mstar-bgs figure.')
+    parser.add_argument('--broadhalpha-fraction-bgs', action='store_true',
+                        help='Broad Hα detection fraction vs. stellar mass for BGS targets.')
+    parser.add_argument('--binwidth', type=float, default=0.1,
+                        help='Stellar mass bin width for broadhalpha-fraction-bgs [dex].')
     #parser.add_argument('--no-flag-agn', dest='flag_agn', action='store_false',
     #                    help='Skip AGN flagging in sfr-mstar-bgs (include all objects).')
     parser.add_argument('--specprod', default=DEFAULT_SPECPROD,
@@ -1197,6 +1281,10 @@ def main():
     if args.sfr_mstar_bgs:
         sfr_mstar_bgs(survey=survey, specprod=args.specprod,
                       flag_agn=args.flag_agn, verbose=args.verbose)
+
+    if args.broadhalpha_fraction_bgs:
+        broadhalpha_fraction_bgs(survey=survey, specprod=args.specprod,
+                                 binwidth=args.binwidth, verbose=args.verbose)
 
 
 if __name__ == '__main__':
