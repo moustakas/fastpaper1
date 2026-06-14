@@ -958,8 +958,7 @@ def sfr_mstar_bgs(survey='sv3', specprod=DEFAULT_SPECPROD,
     ax.set_xlim(mstarlim)
     ax.set_ylim(sfrlim)
     ax.set_xlabel(MSTAR_LABEL)
-    ax.set_ylabel(r'$\log_{10}\,\mathrm{SFR}(H\alpha)\,(M_\odot\,\mathrm{yr}^{-1})$')
-    ax.set_ylabel(r'$\log_{10}\bigl(\mathrm{SFR}({\rm H}\alpha),h^{-2},/,M_\odot,\mathrm{yr}^{-1}\bigr)$')
+    ax.set_ylabel(r'$\log_{10}\,(\mathrm{SFR}(\mathrm{H}\alpha)\,h^{-2}\,/\,M_\odot\,\mathrm{yr}^{-1})$')
 
     if flag_agn and agn_mask.any():
         from matplotlib.lines import Line2D
