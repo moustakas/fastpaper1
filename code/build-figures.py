@@ -839,21 +839,35 @@ def compare_vdisp(verbose=False):
 # sfr-mstar-bgs
 # ---------------------------------------------------------------------------
 
-def sfr_mstar_bgs(survey='main', specprod=DEFAULT_SPECPROD, verbose=False):
+def sfr_mstar_bgs(survey='main', specprod=DEFAULT_SPECPROD,
+                  flag_agn=True, verbose=False):
     """SFR(Hα) vs. stellar mass for BGS targets.
 
-    Requires S/N > 3 on both Hα and Hβ; applies APERCORR and a Balmer-decrement
+    Requires S/N > 3 on Hα and Hβ; applies APERCORR and a Balmer-decrement
     dust correction (Cardelli+O'Donnell, R_V=3.1); SFR from Hao et al. (2011)
-    calibration (Chabrier IMF).  Overplots the Speagle et al. (2014) star-forming
-    main sequence at z=0.2 as a reference.
+    (Chabrier IMF).  Redshift restricted to z=[0.05, 0.4].
+
+    When flag_agn=True (default), additionally requires S/N > 3 on [NII] 6584,
+    [OIII] 5007, [SII] 6716, and [SII] 6731 and uses the Ji & Yan (2020) P1
+    projection to exclude AGN (P1 > -0.53) from the plotted SF sample.  Objects
+    lacking sufficient S/N on the AGN diagnostic lines are retained in the SF
+    sample.  The AGN subset is computed but not yet plotted (reserved for future
+    use as a separate set of contours).
     Output: tex/figures/sfr-mstar-bgs.pdf
     """
-    mstarlim = [7, 12]
-    sfrlim   = [-3, 2]
+    mstarlim = [6, 13]
+    sfrlim   = [-5, 3]
+    zlim     = [0.05, 0.4]
 
     cols = ['HALPHA_FLUX', 'HALPHA_FLUX_IVAR',
             'HBETA_FLUX',  'HBETA_FLUX_IVAR',
             'APERCORR', 'LOGMSTAR']
+    agn_cols = ['NII_6584_FLUX',  'NII_6584_FLUX_IVAR',
+                'OIII_5007_FLUX', 'OIII_5007_FLUX_IVAR',
+                'SII_6716_FLUX',  'SII_6716_FLUX_IVAR',
+                'SII_6731_FLUX',  'SII_6731_FLUX_IVAR']
+    if flag_agn:
+        cols = cols + agn_cols
 
     cat = read_fastspec(survey, 'bright', specprod=specprod,
                         columns=cols, verbose=verbose)
@@ -861,15 +875,53 @@ def sfr_mstar_bgs(survey='main', specprod=DEFAULT_SPECPROD, verbose=False):
 
     groups   = target_class_groups(cat, survey)
     bgs_mask = next(g['mask'] for g in groups if g['label'] == 'BGS')
-    cat      = cat[bgs_mask]
+    zcut     = (cat['Z'] >= zlim[0]) & (cat['Z'] <= zlim[1])
+    cat      = cat[bgs_mask & zcut]
     if verbose:
-        print(f'BGS after good_galaxies: {len(cat):,}')
+        print(f'BGS after good_galaxies + z=[{zlim[0]},{zlim[1]}]: {len(cat):,}')
 
     log_sfr, good = halpha_sfr(cat, snr_cut=3.0)
     cat     = cat[good]
     log_sfr = log_sfr[good]
     if verbose:
-        print(f'  After Hα/Hβ S/N>3 cut: {len(cat):,}')
+        print(f'  After Hα/Hβ S/N>3: {len(cat):,}')
+
+    # AGN flagging via Ji & Yan (2020) P1; P1 > -0.53 → AGN
+    agn_mask = np.zeros(len(cat), dtype=bool)
+    if flag_agn:
+        with np.errstate(invalid='ignore'):
+            has_diag = (
+                (cat['NII_6584_FLUX']  * np.sqrt(cat['NII_6584_FLUX_IVAR'])  > 3) &
+                (cat['OIII_5007_FLUX'] * np.sqrt(cat['OIII_5007_FLUX_IVAR']) > 3) &
+                (cat['SII_6716_FLUX']  * np.sqrt(cat['SII_6716_FLUX_IVAR'])  > 3) &
+                (cat['SII_6731_FLUX']  * np.sqrt(cat['SII_6731_FLUX_IVAR'])  > 3) &
+                (cat['NII_6584_FLUX']  > 0) & (cat['OIII_5007_FLUX'] > 0) &
+                (cat['SII_6716_FLUX']  > 0) & (cat['SII_6731_FLUX']  > 0)
+            )
+        ha   = np.array(cat['HALPHA_FLUX'],  dtype=float)
+        hb   = np.array(cat['HBETA_FLUX'],   dtype=float)
+        nii  = np.array(cat['NII_6584_FLUX'],  dtype=float)
+        oiii = np.array(cat['OIII_5007_FLUX'], dtype=float)
+        sii  = (np.array(cat['SII_6716_FLUX'], dtype=float) +
+                np.array(cat['SII_6731_FLUX'], dtype=float))
+        with np.errstate(divide='ignore', invalid='ignore'):
+            log_nii_ha  = np.where(has_diag, np.log10(nii  / ha),  np.nan)
+            log_sii_ha  = np.where(has_diag, np.log10(sii  / ha),  np.nan)
+            log_oiii_hb = np.where(has_diag, np.log10(oiii / hb),  np.nan)
+        p1, _ = jiyan_p1p3(log_nii_ha, log_sii_ha, log_oiii_hb)
+        agn_mask = has_diag & (p1 > -0.53)
+        if verbose:
+            print(f'  Objects with AGN diagnostics: {has_diag.sum():,}')
+            print(f'  AGN excluded (P1>-0.53): {agn_mask.sum():,}')
+            print(f'  SF retained: {(~agn_mask).sum():,}')
+
+    sf_mask = ~agn_mask
+
+    # AGN subset reserved for future contour overlay
+    cat_sf      = cat[sf_mask]
+    log_sfr_sf  = log_sfr[sf_mask]
+    # cat_agn   = cat[agn_mask]        # (not yet plotted)
+    # log_sfr_agn = log_sfr[agn_mask]  # (not yet plotted)
 
     color = TARGET_CLASS_COLORS['BGS']
     cmap  = make_class_cmap(color)
@@ -877,7 +929,7 @@ def sfr_mstar_bgs(survey='main', specprod=DEFAULT_SPECPROD, verbose=False):
     plot_style(talk=True, font_scale=0.85, palette='colorblind')
     fig, ax = plt.subplots(figsize=(7, 6))
 
-    hess_contours(ax, np.array(cat['LOGMSTAR'], dtype=float), log_sfr,
+    hess_contours(ax, np.array(cat_sf['LOGMSTAR'], dtype=float), log_sfr_sf,
                   mstarlim, sfrlim, bins=60, smooth=1.0,
                   cmap=cmap, contour_color=color, contour_lw=2.0,
                   outlier_ms=2, background=True)
@@ -895,8 +947,8 @@ def sfr_mstar_bgs(survey='main', specprod=DEFAULT_SPECPROD, verbose=False):
     ax.set_ylabel(r'$\log_{10}\,\mathrm{SFR}(H\alpha)\,(M_\odot\,\mathrm{yr}^{-1})$')
     ax.legend(loc='upper left', fontsize='small', framealpha=0.75)
     ax.text(0.96, 0.06,
-            f'$N={len(cat):,}$\n'
-            f'$\\langle z\\rangle={np.median(cat["Z"]):.2f}$',
+            f'$N={len(cat_sf):,}$\n'
+            f'$\\langle z\\rangle={np.median(cat_sf["Z"]):.2f}$',
             transform=ax.transAxes, fontsize='small', va='bottom', ha='right',
             bbox=dict(facecolor='white', edgecolor='none', alpha=0.75, pad=2))
 
@@ -933,6 +985,8 @@ def main():
                         help='Velocity dispersion comparison: FastSpecFit vs pPXF.')
     parser.add_argument('--sfr-mstar-bgs', action='store_true',
                         help='SFR(Hα) vs. stellar mass for BGS targets.')
+    parser.add_argument('--no-flag-agn', dest='flag_agn', action='store_false',
+                        help='Skip AGN flagging in sfr-mstar-bgs (include all objects).')
     parser.add_argument('--specprod', default=DEFAULT_SPECPROD,
                         help='Spectroscopic production name.')
     parser.add_argument('--main', action='store_true',
@@ -969,7 +1023,8 @@ def main():
         compare_vdisp(verbose=args.verbose)
 
     if args.sfr_mstar_bgs:
-        sfr_mstar_bgs(survey=survey, specprod=args.specprod, verbose=args.verbose)
+        sfr_mstar_bgs(survey=survey, specprod=args.specprod,
+                      flag_agn=args.flag_agn, verbose=args.verbose)
 
 
 if __name__ == '__main__':
