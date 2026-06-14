@@ -839,7 +839,7 @@ def compare_vdisp(verbose=False):
 # sfr-mstar-bgs
 # ---------------------------------------------------------------------------
 
-def sfr_mstar_bgs(survey='main', specprod=DEFAULT_SPECPROD,
+def sfr_mstar_bgs(survey='sv3', specprod=DEFAULT_SPECPROD,
                   flag_agn=True, verbose=False):
     """SFR(Hα) vs. stellar mass for BGS targets.
 
@@ -917,11 +917,10 @@ def sfr_mstar_bgs(survey='main', specprod=DEFAULT_SPECPROD,
 
     sf_mask = ~agn_mask
 
-    # AGN subset reserved for future contour overlay
     cat_sf      = cat[sf_mask]
     log_sfr_sf  = log_sfr[sf_mask]
-    # cat_agn   = cat[agn_mask]        # (not yet plotted)
-    # log_sfr_agn = log_sfr[agn_mask]  # (not yet plotted)
+    cat_agn     = cat[agn_mask]
+    log_sfr_agn = log_sfr[agn_mask]
 
     color = TARGET_CLASS_COLORS['BGS']
     cmap  = make_class_cmap(color)
@@ -929,25 +928,48 @@ def sfr_mstar_bgs(survey='main', specprod=DEFAULT_SPECPROD,
     plot_style(talk=True, font_scale=0.85, palette='colorblind')
     fig, ax = plt.subplots(figsize=(7, 6))
 
+    # SF galaxies: Hess background + colored contours
     hess_contours(ax, np.array(cat_sf['LOGMSTAR'], dtype=float), log_sfr_sf,
                   mstarlim, sfrlim, bins=60, smooth=1.0,
                   cmap=cmap, contour_color=color, contour_lw=2.0,
                   outlier_ms=2, background=True)
 
-    # Speagle+2014 SFMS at z=0.2; cosmic age t≈10.7 Gyr (Planck 2018)
-    _t = 10.7
+    # AGN: black contours only, no Hess background
+    if flag_agn and agn_mask.any():
+        hess_contours(ax, np.array(cat_agn['LOGMSTAR'], dtype=float), log_sfr_agn,
+                      mstarlim, sfrlim, bins=60, smooth=1.0,
+                      contour_color='k', contour_lw=1.5,
+                      outlier_ms=1, background=False)
+
+    # Reference SFMS lines
     logm = np.linspace(mstarlim[0], mstarlim[1], 200)
-    log_sfr_ms = (0.84 - 0.026 * _t) * logm - (6.51 - 0.11 * _t)
-    ax.plot(logm, log_sfr_ms, 'k--', lw=1.5, zorder=5,
-            label=r'Speagle et al.\ (2014), $z=0.2$')
+
+    # Speagle+2014: t=10.7 Gyr at z=0.2 (Planck 2018); Chabrier IMF; h-independent
+    _t = 10.7
+    ax.plot(logm, (0.84 - 0.026*_t)*logm - (6.51 - 0.11*_t),
+            'k--', lw=1.5, zorder=5, label=r'Speagle et al. (2014), $z=0.2$')
+
+    # Renzini & Peng (2015): log SFR = 0.76*logM* - 7.64 (Kroupa, h=0.7)
+    # h=0.7→h=1 intercept shift: 0.310*(0.76-1) = -0.074  →  -7.71  (Kroupa ≈ Chabrier)
+    ax.plot(logm, 0.76*logm - 7.71,
+            'k:', lw=1.5, zorder=5, label=r'Renzini & Peng (2015)')
 
     ax.set_xlim(mstarlim)
     ax.set_ylim(sfrlim)
     ax.set_xlabel(MSTAR_LABEL)
     ax.set_ylabel(r'$\log_{10}\,\mathrm{SFR}(H\alpha)\,(M_\odot\,\mathrm{yr}^{-1})$')
-    ax.legend(loc='upper left', fontsize='small', framealpha=0.75)
+
+    if flag_agn and agn_mask.any():
+        from matplotlib.lines import Line2D
+        handles, labels = ax.get_legend_handles_labels()
+        handles.append(Line2D([0], [0], color='k', lw=1.5))
+        labels.append(f'AGN ($N={agn_mask.sum():,}$)')
+        ax.legend(handles, labels, loc='upper left', fontsize='small', framealpha=0.75)
+    else:
+        ax.legend(loc='upper left', fontsize='small', framealpha=0.75)
+
     ax.text(0.96, 0.06,
-            f'$N={len(cat_sf):,}$\n'
+            f'$N_{{\\rm SF}}={len(cat_sf):,}$\n'
             f'$\\langle z\\rangle={np.median(cat_sf["Z"]):.2f}$',
             transform=ax.transAxes, fontsize='small', va='bottom', ha='right',
             bbox=dict(facecolor='white', edgecolor='none', alpha=0.75, pad=2))
