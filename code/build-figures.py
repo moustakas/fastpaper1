@@ -840,7 +840,7 @@ def compare_vdisp(verbose=False):
 # ---------------------------------------------------------------------------
 
 def sfr_mstar_bgs(survey='sv3', specprod=DEFAULT_SPECPROD,
-                  flag_agn=True, verbose=False):
+                  flag_agn=False, verbose=False):
     """SFR(Hα) vs. stellar mass for BGS targets.
 
     Requires S/N > 3 on Hα and Hβ; applies APERCORR and a Balmer-decrement
@@ -1008,8 +1008,10 @@ def main():
                         help='Velocity dispersion comparison: FastSpecFit vs pPXF.')
     parser.add_argument('--sfr-mstar-bgs', action='store_true',
                         help='SFR(Hα) vs. stellar mass for BGS targets.')
-    parser.add_argument('--no-flag-agn', dest='flag_agn', action='store_false',
-                        help='Skip AGN flagging in sfr-mstar-bgs (include all objects).')
+    parser.add_argument('--flag-agn', action='store_true',
+                        help='Flag AGN in the sfr-mstar-bgs figure.')
+    #parser.add_argument('--no-flag-agn', dest='flag_agn', action='store_false',
+    #                    help='Skip AGN flagging in sfr-mstar-bgs (include all objects).')
     parser.add_argument('--specprod', default=DEFAULT_SPECPROD,
                         help='Spectroscopic production name.')
     parser.add_argument('--main', action='store_true',
