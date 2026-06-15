@@ -480,6 +480,53 @@ def nmad(x):
     return 1.4826 * np.median(np.abs(x - np.median(x)))
 
 
+def running_binstat(x, y, bins=20, xrange=None, q_lo=25, q_hi=75, min_count=5):
+    """Bin y on x; return bin centers, running median, and percentile bounds.
+
+    Parameters
+    ----------
+    x, y : array_like
+        Input arrays (must be 1-D and the same length; should be finite).
+    bins : int
+        Number of equal-width bins.
+    xrange : (float, float) or None
+        Range of x. Passed to binned_statistic; defaults to (x.min(), x.max()).
+    q_lo, q_hi : float
+        Lower and upper percentiles for the shaded band (default: 25, 75 → IQR).
+    min_count : int
+        Bins with fewer than this many points are set to NaN.
+
+    Returns
+    -------
+    centers : ndarray, shape (bins,)
+        Bin midpoints.
+    median : ndarray, shape (bins,)
+        Median of y in each bin.
+    p_lo, p_hi : ndarray, shape (bins,)
+        q_lo-th and q_hi-th percentiles of y in each bin.
+        Bins with count < min_count contain NaN.
+    """
+    from scipy.stats import binned_statistic
+
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    kw = dict(bins=bins, range=xrange)
+
+    cnt, edges, _ = binned_statistic(x, y, statistic='count', **kw)
+    med, _, _     = binned_statistic(x, y, statistic='median', **kw)
+    lo,  _, _     = binned_statistic(x, y,
+                                     statistic=lambda v: np.percentile(v, q_lo), **kw)
+    hi,  _, _     = binned_statistic(x, y,
+                                     statistic=lambda v: np.percentile(v, q_hi), **kw)
+
+    centers = 0.5 * (edges[:-1] + edges[1:])
+    sparse = cnt < min_count
+    for arr in (med, lo, hi):
+        arr[sparse] = np.nan
+
+    return centers, med, lo, hi
+
+
 def wilson_binomial_ci(k, n, z=1.0):
     """Wilson binomial confidence interval (asymmetric, suitable for plt.errorbar).
 

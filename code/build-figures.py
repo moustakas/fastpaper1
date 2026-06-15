@@ -16,8 +16,8 @@ from astropy.table import Table, vstack, join
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util import (read_fastspec, read_fastphot, plot_style,
                   corner_plot, hess_contours, DEFAULT_SPECPROD,
-                  nmad, good_galaxies, good_redshift, jiyan_p1p3, make_class_cmap,
-                  halpha_sfr, wilson_binomial_ci)
+                  nmad, running_binstat, good_galaxies, good_redshift,
+                  jiyan_p1p3, make_class_cmap, halpha_sfr, wilson_binomial_ci)
 
 REPODIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FIGDIR  = os.path.join(REPODIR, 'tex', 'figures')
@@ -278,35 +278,26 @@ def mstar_corner(cat, labels, groups=None, split_contours=False,
     return fig
 
 
-def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD,
-                  split_contours=False, verbose=False):
-    """Corner plot: fastspec vs fastphot stellar masses.
+def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD, verbose=False):
+    """2×3 grid: fastphot vs fastspec stellar masses, split by target class.
 
-    Both VACs store LOGMSTAR with h=1 (Planck 2018 cosmology, Chabrier IMF),
-    so no cosmological correction is needed for this internal comparison.
+    Top row: fastphot vs fastspec (Hess + contours + unity line + stats annotation).
+    Bottom row: Δlog M (fastphot − fastspec) vs redshift with running median + IQR.
+    Columns: BGS | LRG | ELG.
 
-    Diagonal panels always show per-target-class colored histograms.
-    Off-diagonal panels show the all-objects Hess diagram by default; pass
-    ``split_contours=True`` to show per-class colored contours instead.
-
-    Parameters
-    ----------
-    survey : str
-        'sv3' (default, single catalog files) or 'main' (split nside=1 files,
-        much larger).
-    split_contours : bool
-        If False (default), off-diagonal panels show the all-objects Hess
-        diagram.  If True, off-diagonal panels show per-class colored contours.
+    Both VACs store LOGMSTAR with h=1 (Planck 2018 cosmology, Chabrier IMF).
+    Change x_var to 'APERCORR' to explore aperture-correction dependence.
     """
     mstarlim = (6, 13)
+    deltalim = (-1.5, 1.5)
+    x_var = 'Z'
 
-    # --- read bright (BGS) and dark (LRG/ELG/QSO) programs for the survey ---
+    # --- read bright (BGS) and dark (LRG/ELG/QSO) programs ---
     spec_chunks, phot_chunks = [], []
     for program in ('bright', 'dark'):
         s = read_fastspec(survey, program, specprod=specprod,
-                          columns=['LOGMSTAR'], verbose=verbose)
+                          columns=['LOGMSTAR', 'APERCORR'], verbose=verbose)
         spec_chunks.append(s[good_galaxies(s)])
-
         p = read_fastphot(survey, program, specprod=specprod,
                           columns=['LOGMSTAR'], verbose=verbose)
         phot_chunks.append(p[p['LOGMSTAR'] > 0])
@@ -314,7 +305,6 @@ def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD,
     cat_spec = vstack(spec_chunks)
     cat_phot = vstack(phot_chunks)
 
-    # rename before joining so columns are unambiguous
     cat_spec.rename_column('LOGMSTAR', 'LOGMSTAR_FASTSPEC')
     cat_phot = cat_phot['TARGETID', 'LOGMSTAR']
     cat_phot.rename_column('LOGMSTAR', 'LOGMSTAR_FASTPHOT')
@@ -322,23 +312,75 @@ def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD,
     cat = join(cat_spec, cat_phot, keys='TARGETID', join_type='inner')
     print(f'{len(cat):,d} galaxies with good masses in both VACs')
 
-    labels = (
-        MSTAR_LABEL + '\n [fastspec]',
-        MSTAR_LABEL + '\n [fastphot]',
-    )
-    # pass only the mass columns to the corner function
-    mass_cat = cat['LOGMSTAR_FASTSPEC', 'LOGMSTAR_FASTPHOT']
+    mspec = np.array(cat['LOGMSTAR_FASTSPEC'], dtype=float)
+    mphot = np.array(cat['LOGMSTAR_FASTPHOT'], dtype=float)
+    delta = mphot - mspec
+    xdata = np.array(cat[x_var], dtype=float)
 
-    groups = target_class_groups(cat, survey)
-    for g in groups:
-        print(f"  {g['label']}: {g['mask'].sum():,d} galaxies")
-    #suffix = '-split' if split_contours else ''
-    suffix = ''
+    all_groups = target_class_groups(cat, survey)
+    groups = [g for g in all_groups if g['label'] in ('BGS', 'LRG', 'ELG')]
 
-    fig = mstar_corner(mass_cat, labels, groups=groups,
-                       split_contours=split_contours, mstarlim=mstarlim)
+    plot_style(talk=True, font_scale=0.85, palette='colorblind')
+    fig, axes = plt.subplots(2, 3, figsize=(13, 9))
+    fig.subplots_adjust(hspace=0.35, wspace=0.08)
 
-    outfile = os.path.join(FIGDIR, f'compare-mstar-{specprod}-{survey}{suffix}.pdf')
+    for ci, g in enumerate(groups):
+        cls, color, mask = g['label'], g['color'], g['mask']
+        print(f'  {cls}: {mask.sum():,d} galaxies')
+
+        ms = mspec[mask]; mp = mphot[mask]
+        dv = delta[mask]; xv = xdata[mask]
+        ok = np.isfinite(ms) & np.isfinite(mp) & np.isfinite(dv) & np.isfinite(xv)
+        ms, mp, dv, xv = ms[ok], mp[ok], dv[ok], xv[ok]
+
+        xlim = (np.percentile(xv, 1), np.percentile(xv, 99))
+
+        # --- top row: fastphot vs fastspec scatter ---
+        ax = axes[0, ci]
+        hess_contours(ax, ms, mp, mstarlim, mstarlim, bins=60,
+                      cmap=make_class_cmap(color),
+                      contour_color=color, contour_lw=2.0)
+        ax.plot(mstarlim, mstarlim, 'k--', lw=1.5, zorder=5)
+        ax.set_xlim(mstarlim)
+        ax.set_ylim(mstarlim)
+        ax.set_title(cls, color=color, fontweight='bold')
+        ax.tick_params(labelleft=(ci == 0))
+        ax.set_xlabel(MSTAR_LABEL + '\n[fastspec]')
+        ax.text(0.04, 0.96,
+                f'$N={len(ms):,}$\n'
+                f'$\\Delta_{{\\rm med}}={np.median(dv):+.3f}$\n'
+                f'NMAD$={nmad(dv):.3f}$',
+                transform=ax.transAxes, fontsize='small',
+                va='top', ha='left',
+                bbox=dict(facecolor='white', edgecolor='none', alpha=0.75, pad=2))
+
+        # --- bottom row: Δlog M vs x_var ---
+        ax2 = axes[1, ci]
+        in_range = (xv >= xlim[0]) & (xv <= xlim[1])
+        hess_contours(ax2, xv[in_range], dv[in_range], xlim, deltalim, bins=60,
+                      cmap=make_class_cmap(color),
+                      contour_color=color, contour_lw=2.0)
+        ax2.axhline(0, color='k', ls='--', lw=1.5, zorder=5)
+        ax2.set_xlim(xlim)
+        ax2.set_ylim(deltalim)
+        ax2.tick_params(labelleft=(ci == 0))
+
+        centers, med, qlo, qhi = running_binstat(
+            xv[in_range], dv[in_range], bins=20, xrange=xlim)
+        finite = np.isfinite(med)
+        ax2.plot(centers[finite], med[finite], color=color, lw=2.0, zorder=6)
+        ax2.fill_between(centers[finite], qlo[finite], qhi[finite],
+                         color=color, alpha=0.25, zorder=5)
+
+        x_label = r'$z$' if x_var == 'Z' else 'Aperture Correction'
+        ax2.set_xlabel(x_label)
+
+    axes[0, 0].set_ylabel(MSTAR_LABEL + '\n[fastphot]')
+    axes[1, 0].set_ylabel(
+        r'$\Delta\log_{10}\,(\mathcal{M}_*\,h^{-2}/\mathcal{M}_\odot)$'
+        '\n(fastphot $-$ fastspec)')
+
+    outfile = os.path.join(FIGDIR, 'compare-mstar-fastphot.pdf')
     fig.savefig(outfile, bbox_inches='tight', dpi=150)
     print(f'Wrote {outfile}')
     plt.close(fig)
@@ -1244,8 +1286,6 @@ def main():
                         help='Spectroscopic production name.')
     parser.add_argument('--main', action='store_true',
                         help='Use main-survey catalogs instead of sv3 (default).')
-    parser.add_argument('--no-split-contours', dest='split_contours', action='store_false',
-                        help='Do not split off-diagonal contours by target class.')
     parser.add_argument('--verbose', action='store_true',
                         help='Print progress while reading catalogs.')
     args = parser.parse_args()
@@ -1257,8 +1297,7 @@ def main():
         sps_models(verbose=args.verbose)
 
     if args.compare_mstar:
-        compare_mstar(survey=survey, specprod=args.specprod,
-                      split_contours=args.split_contours, verbose=args.verbose)
+        compare_mstar(survey=survey, specprod=args.specprod, verbose=args.verbose)
 
     if args.compare_mstar_external:
         compare_mstar_external(verbose=args.verbose)
