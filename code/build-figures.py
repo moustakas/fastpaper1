@@ -498,7 +498,7 @@ def compare_sfr_external(verbose=False):
     from desitarget.sv3.sv3_targetmask import desi_mask as sv3_mask
 
     extdir = os.path.join(REPODIR, 'external')
-    sfrlim = [-3, 2.5]
+    sfrlim = [-7, 4]
     all_classes = ['BGS', 'LRG', 'ELG']
 
     catalogs = [

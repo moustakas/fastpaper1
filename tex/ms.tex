@@ -608,14 +608,14 @@ reused for all template evaluations during fitting.
 
 We convolve the SPS templates with a Gaussian kernel to model the
 line-of-sight stellar velocity dispersion $\vdisp$. On the
-constant-velocity wavelength grid ($\Delta v = 25$~\kms\ per pixel), the
-kernel has a fixed pixel width $\sigma_\mathrm{pix} = \vdisp/\Delta v$,
-enabling efficient FFT-based convolution over the 2750--9100~\AA\
-subrange. To avoid recomputing the transform at every trial $\vdisp$, we
-pre-compute and cache the Fourier transforms of all templates for $\vdisp
-\leq 500$~\kms; convolution then requires only a single inverse FFT per
-evaluation. For $\vdisp > 500$~\kms\ we fall back to direct pixel-space
-convolution.
+constant-velocity wavelength grid ($\Delta v = 25$~\kms\ per pixel),
+the kernel has a fixed pixel width $\sigma_\mathrm{pix} =
+\vdisp/\Delta v$, enabling efficient FFT-based convolution over the
+2750--9100~\AA\ subrange. To avoid recomputing the transform at every
+trial $\vdisp$, we pre-compute and cache the Fourier transforms of all
+templates for $\vdisp \leq 500$~\kms; convolution then requires only a
+single inverse FFT per evaluation. For $\vdisp > 500$~\kms\ we fall
+back to direct pixel-space convolution.
 
 The C3K stellar library has a native spectral resolution of $R = 3000$,
 corresponding to a Gaussian broadening of $\sigma_\mathrm{C3K} =
@@ -670,23 +670,23 @@ wavelength coverage is insufficient (Case~A) or the $\chi^2$ scan fails
 (Case~B)---we fall back to a physically motivated estimate from the
 stellar-mass--velocity-dispersion ($\sigma$--$M_\star$) scaling relation.
 We first run a preliminary continuum fit at the nominal kernel
-($\vdisp^\mathrm{kern}_\mathrm{nom} \approx 143.9$~\kms) to obtain
+(${\vdisp}_\mathrm{nom}^\mathrm{kern} \approx 143.9$~\kms) to obtain
 template coefficients and a preliminary $M_\star$; we then apply
 \begin{equation}
-  \log_{10}(\vdisp/\kms) \;=\; a + b\,(\logmstar - 11),
+  \log_{10}(\vdisp/\kms) = a + b\,(\logmstar - 11),
   \quad a = 2.30,\; b = 0.25,
   \label{eq:sigma_mstar}
 \end{equation}
 and convert the inferred $\vdisp$ to the corresponding
-$\vdisp^\mathrm{kern}$ via Equation~\ref{eq:vdisptot}. If the
-preliminary fit yields no valid stellar mass ($M_\star \leq 0$), we
-instead adopt the hard fallback $\vdisp = 150$~\kms---\texttt{VDISP\_NOMINAL},
-which corresponds to $\vdisp^\mathrm{kern}_\mathrm{nom}$. In all
-fallback cases we set \texttt{VDISP\_IVAR}~$= 0$ to flag that $\vdisp$
-was not independently fitted. In \fastphot\ mode no velocity dispersion
-is fitted: we convolve all templates with
-$\vdisp^\mathrm{kern}_\mathrm{nom}$ and report $\vdisp = 150$~\kms\
-with \texttt{VDISP\_IVAR}~$= 0$.
+$\vdisp^\mathrm{kern}$ via Equation~\ref{eq:vdisptot}. \todo{ref
+  needed} If the preliminary fit yields no valid stellar mass
+($M_\star \leq 0$), we instead adopt the hard fallback $\vdisp =
+150$~\kms---\texttt{VDISP\_NOMINAL}, which corresponds to
+${\vdisp}^\mathrm{kern}_\mathrm{nom}$. In all fallback cases we set
+\texttt{VDISP\_IVAR}~$= 0$ to flag that $\vdisp$ was not independently
+fitted. In \fastphot\ mode no velocity dispersion is fitted: we
+convolve all templates with ${\vdisp}^\mathrm{kern}_\mathrm{nom}$ and
+report $\vdisp = 150$~\kms\ with \texttt{VDISP\_IVAR}~$= 0$.
 
 \subsubsection{Aperture Correction}
 \label{sssec:apercorr}
