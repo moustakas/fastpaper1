@@ -1290,16 +1290,6 @@ output data model for each FITS extension in \S\ref{sec:appendix_datamodel},
 and we make all catalogs publicly accessible via
 \url{https://data.desi.lbl.gov}.
 
-\begin{figure*}
-\includegraphics[width=6.5in]{figures/compare-mstar-loa-sv3.png}
-\caption{Write me.\label{fig:compare_mstar}}
-\end{figure*}
-
-Figure~\ref{fig:compare_mstar} compares the stellar masses we derive
-using \fastspec{} and \fastphot{} for targets in common, illustrating
-the consistency between the spectrophotometric and photometry-only
-fitting modes.
-
 Figure~\ref{fig:compare-mstar-external} does stuff.
 
 \begin{figure*}
@@ -1364,11 +1354,25 @@ masses against independent estimates from CIGALE \citep{siudek24a} and
   non-parametric vs.\ parametric SFH choices.}
 
 \begin{figure*}
-\includegraphics[width=6.5in]{compare-vdisp.pdf}
-\caption{Comparison of \fastspecfit{} stellar velocity dispersions with
-  those from \texttt{pPXF} \citep{cappellari22a} for a matched BGS
-  sample.\label{fig:vdisp}}
+\includegraphics[width=6.5in]{compare-cosmos2020.pdf}
+\caption{Comparison of \fastspecfit{} stellar masses ($h=1$, Chabrier
+  IMF) with the COSMOS2020 photometric catalog \citep{weaver22a},
+  matched by sky position to DESI SV3 targets.  \textit{Top:}
+  COSMOS2020 $\logmstar$ versus \fastspecfit{} $\logmstar$; the
+  logarithmically-scaled two-dimensional number density is shown as a
+  color map with contours enclosing 50\%, 75\%, 95\%, and 99.5\% of
+  the joint distribution, and the solid line is the 1:1 relation.  The
+  panel lists the matched sample size $N$, the median offset
+  $\Delta_{\rm med}$ (COSMOS2020 minus \fastspecfit{}) in dex, and the
+  NMAD scatter.  \textit{Bottom:} Residual $\Delta\logmstar$ as a
+  function of redshift; the solid curve is the running median and the
+  dashed curves enclose the interquartile
+  range.\label{fig:cosmos2020}}
 \end{figure*}
+
+In Figure~\ref{fig:cosmos2020} we compare \fastspecfit{} stellar
+masses against the stellar masses from COSMOS-2020, with a photoz
+quality cut.
 
 Figure~\ref{fig:vdisp} compares \fastspecfit{} $\vdisp$ measurements
 against those from \texttt{pPXF} \citep{cappellari22a} for a matched
@@ -1381,6 +1385,12 @@ We compare emission-line fluxes against \texttt{pPXF}
 targets in the SDSS footprint. \todo{Describe agreement and key
   diagnostics compared (H$\alpha$, [\ion{O}{2}]).}
 
+\begin{figure*}
+\includegraphics[width=6.5in]{compare-vdisp.pdf}
+\caption{Comparison of \fastspecfit{} stellar velocity dispersions with
+  those from \texttt{pPXF} \citep{cappellari22a} for a matched BGS
+  sample.\label{fig:vdisp}}
+\end{figure*}
 
 \subsection{Recommended Quality Cuts}
 \label{ssec:cuts}
@@ -1717,6 +1727,42 @@ Figure~\ref{fig:fluxcal_resid} shows $\Delta m$ as a function of
 \todo{magnitude and/or redshift} for the three primary extragalactic
 target classes. \todo{Describe findings: systematic offsets? Magnitude
 or color dependence? Variation across target classes?}
+
+%% ============================================================
+\section{Stellar Masses inferred using \fastphot}
+\label{sec:appendix_fastphot}
+
+\begin{figure*}
+\includegraphics[width=6.5in]{figures/compare-mstar-fastphot.pdf}
+\caption{Comparison of \fastspecfit{} stellar masses derived from
+  spectrophotometric fitting (\fastspec) and from photometry-only
+  fitting (\fastphot{}), organized by target class.  \textit{Top row:}
+  \fastphot{} $\logmstar$ versus \fastspec{} $\logmstar$ ($h=1$,
+  Chabrier IMF) for BGS (left), LRG (center), and ELG (right)
+  subsamples.  The logarithmically-scaled two-dimensional number
+  density is shown as a color map, with contours enclosing 50\%, 75\%,
+  95\%, and 99.5\% of the joint distribution; individual galaxies
+  outside the outermost contour are shown as markers.  Each panel
+  lists the matched sample size $N$, the median mass offset
+  $\Delta_{\rm med}$ (\fastphot{} minus \fastspec) in dex, and the
+  NMAD scatter.  The dashed line is the 1:1 relation.  \textit{Bottom
+    row:} Residual $\Delta\logmstar$ (\fastphot{} minus \fastspec)
+  as a function of redshift for the same three subsamples.  The solid
+  curve shows the running median and the shaded band encloses the
+  interquartile range.  The dashed horizontal line marks zero offset.
+  We attribute the systematic offset seen in BGS targets at low
+  redshift to imperfect aperture corrections for the most extended,
+  nearby galaxies, whose half-light radii subtend a significant
+  fraction of the DESI fiber
+  diameter.\label{fig:compare_mstar_fastphot}}
+\end{figure*}
+
+Figure~\ref{fig:compare_mstar_fastphot} compares the stellar masses we derive
+using \fastspec{} and \fastphot{} for targets in common, illustrating
+the consistency between the spectrophotometric and photometry-only
+fitting modes.
+
+
 
 %% ============================================================
 \section{EDR and DR1 Value-Added Catalogs}

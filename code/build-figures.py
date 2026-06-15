@@ -524,6 +524,103 @@ def compare_mstar_external(verbose=False):
 
 
 # ---------------------------------------------------------------------------
+# compare-cosmos2020
+# ---------------------------------------------------------------------------
+
+def compare_cosmos2020(verbose=False):
+    """FastSpecFit stellar masses vs COSMOS2020 (Weaver et al. 2022).
+
+    Data: external/cosmos2020-sv3-{bright,dark}.fits (position-matched, h=1,
+    Chabrier IMF).  Top panel: LOGMSTAR_COSMOS2020 vs LOGMSTAR scatter (Hess +
+    contours + 1:1 line + stats).  Bottom panel: Δlog M (COSMOS2020 −
+    FastSpecFit) vs redshift with running median + IQR.
+    Output: tex/figures/compare-cosmos2020.pdf
+    """
+    import fitsio
+    from matplotlib.gridspec import GridSpec
+
+    extdir = os.path.join(REPODIR, 'external')
+    mstarlim = (6, 12.5)
+    deltalim = (-2, 2)
+    color = '#56B4E9'
+    cmap = make_class_cmap(color)
+
+    chunks = []
+    for program in ('bright', 'dark'):
+        path = os.path.join(extdir, f'cosmos2020-sv3-{program}.fits')
+        if verbose:
+            print(f'Reading {path}')
+        chunks.append(Table(fitsio.read(path)))
+    cat = vstack(chunks)
+
+    good = (good_galaxies(cat, survey='sv3') &
+            np.isfinite(np.array(cat['LOGMSTAR_COSMOS2020'], dtype=float)) &
+            (cat['LOGMSTAR_COSMOS2020'] > 0))
+    cat = cat[good]
+    print(f'{len(cat):,d} galaxies with good masses in both catalogs')
+
+    lm = np.array(cat['LOGMSTAR'],            dtype=float)
+    lc = np.array(cat['LOGMSTAR_COSMOS2020'], dtype=float)
+    z  = np.array(cat['Z'],                   dtype=float)
+    dv = lc - lm
+
+    zlim = [-0.1, 1.8]
+    #zlim = (np.percentile(z, 1), np.percentile(z, 99))
+
+    plot_style(talk=True, font_scale=0.85, palette='colorblind')
+    fig = plt.figure(figsize=(7, 9))
+    gs  = GridSpec(2, 1, figure=fig, height_ratios=[2, 1], hspace=0.35)
+    ax_sc = fig.add_subplot(gs[0])
+    ax_dz = fig.add_subplot(gs[1])
+
+    # ---- top: COSMOS2020 vs FastSpecFit scatter ----
+    hess_contours(ax_sc, lm, lc, mstarlim, mstarlim, bins=40,
+                  cmap=cmap, contour_color=color, contour_lw=2.0)
+    ax_sc.plot(mstarlim, mstarlim, ls='-', lw=2, zorder=5, color='k')
+    ax_sc.set_xlim(mstarlim)
+    ax_sc.set_ylim(mstarlim)
+    ax_sc.set_xlabel(MSTAR_LABEL + '\n[FastSpecFit]')
+    ax_sc.set_ylabel(MSTAR_LABEL + '\n[COSMOS2020]')
+    ax_sc.text(0.04, 0.96,
+               f'$N={len(lm):,}$\n'
+               f'$\\Delta_{{\\rm med}}={np.median(dv):+.3f}$\n'
+               f'NMAD$={nmad(dv):.3f}$',
+               transform=ax_sc.transAxes, fontsize='small',
+               va='top', ha='left',
+               bbox=dict(facecolor='white', edgecolor='none', alpha=0.75, pad=2))
+
+    # ---- bottom: Δlog M vs redshift ----
+    in_range = (z >= zlim[0]) & (z <= zlim[1])
+    hess_contours(ax_dz, z[in_range], dv[in_range], zlim, deltalim, bins=40,
+                  cmap=cmap, contour_color=color, contour_lw=2.0)
+    #ax_dz.axhline(y=0, color=color, lw=1.5, ls='-', zorder=10)
+    ax_dz.set_xlim(zlim)
+    ax_dz.set_ylim(deltalim)
+
+    centers, med, qlo, qhi = running_binstat(
+        z[in_range], dv[in_range], bins=20, xrange=zlim)
+    finite = np.isfinite(med)
+    _ = [print(f'{cen:.2f} {_med:.2f} +/- {(_qhi-_qlo)/2.:.2}') \
+         for cen, _qlo, _med, _qhi in zip(centers[finite], qlo[finite], med[finite], qhi[finite])]
+    ax_dz.plot(centers[finite], med[finite], color='k', ls='-', lw=3, zorder=6)
+    ax_dz.plot(centers[finite], qlo[finite], color='k', ls='--', lw=1.5, zorder=6)
+    ax_dz.plot(centers[finite], qhi[finite], color='k', ls='--', lw=1.5, zorder=6)
+    #ax_dz.fill_between(centers[finite], qlo[finite], qhi[finite],
+    #                   color=color, alpha=0.25, zorder=5)
+
+    ax_dz.set_xlabel(r'$z$')
+    ax_dz.set_ylabel(
+        r'$\Delta\log_{10}\,(\mathcal{M}_*\,h^{-2}/\mathcal{M}_\odot)$'
+        '\n(COSMOS2020 $-$ FastSpecFit)')
+    ax_dz.xaxis.set_major_locator(plt.MultipleLocator(0.5))
+
+    outfile = os.path.join(FIGDIR, 'compare-cosmos2020.pdf')
+    fig.savefig(outfile, dpi=150, bbox_inches='tight')
+    print(f'Wrote {outfile}')
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
 # compare-sfr-external
 # ---------------------------------------------------------------------------
 
@@ -1262,6 +1359,8 @@ def main():
                         help='Stellar mass comparison: fastspec vs fastphot.')
     parser.add_argument('--compare-mstar-external', action='store_true',
                         help='Stellar mass comparison: FastSpecFit vs external catalogs.')
+    parser.add_argument('--cosmos2020', action='store_true',
+                        help='Stellar mass comparison: FastSpecFit vs COSMOS2020.')
     parser.add_argument('--compare-sfr-external', action='store_true',
                         help='SFR comparison: FastSpecFit vs external catalogs.')
     parser.add_argument('--mstar-redshift', action='store_true',
@@ -1301,6 +1400,9 @@ def main():
 
     if args.compare_mstar_external:
         compare_mstar_external(verbose=args.verbose)
+
+    if args.cosmos2020:
+        compare_cosmos2020(verbose=args.verbose)
 
     if args.compare_sfr_external:
         compare_sfr_external(verbose=args.verbose)

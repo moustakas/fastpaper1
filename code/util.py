@@ -737,7 +737,7 @@ def good_galaxies(cat, survey=None, fiberstatus_cut=True):
     if survey is not None:
         good_z = good_redshift(cat, survey, fiberstatus_cut=fiberstatus_cut)
     else:
-        good_z = (cat['ZWARN'] == 0) & (cat['Z'] > 0.001)
+        good_z = (cat['ZWARN'] == 0) & (cat['DELTACHI2'] > 15.)
     if 'LOGMSTAR' in cat.colnames:
         good_z = good_z & (cat['LOGMSTAR'] > 0)
     return good_z
@@ -749,6 +749,7 @@ def make_class_cmap(color, lighten=0.3):
     The endpoint is mixed ``lighten`` fraction toward white so that the
     densest bins stay visually lighter than the full class color, keeping
     the contours (drawn in the full color) clearly visible.
+
     """
     from matplotlib.colors import LinearSegmentedColormap, to_rgb
     rgb = np.array(to_rgb(color))
