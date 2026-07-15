@@ -527,7 +527,7 @@ def compare_mstar_external(verbose=False):
 # compare-cosmos2020
 # ---------------------------------------------------------------------------
 
-def compare_cosmos2020(verbose=False):
+def compare_cosmos2020(survey='sv3', verbose=False):
     """FastSpecFit stellar masses vs COSMOS2020 (Weaver et al. 2022).
 
     Data: external/cosmos2020-sv3-{bright,dark}.fits (position-matched, h=1,
@@ -547,13 +547,14 @@ def compare_cosmos2020(verbose=False):
 
     chunks = []
     for program in ('bright', 'dark'):
-        path = os.path.join(extdir, f'cosmos2020-sv3-{program}.fits')
+        path = os.path.join(extdir, f'cosmos2020-{survey}-{program}.fits')
+        #path = os.path.join(extdir, f'cosmos2020-sv3-{program}.fits')
         if verbose:
             print(f'Reading {path}')
         chunks.append(Table(fitsio.read(path)))
     cat = vstack(chunks)
 
-    good = (good_galaxies(cat, survey='sv3') &
+    good = (good_galaxies(cat, survey=survey) &
             np.isfinite(np.array(cat['LOGMSTAR_COSMOS2020'], dtype=float)) &
             (cat['LOGMSTAR_COSMOS2020'] > 0))
     cat = cat[good]
@@ -642,7 +643,8 @@ def compare_sfr_external(verbose=False):
 
     catalogs = [
         dict(
-            files=['zouhu-loa-sv3-bright.fits', 'zouhu-loa-sv3-dark.fits'],
+            files=['zouhu-iron-sv3-bright.fits', 'zouhu-iron-sv3-dark.fits'],
+            #files=['zouhu-loa-sv3-bright.fits', 'zouhu-loa-sv3-dark.fits'],
             ext_col='SFR_ZOUHU',
             label='Zou et al. (CIGALE)',
             classes=['BGS', 'LRG', 'ELG'],
@@ -1049,13 +1051,14 @@ def compare_vdisp(verbose=False):
     import fitsio
 
     extdir = os.path.join(REPODIR, 'external')
-    catfile = os.path.join(extdir, 'fpcatalog-iron-sv3-bright.fits')
-    #catfile = os.path.join(extdir, 'fpcatalog-iron-main-bright.fits')
+    #catfile = os.path.join(extdir, 'fpcatalog-iron-sv3-bright.fits')
+    catfile = os.path.join(extdir, 'fpcatalog-iron-main-bright.fits')
     if verbose:
         print(f'Reading {catfile}')
     d = fitsio.read(catfile)
 
     fs   = d['VDISP'].astype(float)
+    #ppxf = np.sqrt(d['PPXF_VDISP_FPCATALOG']**2 + 30.**2)
     ppxf = d['PPXF_VDISP_FPCATALOG'].astype(float)
     ivar = d['VDISP_IVAR'].astype(float)
     snr  = d['SNR_B'].astype(float)
@@ -1071,7 +1074,6 @@ def compare_vdisp(verbose=False):
     snr_ticks = [1, 3, 10, 30, 100]
 
     color = '#56B4E9' # sky blue
-    #color = '#E69F00'  # Okabe-Ito amber; neutral (not class-specific)
     #color = '#009E73'  # teal alternative
     cmap  = make_class_cmap(color)
 
@@ -1100,6 +1102,12 @@ def compare_vdisp(verbose=False):
                bbox=dict(facecolor='white', edgecolor='none', alpha=0.75, pad=2))
 
     # ---- bottom: residuals vs SNR_B (log x via log10 transform) ----
+    #hess_contours(ax_rpp, ppxf_p, dpp, sigrange, resrange, bins=[50, 40],
+    #              cmap=cmap, contour_color=color, contour_lw=2.0)
+    #ax_rpp.axhline(0, color='k', lw=1.5, ls='--', zorder=5)
+    #ax_rpp.set_xlim(sigrange)
+    #ax_rpp.set_ylim(resrange)
+
     hess_contours(ax_rpp, np.log10(snr_p), dpp, snrrange, resrange, bins=[50, 40],
                   cmap=cmap, contour_color=color, contour_lw=2.0)
     ax_rpp.axhline(0, color='k', lw=1.5, ls='--', zorder=5)
