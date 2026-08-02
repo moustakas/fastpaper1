@@ -79,22 +79,20 @@
 \affiliation{INSTITUTION, ADDRESS}
 
 \begin{abstract}
-The observed-frame optical spectrum of each extragalactic DESI target
-contains a wealth of information beyond its redshift. \fastspecfit{}
-(\url{https://fastspecfit.readthedocs.io}) is open-source Python software
-that extracts this information by jointly modeling each DESI spectrum and
-its broadband photometry using physically motivated stellar continuum and
-emission-line templates. The code operates in two modes: \fastphot{} fits
-broadband spectral energy distributions alone, while \fastspec{} performs
-a simultaneous spectrophotometric fit. Measured quantities include
-light-weighted stellar ages, velocity dispersions, stellar masses,
-star-formation rates, K-corrections, rest-frame absolute magnitudes and
-colors, and integrated fluxes and equivalent widths for more than 40
-emission lines spanning the rest-frame UV through near-infrared. We
-describe the algorithms, validate the measurements using repeat
-observations and comparisons to complementary codes, and present the
-\fastspecfit{} value-added catalog for the DESI Data Release 2,
-comprising \todo{N} million extragalactic targets.
+Optical spectrophotometry opens a wide window into the physical
+conditions, dynamical state, and formation history of galaxies and
+quasars. \fastspecfit{} is open-source Python software that extracts
+this information by jointly modeling each DESI spectrum and its
+broadband photometry using physically motivated stellar continuum and
+emission-line templates. Measured quantities include light-weighted
+stellar ages, velocity dispersions, stellar masses, star-formation
+rates, K-corrections, rest-frame absolute magnitudes and colors, and
+integrated fluxes and equivalent widths for more than 40 emission
+lines spanning the rest-frame UV through near-infrared. We describe
+the algorithms, validate the measurements using repeat observations
+and comparisons to complementary codes, and present the \fastspecfit{}
+value-added catalog for the DESI Data Release 2, comprising \todo{N}
+million extragalactic targets.
 \end{abstract}
 
 \keywords{Galaxies --- Surveys --- Catalogs --- Spectrophotometry ---
@@ -106,105 +104,131 @@ comprising \todo{N} million extragalactic targets.
 \label{sec:intro}
 %% ============================================================
 
-The Dark Energy Spectroscopic Instrument \citep[DESI;][]{desi-collaboration26a}
-has now completed its planned five-year spectroscopic survey, measuring precise
-redshifts for nearly 47 million galaxies and quasars over 14,000~deg$^2$ of
-sky---more than six times the combined spectroscopic yield of all prior redshift
-surveys. Although the primary goal of DESI is to map the three-dimensional
-large-scale structure of the universe in order to constrain the dark energy
-equation of state, each spectrum also encodes a wealth of astrophysical
-information beyond its redshift: the shape and absorption-line content of the
-stellar continuum traces the underlying stellar populations, dust content, and
-kinematics of a galaxy, while its emission-line spectrum constrains the rates,
-distribution, and chemical enrichment of recent star formation as well as the
-presence and strength of an active galactic nucleus. Extracting these physical
-properties at DESI scale---and combining them with broadband photometry to
-anchor the overall spectral energy distribution---requires fitting code that is
-fast, robust, and uniform across an enormous range of signal-to-noise ratios,
-redshifts, and spectral types.
+The Dark Energy Spectroscopic Instrument
+\citep[DESI;][]{desi-collaboration26a} has recently completed its
+planned five-year spectroscopic survey, measuring precise redshifts
+for nearly 47 million galaxies and quasars over 14,000~deg$^2$ of
+sky---more than six times the combined spectroscopic yield of all
+prior redshift surveys. \todo{More on recent DESI science and data
+  releases. Mention DR2 will become public sometime in 2027.} Although
+the primary goal of DESI is to map the three-dimensional large-scale
+structure of the universe in order to constrain the dark energy
+equation of state, each spectrum also encodes a wealth of
+astrophysical information beyond its redshift: the shape and
+absorption-line content of the stellar continuum traces the underlying
+stellar populations, dust content, and kinematics of a galaxy, while
+its emission-line spectrum constrains the rates, distribution, and
+chemical enrichment of recent star formation as well as the presence
+and strength of an active galactic nucleus
+\citep{conroy13a}. Extracting these physical properties at DESI
+scale---and combining them with broadband photometry to anchor the
+overall spectral energy distribution---requires fitting code that is
+fast, robust, and uniform across an enormous range of signal-to-noise
+ratios, redshifts, and spectral types.
 
 A variety of publicly available codes already address pieces of this
 problem. Full-spectrum fitting codes such as \texttt{pPXF}
-\citep{cappellari22a} and \texttt{alf} \citep{conroy18a} extract stellar
-kinematics and population parameters from the continuum; spectral energy
-distribution fitting codes such as CIGALE \citep{boquien19a}, Bagpipes
-\citep{carnall18a}, and Prospector \citep{johnson21a} combine photometry
-(and, in some cases, spectroscopy) with physically motivated stellar
-population synthesis models to infer star-formation histories, stellar
-masses, and dust properties; and tools such as \texttt{pyspeckit}
-\citep{ginsburg22a} and \texttt{pyqsofit} \citep{guo18a} are tailored to
-fitting emission-line spectra of star-forming galaxies and quasars,
+\citep{cappellari22a} and \texttt{alf} \citep{conroy18a} extract
+stellar kinematics and population parameters from the continuum;
+spectral energy distribution fitting codes such as CIGALE
+\citep{boquien19a}, Bagpipes \citep{carnall18a}, and Prospector
+\citep{johnson21a} combine photometry (and, in some cases,
+spectroscopy) with physically motivated stellar population synthesis
+models to infer star-formation histories, stellar masses, and dust
+properties; and tools such as \texttt{pyspeckit} \citep{ginsburg22a}
+and \texttt{pyqsofit} \citep{guo18a} are tailored to fitting
+emission-line spectra of star-forming galaxies and quasars,
 respectively. Each of these codes makes different trade-offs among
 flexibility, physical realism, and computational speed, and none was
 designed to be run, essentially unsupervised, on tens of millions of
-heterogeneous spectra spanning the full diversity of the extragalactic sky.
+heterogeneous spectra spanning the full diversity of the extragalactic
+sky. \todo{Need to mention GANDALF \citep{sarzi06a, sarzi17a}.}
 
 \fastspecfit\footnote{\url{https://fastspecfit.readthedocs.io}} was
-developed to meet this challenge. It is a fully forward-modeling code:
-stellar continuum and emission-line templates are convolved with the
-wavelength-dependent line-spread function encoded in the DESI resolution
-matrix and compared directly to the observed spectra \citep{bolton10a},
-fully exploiting the native spectral resolution without degrading the
-data to a common wavelength grid. A key algorithmic choice is that
-\fastspecfit{} models the stellar continuum and emission lines as
+developed to meet this challenge. \fastspecfit is a fully
+forward-modeling code: stellar continuum and emission-line templates
+are convolved with the wavelength-dependent line-spread function
+encoded in the DESI resolution matrix and compared directly to the
+observed spectra \citep{bolton10a}, fully exploiting the native
+spectral resolution without degrading the data to a common rest-frame
+wavelength grid with correlated pixels. A key algorithmic choice is
+that \fastspecfit{} models the stellar continuum and emission lines as
 separate components, fitting each in sequence rather than
-simultaneously---motivated by the fact that the correlation between the
-best-fit continuum model and the emission-line fluxes can be quite
+simultaneously---motivated by the fact that the correlation between
+the best-fit continuum model and the emission-line fluxes can be quite
 scattered---while ensuring that each component is constrained by the
 spectral regions most sensitive to it (\S\ref{sec:modeling}). The
 emission-line model additionally supports independent narrow and broad
 kinematic components, enabling \fastspecfit{} to characterize the
-broad Balmer-line emission that distinguishes type~1 AGN and to measure
-the broad wings that can arise in the Balmer lines of star-forming
-galaxies and other objects. More broadly, \fastspecfit{} imposes only
-the physical constraints the data strictly require---non-negative stellar
-population coefficients, an energy-conserving dust model, and kinematic
-bounds wide enough to accommodate the full spectral diversity of DESI
-targets---and otherwise allows the data to determine the best-fitting
-model. Unlike codes designed for a specific target class or spectral
-type, it applies the same fitting machinery uniformly to every spectrum,
-without prior assumptions about whether the object is a quiescent
-elliptical, a star-forming disk galaxy, or an AGN host. This
-assumption-minimal design philosophy minimizes classification-driven
-selection effects and maximizes the discovery potential of a dataset as
-large and heterogeneous as DESI: unusual or physically ambiguous objects
-emerge naturally from the fit, rather than requiring special-case
-handling or targeted reanalysis. \fastspecfit{} is also engineered for
-speed: the code fits a typical DESI spectrum in a few seconds on a
-single CPU core, making it practical to process the full DR2
-dataset---and to refit it as the data-reduction pipeline and stellar
-population models evolve---on modest computing resources.
+broad Balmer-line emission that distinguishes type~1 AGN and to
+measure the broad wings that can arise in the Balmer lines of
+star-forming galaxies and other objects.
+
+More broadly, \fastspecfit{} imposes only the physical constraints the
+data strictly require---non-negative stellar population coefficients,
+an energy-conserving dust model, and kinematic bounds wide enough to
+accommodate the full spectral diversity of DESI targets---and
+otherwise allows the data to determine the best-fitting
+model. \todo{Mention velocity dispersion is also fitted.} Unlike codes
+designed for a specific target class or spectral type, it applies the
+same fitting machinery uniformly to every spectrum, without prior
+assumptions about whether the object is a quiescent elliptical, a
+star-forming disk galaxy, or an AGN host. This assumption-minimal
+design philosophy minimizes classification-driven selection effects
+and maximizes the discovery potential of a dataset as large and
+diverse as DESI: unusual or physically ambiguous objects emerge
+naturally from the fit, rather than requiring special-case handling or
+targeted reanalysis.
+
+\fastspecfit{} is also engineered for speed: the code fits a typical
+DESI spectrum in well under one second on a single CPU core, making it
+practical to process the full DR2 dataset---and to refit it as the
+data-reduction pipeline and stellar population models evolve---on
+modest computing resources. \todo{Uses Monte Carlo to infer the
+  uncertainties. Massively parallelized with MPI+multiprocessing, but
+  also simply runs serially.}
 
 Although this paper presents the first comprehensive description of
 \fastspecfit{}'s algorithms, measurements from the earlier EDR and DR1
 value-added catalogs have already enabled a remarkably broad range of
-extragalactic science. Emission-line fluxes, equivalent widths, and stellar
-masses from \fastspecfit{} have been used to identify and characterize
-changing-look AGN \citep{guo25a} and to triple the census of dwarf AGN
-candidates in the local universe \citep{pucha25a}; to measure direct-method
-($T_e$-based) chemical abundances for nearly 50,000 star-forming galaxies in
-DESI DR2 \citep{scholte26a} and to characterize the atomic gas sequence and
-mass-metallicity relation across five decades in stellar mass \citep{scholte24a};
-to assemble catalogs of post-starburst galaxies \citep{soto25a} and cosmic
-voids \citep{rincon25a}; and to identify thousands of strong gravitational
-lens candidates via spectroscopic selection \citep{karp26a}. The \fastspecfit{}
-measurements have also proved essential to measurements of the galaxy luminosity
-function \citep{moore26a}, probabilistic stellar mass functions \citep{hahn24a},
-and the modeling of intrinsic alignments and photometric-redshift calibration
-for the next generation of weak-lensing surveys. The DR2 value-added catalog
-presented here extends this foundation to 37 million extragalactic targets.
+extragalactic science by both DESI collaboration members and the
+broader scientific community. Emission-line fluxes, equivalent widths,
+and stellar masses from \fastspecfit{} have been used to identify and
+characterize changing-look AGN \citep{guo25a} and to triple the census
+of dwarf AGN candidates in the local universe \citep{pucha25a}; to
+measure direct-method ($T_e$-based) chemical abundances for nearly
+50,000 star-forming galaxies in DESI DR2 \citep{scholte26a}, including
+two of the most metal-poor star-forming galaxies ever found
+(J.~Moustakas et~al., in preparation) and to characterize the atomic
+gas sequence and mass-metallicity relation across five decades in
+stellar mass \citep{scholte24a}; to assemble catalogs of
+post-starburst galaxies \citep{soto25a} and cosmic voids
+\citep{rincon25a}; and to identify thousands of strong gravitational
+lens candidates via spectroscopic selection \citep{karp26a}. The
+\fastspecfit{} measurements have also proved essential to measurements
+of the galaxy luminosity function \citep{moore26a}, probabilistic
+stellar mass functions \citep{hahn24a}, and the modeling of intrinsic
+alignments and photometric-redshift calibration for the next
+generation of weak-lensing surveys. The DR2 value-added catalog
+presented here extends this foundation to 37 million extragalactic
+targets.
 
-In this paper we describe the algorithms underlying \fastspecfit{} in
-detail (\S\ref{sec:modeling}), including the spectrophotometric and
-physical quantities the code derives (\S\ref{ssec:quantities}), and
-illustrate the complete fitting sequence applied end-to-end to a single
-representative BGS target (\S\ref{sec:casestudy}).
-We then present the \fastspecfit{} value-added catalog for DESI Data Release 2,
-comprising 37 million extragalactic targets, along with updated catalogs for
-the Early Data Release and Data Release 1 (\S\ref{sec:vac}); this section also
-documents the code's computational performance (\S\ref{ssec:performance}) and
-validates the measurements against independent codes (\S\ref{ssec:validation}). We conclude with a summary and
-an outlook toward future improvements (\S\ref{sec:summary}).
+\todo{Mention fastphot vs fastspec somewhere in the introduction?}
+
+\todo{Needs to be updated. Mention cosmology and IMF.} In this paper
+we describe the algorithms underlying \fastspecfit{} in detail
+(\S\ref{sec:modeling}), including the spectrophotometric and physical
+quantities the code derives (\S\ref{ssec:quantities}), and illustrate
+the complete fitting sequence applied end-to-end to a single
+representative BGS target (\S\ref{sec:casestudy}).  We then present
+the \fastspecfit{} value-added catalog for DESI Data Release 2,
+comprising 37 million extragalactic targets, along with updated
+catalogs for the Early Data Release and Data Release 1
+(\S\ref{sec:vac}); this section also documents the code's
+computational performance (\S\ref{ssec:performance}) and validates the
+measurements against independent codes (\S\ref{ssec:validation}). We
+conclude with a summary and an outlook toward future improvements
+(\S\ref{sec:summary}).
 
 
 %% ============================================================
@@ -217,28 +241,32 @@ an outlook toward future improvements (\S\ref{sec:summary}).
 
 DESI \citep{abareshi22a} is a highly multiplexed fiber spectrograph
 mounted on the Mayall 4-m telescope at Kitt Peak National Observatory.
-Its 5000 robotically actuated fibers subtend a 3.2-deg-diameter field
-of view and feed ten three-arm spectrographs covering 3600--9824\,\AA\
-in the observed frame \citep{guy23a}. The three cameras sense blue (B:
-3600--5930\,\AA), red (R: 5600--7720\,\AA), and near-infrared (Z:
-7470--9824\,\AA) light, with a spectral resolution that rises from
-$R \approx 2000$ in the blue to $R \approx 5500$ in the near-infrared.
+Its 5000 robotically actuated fibers subtend a $3\fdg2$-diameter field
+of view and feed ten three-arm spectrographs covering
+3600--9824\,\AA\ in the observed frame \citep{guy23a}. The three
+cameras sense blue (B: 3600--5930\,\AA), red (R: 5600--7720\,\AA), and
+near-infrared (Z: 7470--9824\,\AA) light, at a spectral resolution of
+$R\equiv\lambda/\Delta\lambda = 2000$, 4000, and 5500, respectively,
+enabling the \oiidoublet{} to be resolved all the way up to
+$z\approx1.6$. \todo{Need to define tiles and petals.}
 
 The spectroscopic pipeline \citep{guy23a} delivers flux-calibrated,
 sky-subtracted one-dimensional spectra for all targets on a common
-linear wavelength grid with 0.8\,\AA\,pixel$^{-1}$ steps. The optimal
-spectral extraction \citep[following][]{bolton10a} encodes the
+linear wavelength grid with 0.8~\AA~pixel$^{-1}$. The optimal spectral
+extraction \citep[following][]{bolton10a} encodes the
 wavelength-dependent line-spread function (LSF) for each fiber in a
 sparse resolution matrix, which \fastspecfit{} uses to convolve model
 spectra before comparing them to the data (\S\ref{ssec:emlines}).
 
 Wavelength calibration proceeds in three steps: an initial solution
-from arc-lamp spectra, a per-exposure PSF and trace refinement, and a
-final adjustment via cross-correlation with sky emission lines and an
-external high-resolution sky atlas. The residual wavelength
-calibration uncertainty after this correction is typically
-$\epsilon_\lambda \approx 0.025$\,\AA\ per sky line---roughly 3\%
-of a CCD pixel, or $\sim$1\,\kms\ at 7000\,\AA\ \citep{guy23a}.
+from arc-lamp spectra, a per-exposure point-spread function (PSF) and
+trace refinement, and a final adjustment via cross-correlation with
+sky emission lines and an external high-resolution sky atlas. The
+residual wavelength calibration uncertainty after this correction is
+typically $\epsilon_\lambda \approx 0.025$\,\AA\ per sky
+line---roughly 3\% of a CCD pixel, or $\sim$1\,\kms\ at
+7000\,\AA\ \citep{guy23a, koposov25a}. \todo{Check these numbers
+  against the \citet{koposov25a} stellar VACs.}
 
 All wavelengths are measured in vacuum.
 
@@ -246,11 +274,13 @@ Flux calibration uses approximately ten F-type standard stars per
 spectrograph petal, selected from the Legacy Survey imaging catalogs
 on the basis of their $g-r$ and $r-z$ colors \citep{dey19a}. The
 pipeline fits stellar spectral models to the standard-star spectra and
-derives a wavelength-dependent throughput correction per camera.
-Comparison of the calibrated spectra against hydrogen-atmosphere white
-dwarf models shows that the residuals are constrained to within
-$\pm2\%$ over most of the 3600--9800\,\AA\ wavelength range
-\citep{guy23a}.
+derives a wavelength-dependent throughput correction per
+camera. \todo{Missing a little more description; latest algorithm
+  cross-calibrates the petals, I think.} Comparison of the calibrated
+spectra against hydrogen-atmosphere white dwarf models shows that the
+residuals are constrained to within $\pm2\%$ over most of the
+3600--9800\,\AA\ wavelength range \citep{guy23a}. \citet{Again, check
+  against the numbers in the Koposov VACs.}
 
 \subsection{Broadband Photometry}
 \label{ssec:photometry}
@@ -1573,12 +1603,16 @@ from SDSS and other surveys.}
     \item The emission lines in the full continuum modeling and within
       the DESI spectrum are inconsistent, as are the line-ratios (cite
       Ashod's paper as a possible way forward).
+    \item Fitting all of SDSS.
+    \item New Bayesian-fitting mode.
   \end{itemize}
 \end{itemize}
 
 
 %% ============================================================
 \begin{acknowledgements}
+\JM{Need to thank Ben Johson.}
+
 JM gratefully acknowledges funding support for this work from the
 U.S.\ Department of Energy, Office of Science, Office of High Energy
 Physics under Award Number DE-SC0020086.
