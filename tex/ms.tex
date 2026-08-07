@@ -152,10 +152,10 @@ fitting codes such as \texttt{CIGALE} \citep{boquien19a},
 \texttt{Bagpipes} \citep{carnall18a}, \texttt{Prospector}
 \citep{johnson21a}, and \texttt{MAGPHYS} \citep{da-cunha08a} combine
 photometry (and, in some cases, spectroscopy) with physically
-motivated stellar population synthesis models to infer star-formation
-histories, stellar masses, and dust properties; and codes like
-\texttt{PyQSOFit} \citep{guo18a} are tailored to fitting the
-emission-line spectra of quasars.
+motivated stellar population synthesis (SPS) models to infer
+star-formation histories, stellar masses, and dust properties; and
+codes like \texttt{PyQSOFit} \citep{guo18a} are tailored to fitting
+the emission-line spectra of quasars.
 
 Each of these codes makes different trade-offs among flexibility,
 physical realism, and computational speed, but none were designed to
@@ -180,14 +180,14 @@ uncorrelated pixel statistics that resampling would otherwise destroy
 \fastspecfit{} is engineered for speed; it fits a typical DESI
 spectrum in a fraction of a second on a single CPU core, making it
 possible to process the full DESI dataset---and to refit it as the
-data-reduction pipeline and stellar population models evolve---on
-modest computing resources. This speed also makes it practical to
-estimate parameter uncertainties from repeated fits to Monte
-Carlo-resampled data rather than from computationally expensive
-posterior sampling (\S\ref{ssec:uncertainties}), and, via a hybrid
-message passing interface (MPI) plus multiprocessing design, to scale
-from a single serial process on a laptop to thousands of cores on a
-supercomputer (\S\ref{ssec:performance}).
+data-reduction pipeline and SPS models evolve---on modest computing
+resources. This speed also makes it practical to estimate parameter
+uncertainties from repeated fits to Monte Carlo-resampled data rather
+than from computationally expensive posterior sampling
+(\S\ref{ssec:uncertainties}), and, via a hybrid message passing
+interface (MPI) plus multiprocessing design, to scale from a single
+serial process on a laptop to thousands of cores on a supercomputer
+(\S\ref{ssec:performance}).
 
 Beyond speed, \fastspecfit{} is designed to be flexible, applying only
 the physical constraints the data strictly require and otherwise
@@ -449,10 +449,9 @@ content, kinematics, redshift, and so on---that determine it.
 %rescale the observed fiber spectrum by $\eta$ before fitting, so that
 %our data---the spectral pixels $d_i$ and broadband photometry $D_k$
 %(\S\ref{sssec:fitting})---are on the same total-flux scale as $F$.
-Our
-overarching goal is to find the model
+Our overarching goal is to find the model
 \begin{equation}
-  M(\lambda;\theta) \;=\; C(\lambda;\theta_C) + E(\lambda;\theta_E),
+  M(\lambda;\theta) = C(\lambda;\theta_C) + E(\lambda;\theta_E),
   \label{eq:totmodel}
 \end{equation}
 the sum of a \emph{stellar continuum model} $C$ (\S\ref{ssec:continuum})
@@ -461,11 +460,24 @@ reproduces $F$ in a maximum-likelihood sense, where $\theta \equiv
 \theta_C \cup \theta_E$ is the union of the continuum and
 emission-line parameter sets.
 
-We begin by describing the fitting pipeline's two primary model inputs, the
-stellar population synthesis template library (\S\ref{ssec:templates})
-and the emission-line list (\S\ref{ssec:emlinelist}).  We then
-describe the three sequential algorithmic stages \fastspec{} executes
-in turn---fast (preliminary) fitting in ``patches'' of wavelength
+A key algorithmic choice we make in \fastspec{} is to fit $C$ and $E$
+sequentially rather than jointly, subtracting the best-fitting
+continuum model from the data before fitting the emission lines
+(\S\ref{ssec:emlines}). We adopt this two-stage design primarily for
+flexibility: because $C$ and $E$ draw on different spectral
+information---the overall continuum shape and broadband photometry for
+$C$, (relatively) narrow ``residual'' features for $E$---decoupling
+them lets us fit the lines robustly even when the continuum model
+itself is unreliable, as when quasar continua are poorly represented
+by our SPS templates (\S\ref{ssec:templates}) or calibration
+systematics leave residual continuum-level errors
+(\S\ref{sssec:smooth}).
+
+We begin by describing the fitting pipeline's two primary model
+inputs, the SPS template library (\S\ref{ssec:templates}) and the
+emission-line list (\S\ref{ssec:emlinelist}). We then describe the
+three sequential algorithmic stages \fastspec{} executes in
+turn---fast (preliminary) fitting in ``patches'' of wavelength
 (\S\ref{ssec:patches}), stellar continuum modeling
 (\S\ref{ssec:continuum}), and emission-line modeling
 (\S\ref{ssec:emlines}). We close by describing the physical quantities
@@ -495,79 +507,98 @@ additional fitting modes, including a ``photometry-only'' mode called
   fit. \label{fig:sps}}
 \end{figure*}
 
-We generate stellar population synthesis (SPS) templates using
-Flexible Stellar Population
+We generate SPS templates using Flexible Stellar Population
 Synthesis\footnote{\url{https://github.com/moustakas/fsps}}
 \citep[FSPS;][]{conroy09a,conroy10b} via a fork of the
 \texttt{python-fsps}\footnote{\url{https://github.com/moustakas/python-fsps}}
 interface. We construct these models using a custom version of the
 \texttt{C3K} theoretical spectral library,
 \texttt{C3K\_R3K}\footnote{\url{https://github.com/moustakas/c3k}},
-with $\mathcal{R} = 7065$ ($\lambda/\mathrm{FWHM}=3000$) and
-$50$~\kms{} pixels in the rest-frame optical (3500--9800~\AA), the
-MIST stellar isochrones \citep{choi16a,dotter16a}, and a
-\citet{chabrier03a} IMF.
+the MIST stellar isochrones \citep{choi16a,dotter16a}, and a
+\citet{chabrier03a} IMF. The \texttt{C3K\_R3K} library spans 100~\AA{}
+to 1000~$\mu$m with $\mathcal{R} \approx 7065$
+($\lambda/\mathrm{FWHM}=3000$) in the rest-frame optical
+(3500--9800~\AA) and constant-velocity 50~\kms{} pixels. At shorter
+and longer wavelengths our models have lower resolution and sparser
+wavelength sampling, which keeps the UV-to-IR template lightweight for
+synthetic photometry and dust-emission modeling (\S\ref{sssec:dust})
+without wasting resolution where the spectroscopic fit does not need
+it.
 
-Following \citet{leja17a}, we build five basis templates spanning
-fixed lookback-time bins, each assuming a constant star-formation rate
-over its duration. The two youngest bins span 0--30~Myr and
-30--100~Myr (with fixed widths of $\Delta\log_{10}(t/\mathrm{yr}) =
-7.48$ and $8.0$, respectively), while the three oldest bins are
-logarithmically spaced between 100~Myr and $0.85\,t_\mathrm{univ}$,
-with the outer edge of the final bin extended to $t_\mathrm{univ}$
-itself---corresponding, at $z=0$, to approximately 0.1--1.1~Gyr,
-1.1--11.6~Gyr, and 11.6--13.7~Gyr (see Figure~\ref{fig:sps}). We
-generate templates at fixed solar metallicity, $\log_{10}(Z/Z_\odot) =
-0$, in two parallel variants---one including and one excluding nebular
-emission (continuum and lines) from the FSPS built-in photoionization
-grid---so that we can control the nebular contribution independently
-during fitting.
+Following \citet{leja17a}, we build five ``continuity age'' basis
+templates spanning fixed lookback-time bins, each assuming a constant
+star-formation rate over its duration. The two youngest bins span
+0--30~Myr and 30--100~Myr (with fixed widths of
+$\Delta\log_{10}(t/\mathrm{yr}) = 7.48$ and $8.0$, respectively),
+while the three oldest bins are logarithmically spaced between 100~Myr
+and 13.7~Gyr with binning 0.1--1.1~Gyr, 1.1--11.6~Gyr, and
+11.6--13.7~Gyr (see Figure~\ref{fig:sps}). We generate templates at
+fixed solar metallicity, $\log_{10}(Z/Z_\odot) = 0$ (with no
+$\alpha$-element enhancement), in two parallel variants---one
+including and one excluding nebular emission (continuum and lines)
+from the FSPS built-in photoionization grid \citep{byler17a}.
 
 We index the resulting rest-frame templates $S_n(\lambda)$, $n =
-1,\ldots,N$, by star-formation history (SFH) age bin and
+1,\ldots,N$ (with $N=5$), by star-formation history (SFH) age bin and
 nebular-emission variant, and normalize each to the flux density
 produced at 10~pc by one solar mass of stars formed at the tabulated
 lookback time,
 \begin{equation}
-  S_n(\lambda)\,\bigl[\mathrm{erg\,s^{-1}\,cm^{-2}\,\text{\AA}^{-1}\,\msun^{-1}}\bigr]
-  \;=\; \frac{L_\odot}{4\pi(10\,\mathrm{pc})^2}\,\frac{L_{\lambda,n}}{L_\odot},
+  S_n(\lambda) =
+  \frac{L_\odot}{4\pi(10\,\mathrm{pc})^2}\,\frac{L_{\lambda,n}}{L_\odot},
   \label{eq:fnorm}
 \end{equation}
-so that each template's fitted coefficient $c_n \geq 0$
+in units of
+$\mathrm{erg\,s^{-1}\,cm^{-2}\,\text{\AA}^{-1}\,\msun^{-1}}$, so that
+each template's fitted coefficient $c_n \geq 0$
 (\S\ref{sssec:fitting}) carries units of \msun.
 
 In addition, we generate a single infrared dust emission template
 $S_\mathrm{dust}(\lambda)$ from \citet{draine07a}. This model is
-parameterized by the PAH mass fraction, $q_\mathrm{PAH}$, the minimum
-starlight intensity heating the diffuse ISM dust component
-$U_\mathrm{min}$, and the fraction $\gamma$ of dust mass exposed to a
-power-law distribution of starlight intensities (up to a fixed maximum
-$U_\mathrm{max}$) representing photodissociation regions; we adopt the
-fiducial values $q_\mathrm{PAH} = 3.5$, $U_\mathrm{min} = 1.0$, and
-$\gamma = 0.01$. We normalize the resulting template to unit
-bolometric luminosity and scale it fitting by the absorbed stellar
-luminosity to enforce energy balance (\S\ref{sssec:dust}).
+parameterized by the polycyclic aromatic hydrocarbon (PAH) mass
+fraction, $q_\mathrm{PAH}$, the minimum starlight intensity heating
+the diffuse ISM dust component $U_\mathrm{min}$, and the fraction
+$\gamma$ of dust mass exposed to a power-law distribution of starlight
+intensities (up to a fixed maximum $U_\mathrm{max}$) representing
+photodissociation regions. We adopt fiducial values for our IR
+template of $q_\mathrm{PAH} = 3.5$, $U_\mathrm{min} = 1.0$, and
+$\gamma = 0.01$, and normalize it to unit bolometric luminosity.
 
 %\input{tables/table-templates}
 
 \subsection{Emission-Line List}
 \label{ssec:emlinelist}
 
-We include 40 emission lines in the default \fastspecfit{} line list,
-spanning rest-frame Ly$\alpha$~$\lambda$1215 to
-[\ion{S}{3}]~$\lambda$9532, and organize them into four fitting
-categories---UV/QSO, narrow Balmer/helium, broad Balmer/helium, and
-narrow forbidden---in Table~\ref{table:emlines}. \todo{Should the
-  table include an isstrong notation or the list of patches (to
-  connect with \S\ref{ssec:patches})?} These categories inform the
-kinematic fitting priors we describe fully \S\ref{sssec:kinematic}.
+The default \fastspecfit{} line-list, \texttt{data/emlines.ecsv},
+includes 40 emission lines, spanning rest-frame
+Ly$\alpha$~$\lambda$1215 through [\ion{S}{3}]~$\lambda$9532 (see
+Table~\ref{table:emlines}). We select this list to span the full range
+of galaxy and QSO spectral types over the DESI redshift range,
+targeting the strongest and most diagnostically useful transitions
+rather than every possible line detectable in a DESI spectrum; the
+resulting set supports target selection and scientific follow-up
+across a broad range of object classes, from star-forming galaxies to
+high-redshift quasars.
 
-We select this list to span the full range of galaxy and QSO spectral
-types over the DESI redshift range, targeting the strongest and most
-diagnostically useful transitions rather than every line detectable in
-a DESI spectrum; the resulting set supports target selection and
-scientific follow-up across a broad range of object classes, from
-star-forming galaxies to high-redshift quasars.
+We record vacuum rest-frame wavelengths primarily from the NIST Atomic
+Spectra
+Database\footnote{\url{https://physics.nist.gov/PhysRefData/ASD/lines_form.html}}
+for the Balmer series, the helium lines,
+\ion{Mg}{2}~$\lambda\lambda$2796,2803, and most forbidden transitions;
+UV broad-line wavelengths follow \citet{vanden-berk01a}; and
+wavelengths for [\ion{N}{2}]~$\lambda\lambda$6548,84,
+[\ion{O}{3}]~$\lambda$4363, and [\ion{O}{3}]~$\lambda\lambda$4959,5007
+come from the CHIANTI atomic
+database.\footnote{\url{https://db.chiantidatabase.org}}
+
+We organize these lines into four general fitting categories---UV/QSO,
+narrow Balmer/helium, broad Balmer/helium, and narrow forbidden, which
+are used to set kinematic fitting priors (see
+\S\ref{sssec:kinematic}).. \todo{Should the table include an isstrong
+  notation or the list of patches (to connect with
+  \S\ref{ssec:patches})?}
+
+\input{tables/table-emlines}
 
 %Twelve UV and AGN broad lines---from Ly$\alpha$ through
 %\ion{He}{2}~$\lambda$4686---carry broad, independently fitted
@@ -582,32 +613,22 @@ star-forming galaxies to high-redshift quasars.
 %groupings and amplitude constraints that link these lines during
 %fitting in \S\ref{sssec:kinematic}.
 
-\input{tables/table-emlines}
-
-We draw vacuum rest-frame wavelengths primarily from the NIST Atomic Spectra
-Database\footnote{\url{https://physics.nist.gov/PhysRefData/ASD/lines_form.html}}
-for the Balmer series, the helium lines, \ion{Mg}{2}~$\lambda\lambda$2796,2803,
-and most forbidden transitions; UV broad-line wavelengths follow
-\citet{vanden-berk01a}; and wavelengths for [\ion{N}{2}]~$\lambda\lambda$6548,84,
-[\ion{O}{3}]~$\lambda$4363, and [\ion{O}{3}]~$\lambda\lambda$4959,5007 come
-from the CHIANTI atomic
-database.\footnote{\url{https://db.chiantidatabase.org}}
-
-
 \subsection{Fast Fitting in Wavelength Patches}
 \label{ssec:patches}
 
-\todo{Needs some editing/cleanup/simplification.} We cannot fit the
-stellar continuum robustly without first identifying which pixels line
-emission contaminates, yet DESI targets span an enormous range of
-emission-line properties, from purely absorption-line quiescent
-galaxies with no measurable line emission at all to extreme starbursts
-and broad-line AGN whose emission dominates large stretches of the
-observed spectrum. A single, fixed masking window sized for the
-strongest expected lines would over-mask quiescent spectra and discard
-usable continuum information, while a window sized for typical narrow
-lines would under-mask starburst and broad-line spectra and bias the
-stellar continuum fit.
+\todo{Needs some editing/cleanup/simplification. This particular
+  object (need its redshift) has a broad-line component, so the
+  masking is more aggressive.} We cannot fit the stellar continuum
+robustly without first identifying which pixels line emission
+contaminates, yet DESI targets span an enormous range of emission-line
+properties, from purely absorption-line quiescent galaxies with no
+measurable line emission at all to extreme starbursts and broad-line
+AGN whose emission dominates large stretches of the observed
+spectrum. A single, fixed masking window sized for the strongest
+expected lines would over-mask quiescent spectra and discard usable
+continuum information, while a window sized for typical narrow lines
+would under-mask starburst and broad-line spectra and bias the stellar
+continuum fit.
 
 Before fitting the stellar continuum, we therefore run a lightweight
 pre-fitting pass---the \emph{line masker}---that adapts to each
@@ -625,29 +646,30 @@ continuum and emission-line fits that follow (\S\ref{ssec:continuum},
 
 \begin{figure*}
 \includegraphics[width=6.5in]{example-emlines}
-\caption{Illustration of the line-masking algorithm
-  (\S\ref{ssec:patches}) for an example \fastspec\ target, whose
-  survey, program, healpix, and \texttt{TARGETID} label the top
-  panel. \emph{Top:} the full per-camera coadded DESI spectrum ($b$,
-  $r$, $z$ in blue, green, and red), with the pixels excluded by the
-  final line mask drawn in light gray rather than removed outright.
-  Overplotted on each masked stretch, in the same dark camera colors,
-  is that patch's best-fit model---the Gaussian line profile(s) plus
-  local linear continuum pedestal---showing what the line masker
-  actually fits in the regions it excludes from the continuum fit.
-  Black boxes and connector lines tie four representative patches to
-  the zoom panels below. \emph{Bottom:} the boxed patches, left to
-  right---a UV doublet (Mg\,\textsc{ii}~$\lambda\lambda$2796,2803), a
-  strong forbidden doublet
-  ([O\,\textsc{ii}]~$\lambda\lambda$3726,3729), a joint Balmer/forbidden
-  group spanning H$\gamma$ through [O\,\textsc{iii}]~$\lambda$5007, and
-  the merged \ha+[N\,\textsc{ii}]+[S\,\textsc{ii}] complex. In each
-  zoom panel, camera-colored pixels mark the continuum pixels used for
-  that patch's local linear fit; the dark curve shows the combined
-  best-fit line-plus-continuum model; the dashed black line and
-  surrounding gray band show the local linear continuum and its
-  $\pm1\sigma$ noise envelope; and the labeled S/N values report each
-  line's amplitude significance in the line masker's own approximate
+\caption{\todo{Mention the redshift. And maybe an image cutout?}
+  Illustration of the line-masking algorithm (\S\ref{ssec:patches})
+  for an example \fastspec\ target, whose survey, program, healpix,
+  and \texttt{TARGETID} label the top panel. \emph{Top:} the full
+  per-camera coadded DESI spectrum ($b$, $r$, $z$ in blue, green, and
+  red), with the pixels excluded by the final line mask drawn in light
+  gray rather than removed outright.  Overplotted on each masked
+  stretch, in the same dark camera colors, is that patch's best-fit
+  model---the Gaussian line profile(s) plus local linear continuum
+  pedestal---showing what the line masker actually fits in the regions
+  it excludes from the continuum fit.  Black boxes and connector lines
+  tie four representative patches to the zoom panels
+  below. \emph{Bottom:} the boxed patches, left to right---a UV
+  doublet (Mg\,\textsc{ii}~$\lambda\lambda$2796,2803), a strong
+  forbidden doublet ([O\,\textsc{ii}]~$\lambda\lambda$3726,3729), a
+  joint Balmer/forbidden group spanning H$\gamma$ through
+  [O\,\textsc{iii}]~$\lambda$5007, and the merged
+  \ha+[N\,\textsc{ii}]+[S\,\textsc{ii}] complex. In each zoom panel,
+  camera-colored pixels mark the continuum pixels used for that
+  patch's local linear fit; the dark curve shows the combined best-fit
+  line-plus-continuum model; the dashed black line and surrounding
+  gray band show the local linear continuum and its $\pm1\sigma$ noise
+  envelope; and the labeled S/N values report each line's amplitude
+  significance in the line masker's own approximate
   fit. \label{fig:linefit}}
 \end{figure*}
 
@@ -691,16 +713,21 @@ variance.
 \subsection{Stellar Continuum Model}
 \label{ssec:continuum}
 
-Our goal in this section is to find the continuum model
-$C(\lambda;\theta_C)$, with parameter set $\theta_C =
-\{\tauv,\vdisp,\mathbf{c},z\}$---the $V$-band dust optical depth
-$\tauv$ (\S\ref{sssec:dust}), stellar velocity dispersion $\vdisp$
-(\S\ref{sssec:vdisp}), non-negative template coefficients $\mathbf{c}$
-(\S\ref{sssec:fitting}), and redshift $z$
-(\S\ref{sssec:zfactors})---that best reproduces the observed spectrum
-and photometry. We build $C$ by taking the $N$ SPS templates
-$S_n(\lambda)$ (\S\ref{ssec:templates}, each indexed by SFH age bin
-and nebular-emission variant) and applying four transformations in
+This section describes the steps \fastspec{} uses to find the
+best-fitting continuum model, $C(\lambda;\theta_C)$. Because speed and
+flexibility are paramount, the default fitting mode uses a minimal
+parameter set, $\theta_C = \{z,\mathbf{c},\tauv,\vdisp\}$, where $z$
+is the redshift, $\mathbf{c}$ are the non-negative template
+coefficients, $\tauv$ is the $V$-band dust optical depth, and $\vdisp$
+is the stellar velocity dispersion. We emphasize, however, that the
+fitting infrastructure can be easily extended to include additional
+parameters (e.g., a two-component dust model or QSO model spectra),
+which we discuss, in part, in \S\S \ref{sec:modes} and
+\ref{sec:summary}.
+
+We build $C$ by taking the $N$ SPS templates $S_n(\lambda)$
+(\S\ref{ssec:templates}, each indexed by SFH age bin and
+nebular-emission variant) and applying four transformations in
 sequence: dust attenuation and infrared re-emission
 (\S\ref{sssec:dust}), cosmological redshifting with IGM absorption
 (\S\ref{sssec:zfactors}), stellar velocity-dispersion broadening
@@ -730,7 +757,7 @@ uniform foreground screen,
 (\S\ref{ssec:templates}), $\tauv$ is the $V$-band optical depth, and
 
 \begin{equation}
-  k(\lambda) \;=\;
+  k(\lambda) =
   \left(\frac{\lambda}{5500\,\text{\AA}}\right)^{n}
   \label{eq:kl}
 \end{equation}
@@ -765,7 +792,7 @@ For an object at redshift $z$ with luminosity distance $D_L$ (in Mpc), we relate
 each rest-frame continuum template to its observed-frame counterpart,
 \begin{equation}
   S_n^\mathrm{obs}(\lambda)
-  \;=\;
+  =
   T_\mathrm{IGM}(\lambda,z)\,
   \frac{\mathcal{F}_0\,\mathcal{M}_0}
        {4\pi\,(3.086\times10^{24}\,D_L)^2}
@@ -859,7 +886,7 @@ continuum model $C_f^\mathrm{fib}$ normalized to the fiber spectrum; we synthesi
 photometry from it in the $g$, $r$, and $z$ bands and compare it to the Tractor
 total flux $D_f$,
 \begin{equation}
-  \eta_f \;=\; \frac{D_f}{C_f^\mathrm{fib}},
+  \eta_f = \frac{D_f}{C_f^\mathrm{fib}},
   \label{eq:apercorr}
 \end{equation}
 where $f \in \{g,\,r,\,z\}$; $\eta_f$ is generally $\gtrsim 1$ but can scatter
@@ -891,7 +918,7 @@ $C(\lambda;\theta_C)$, \todo{Should we explicitly show $\eta$ in this
   equation? Also need to mention the resolution matrix here!}
 \begin{equation}
   \chi^2(\tauv,\vdisp,\mathbf{c})
-  \;=\;
+  =
   \sum_i I_i\bigl(d_i - C_i\bigr)^2
   \;+\;
   \sum_k I_{D,k}\bigl(D_k - C_k\bigr)^2,
@@ -905,7 +932,7 @@ at each spectral pixel and synthesized through each bandpass,
 respectively. When $\vdisp$ is fixed, the continuum model is linear in
 $\mathbf{c}$ for any fixed $\tauv$,
 \begin{equation}
-  \mathbf{C} \;=\; \boldsymbol{\Psi}\,\mathbf{c},
+  \mathbf{C} = \boldsymbol{\Psi}\,\mathbf{c},
   \label{eq:designmatrix}
 \end{equation}
 where each column of the design matrix $\boldsymbol{\Psi}$ is one
@@ -919,7 +946,7 @@ projection (VARPRO \citealt{golub73a}): an outer Brent scalar
 minimization over $\tauv$ (typically 10--15 evaluations) with an inner
 NNLS solve for $\mathbf{c}$,
 \begin{equation}
-  \mathbf{c}^* \;=\; \arg\min_{\mathbf{c}\,\geq\,0}
+  \mathbf{c}^* = \arg\min_{\mathbf{c}\,\geq\,0}
   \bigl\|\boldsymbol{\Psi}\,\mathbf{c} - \mathbf{b}\bigr\|^2,
   \label{eq:nnls}
 \end{equation}
@@ -936,17 +963,18 @@ the TRF method.
 
 The parametric continuum model $C(\lambda)$ may leave low-level
 systematic residuals due to imperfect template matching or
-flux-calibration uncertainties. We estimate and remove these with a
-nonparametric smooth continuum computed per camera from the spectrum
-after subtracting the best-fit, line-free continuum model. Working per
-camera, we slide a 75-pixel window in 125-pixel steps across the
-residual spectrum, applying a $2\sigma$ iterative clip in each window
-and computing the robust median and inter-quartile sigma; we discard
-windows with fewer than 15 unmasked pixels. We then fit a weighted
-quadratic spline (\texttt{UnivariateSpline}, $k = 2$) to the window
-medians and add the resulting smooth baseline back to $C(\lambda)$
-before emission-line fitting, so that the line fitter operates on
-spectra with an accurate continuum level. \todo{New figure?}
+flux-calibration uncertainties \citep[e.g.,][]{tremonti04a}. We
+estimate and remove these with a nonparametric smooth continuum
+computed per camera from the spectrum after subtracting the best-fit,
+line-free continuum model. Working per camera, we slide a 75-pixel
+window in 125-pixel steps across the residual spectrum, applying a
+$2\sigma$ iterative clip in each window and computing the robust
+median and inter-quartile sigma; we discard windows with fewer than 15
+unmasked pixels. We then fit a weighted quadratic spline
+(\texttt{UnivariateSpline}, $k = 2$) to the window medians and add the
+resulting smooth baseline back to $C(\lambda)$ before emission-line
+fitting, so that the line fitter operates on spectra with an accurate
+continuum level. \todo{New figure?}
 
 \subsection{Emission-Line Model}
 \label{ssec:emlines}
@@ -975,7 +1003,7 @@ We model the intrinsic spectral profile of each emission line as a
 log-Gaussian in observed wavelength,
 \begin{equation}
   \phi(\lambda;\,A,\lambda^*,\sigma)
-  \;=\;
+  =
   A\exp\!\left(-\frac{(\ln\lambda - \ln\lambda^*)^{2}}{2\sigma^{2}}\right),
   \label{eq:intrinsic}
 \end{equation}
@@ -983,15 +1011,15 @@ where $A$ is the peak amplitude (in \fluxdensity), $\lambda^*$ is the
 observed line center, including both cosmological and peculiar motion
 of the line-emitting gas,
 \begin{equation}
-  \lambda^* \;=\; \lambda_\mathrm{rest}
+  \lambda^* = \lambda_\mathrm{rest}
     \left(1 + z + \frac{\Delta v}{c}\right),
   \label{eq:lstar}
 \end{equation}
 and $\sigma = s/c$ is the line width in log-$\lambda$ units. With this
 parameterization, the total line flux in \flux{} is
 \begin{equation}
-  \Phi \;=\; \sqrt{2\pi}\,A\,\lambda^*\,\sigma
-       \;=\; \sqrt{2\pi}\,A\,\lambda^*\,\frac{s}{c},
+  \Phi = \sqrt{2\pi}\,A\,\lambda^*\,\sigma
+       = \sqrt{2\pi}\,A\,\lambda^*\,\frac{s}{c},
   \label{eq:flux_phys}
 \end{equation}
 which is independent of the instrumental pixel grid and resolution
@@ -1026,7 +1054,7 @@ effective width $\sigma_\mathrm{eff} = \sqrt{\sigma^2 + \sigma_{G,\ell}^2}$
 (where $\sigma_{G,\ell} = \sigma_G/\lambda^*$), the pre-convolved profile
 of a single line at pixel center $\lambda_j$ is
 \begin{equation}
-  F_j \;=\; A\,\frac{\sigma}{\sigma_\mathrm{eff}}
+  F_j = A\,\frac{\sigma}{\sigma_\mathrm{eff}}
     \exp\!\left(-\frac{x_j^2}{2\sigma_\mathrm{eff}^2}\right).
   \label{eq:model}
 \end{equation}
@@ -1044,7 +1072,7 @@ Jacobian--closed-form first derivatives of $F_j$
 (equation~\ref{eq:model}) with respect to each free parameter. Because
 $F_j$ is linear in $A$, the amplitude gradient is simply
 \begin{equation}
-  \frac{\partial F_j}{\partial A} \;=\; \frac{F_j}{A}.
+  \frac{\partial F_j}{\partial A} = \frac{F_j}{A}.
   \label{eq:dF_dA}
 \end{equation}
 The velocity-shift gradient follows from the dependence of
@@ -1052,7 +1080,7 @@ $\ln\lambda^* = \ln[\lambda_\mathrm{rest}(1 + z + \Delta v/c)]$ on
 $\Delta v$:
 \begin{equation}
   \frac{\partial F_j}{\partial \Delta v}
-  \;=\;
+  =
   \frac{F_j\,x_j}{\sigma_\mathrm{eff}^2\,c\,(1+z+\Delta v/c)}.
   \label{eq:dF_dv}
 \end{equation}
@@ -1062,7 +1090,7 @@ line-width gradient accounts for the dependence of both the amplitude
 factor $\sigma/\sigma_\mathrm{eff}$ and the exponent on $\sigma = s/c$:
 \begin{equation}
   \frac{\partial F_j}{\partial s}
-  \;=\;
+  =
   \frac{A}{\sigma_\mathrm{eff}\,c}\,
   e^{-x_j^2/(2\sigma_\mathrm{eff}^2)}\,
   \Bigl[1 - \sigma^2\bigl(1 - x_j^2/\sigma_\mathrm{eff}^2
@@ -1268,7 +1296,7 @@ emission-line fits. The inverse variance of each fitted quantity
 $\theta$ is then
 \begin{equation}
   \sigma_\theta^{-2}
-  \;=\; \bigl[\mathrm{Var}(\theta^{(1)},\ldots,\theta^{(N_\mathrm{monte})})\bigr]^{-1}.
+  = \bigl[\mathrm{Var}(\theta^{(1)},\ldots,\theta^{(N_\mathrm{monte})})\bigr]^{-1}.
   \label{eq:mc_unc}
 \end{equation}
 We report Monte Carlo uncertainties for \tauv, \vdisp\ (when fitted),
