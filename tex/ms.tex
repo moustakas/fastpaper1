@@ -289,8 +289,8 @@ pointing of the full 5000-fiber focal plane defines a \emph{tile}, the
 basic unit of the survey's tiling strategy \citep{schlafly23a}. The
 three cameras sense blue (B: 3600--5930\,\AA), red (R:
 5600--7720\,\AA), and near-infrared (Z: 7470--9824\,\AA) light, at a
-spectral resolution of $R\equiv\lambda/\Delta\lambda \approx 2000$,
-4000, and 5500, respectively, enabling the \oiidoublet{} to be
+spectral resolution of $\mathcal{R}\equiv\lambda/\Delta\lambda \approx
+2000$, 4000, and 5500, respectively, enabling the \oiidoublet{} to be
 resolved up to $z\approx1.6$.
 
 The spectroscopic pipeline \citep{guy23a} performs an optimal spectral
@@ -431,13 +431,11 @@ redshifts for QSOs (see \S\ref{ssec:zqso}).
 %% ============================================================
 
 This section describes the technical, algorithmic structure of
-\fastspec, which jointly models a DESI spectrum and its broadband
-photometry to derive a physical characterization of each target and is
-the default fitting mode within the larger \fastspecfit{} software
-package. Readers interested in worked examples of \fastspec{} applied
-to individual DESI targets may safely skip to \S\ref{sec:casestudy},
-while those interested only in the resulting DR2 value-added catalog
-may skip to \S\ref{sec:vac}.
+\fastspec, the default spectrophotometric fitting mode within the
+larger \fastspecfit{} software package. Readers interested in worked
+examples of \fastspec{} applied to individual DESI targets may safely
+skip to \S\ref{sec:casestudy}, while those interested only in the
+resulting DR2 value-added catalog may skip to \S\ref{sec:vac}.
 
 We begin with the fitting pipeline's two primary model inputs, the
 stellar population synthesis template library (\S\ref{ssec:templates})
@@ -457,44 +455,53 @@ additional fitting modes, including a ``photometry-only'' mode called
 
 \begin{figure*}
 \includegraphics[width=6.5in]{figures/sps-models.pdf}
-\caption{The five SPS templates that span the
-  \fastspecfit\ star-formation history bins (\S\ref{ssec:templates}),
-  computed at solar metallicity ($\log_{10}Z/Z_\odot=0$) with
-  $\tauv=0.1$ and normalized to a $10^{10}\,\msun$ galaxy at $z=0.1$.
-  Each line corresponds to one lookback-time bin, ranging from
-  0--30~Myr (youngest) to 11.6--13.7~Gyr (oldest); the spectral energy
+\caption{The five SPS templates spanning \fastspecfit's lookback-time
+  age bins (\S\ref{ssec:templates}), computed at solar metallicity
+  ($\log_{10}Z/Z_\odot=0$) with $\tauv=0.1$ and normalized to a
+  $10^{10}\,\msun$ galaxy at $z=0.1$. Each curve corresponds to one
+  age bin, assuming a constant star-formation rate over its duration,
+  ranging from 0--30~Myr (youngest) to 11.6--13.7~Gyr (oldest); the
+  spectral energy
   distribution shifts from UV-bright continua with prominent nebular
   emission in the youngest populations to red, featureless spectra in
-  the oldest.  The gray band marks the DESI optical spectral range
+  the oldest. The gray band marks the DESI optical spectral range
   (0.36--0.98~$\mu$m); the curves along the bottom of the panel show
   the DECam $grz$ and WISE W1-W4 broadband filter throughputs that
   \fastspecfit\ includes in the simultaneous spectrophotometric
   fit. \label{fig:sps}}
 \end{figure*}
 
-We generate stellar population synthesis (SPS) templates with
-FSPS\footnote{\url{https://github.com/moustakas/fsps}}
-\citep[Flexible Stellar Population Synthesis;][]{conroy09a,conroy10b}
-via a custom fork of the
+We generate stellar population synthesis (SPS) templates using
+Flexible Stellar Population
+Synthesis\footnote{\url{https://github.com/moustakas/fsps}}
+\citep[FSPS;][]{conroy09a,conroy10b} via a fork of the
 \texttt{python-fsps}\footnote{\url{https://github.com/moustakas/python-fsps}}
-interface, adopting a variable-resolution version of the C3K empirical
-stellar spectral library
-(\texttt{C3K\_R10K}\footnote{\url{https://github.com/moustakas/c3k/blob/main/README.md}};
-spanning 3500--9800~\AA\ at $R\equiv\lambda/\Delta\lambda = 10000$ in
-the rest-frame optical, i.e., $\sigma_\mathrm{C3K}\approx12.7$~\kms),
-MIST stellar isochrones \citep{choi16a,dotter16a}, and a Chabrier IMF
-\citep{chabrier03a}. We store the resulting templates on a hybrid
-wavelength grid in which pixels span $\Delta v \approx 15$~\kms\ in
-velocity (constant $\Delta\ln\lambda$) over 3500--9800~\AA; outside
-this range we retain the native, nonuniform FSPS wavelength grid. The
-constant-velocity core enables stellar velocity-dispersion broadening
-via a fixed-width Gaussian kernel in $\ln\lambda$ space, applied
-efficiently via a fast Fourier transform (FFT; \S\ref{sssec:vdisp}).
+interface. We construct these models using a custom version of the
+\texttt{C3K} theoretical spectral library,
+\texttt{C3K\_R3K}\footnote{\url{https://github.com/moustakas/c3k}},
+with $\mathcal{R} = 7065$ ($\lambda/\mathrm{FWHM}=3000$) and
+$50$~\kms{} pixels in the rest-frame optical (3500--9800~\AA), the
+MIST stellar isochrones \citep{choi16a,dotter16a}, and a
+\citet{chabrier03a} IMF.
 
-We index the resulting rest-frame templates $S_n(\lambda)$,
-$n = 1,\ldots,N$, by each of five nonparametric star-formation history
-(SFH) age bins (\S\ref{ssec:continuum}) and by nebular-emission variant
-(Figure~\ref{fig:sps}), and normalize each to the flux density
+Following \citet{leja17a}, we build five basis templates spanning
+fixed lookback-time bins, each assuming a constant star-formation rate
+over its duration. The two youngest bins span 0--30~Myr and
+30--100~Myr (with fixed widths of $\Delta\log_{10}(t/\mathrm{yr}) =
+7.48$ and $8.0$, respectively), while the three oldest bins are
+logarithmically spaced between 100~Myr and $0.85\,t_\mathrm{univ}$,
+with the outer edge of the final bin extended to $t_\mathrm{univ}$
+itself---corresponding, at $z=0$, to approximately 0.1--1.1~Gyr,
+1.1--11.6~Gyr, and 11.6--13.7~Gyr (see Figure~\ref{fig:sps}). We
+generate templates at fixed solar metallicity, $\log_{10}(Z/Z_\odot) =
+0$, in two parallel variants---one including and one excluding nebular
+emission (continuum and lines) from the FSPS built-in photoionization
+grid---so that we can control the nebular contribution independently
+during fitting.
+
+We index the resulting rest-frame templates $S_n(\lambda)$, $n =
+1,\ldots,N$, by star-formation history (SFH) age bin and
+nebular-emission variant, and normalize each to the flux density
 produced at 10~pc by one solar mass of stars formed at the tabulated
 lookback time,
 \begin{equation}
@@ -505,44 +512,50 @@ lookback time,
 so that each template's fitted coefficient $c_n \geq 0$
 (\S\ref{sssec:fitting}) carries units of \msun.
 
-We additionally include an infrared dust emission template
-$S_\mathrm{dust}(\lambda)$ following the \citet{draine07a} interstellar
-dust model, parameterized by the PAH mass fraction $q_\mathrm{PAH}$,
-the minimum starlight intensity heating the diffuse ISM dust component
+In addition, we generate a single infrared dust emission template
+$S_\mathrm{dust}(\lambda)$ from \citet{draine07a}. This model is
+parameterized by the PAH mass fraction, $q_\mathrm{PAH}$, the minimum
+starlight intensity heating the diffuse ISM dust component
 $U_\mathrm{min}$, and the fraction $\gamma$ of dust mass exposed to a
 power-law distribution of starlight intensities (up to a fixed maximum
 $U_\mathrm{max}$) representing photodissociation regions; we adopt the
 fiducial values $q_\mathrm{PAH} = 3.5$, $U_\mathrm{min} = 1.0$, and
-$\gamma = 0.01$. The resulting template is normalized to unit
-bolometric luminosity and scaled during fitting by the absorbed
-stellar luminosity to enforce energy balance (\S\ref{sssec:dust}).
+$\gamma = 0.01$. We normalize the resulting template to unit
+bolometric luminosity and scale it fitting by the absorbed stellar
+luminosity to enforce energy balance (\S\ref{sssec:dust}).
 
 %\input{tables/table-templates}
 
 \subsection{Emission-Line List}
 \label{ssec:emlinelist}
 
-We include 40 emission lines in the \fastspecfit{} line list, spanning
-rest-frame Ly$\alpha$~$\lambda$1216 to [\ion{S}{3}]~$\lambda$9532, and
-organize them into four fitting categories---UV/QSO, narrow
-Balmer/helium, broad Balmer/helium, and narrow forbidden---in
-Table~\ref{table:emlines}. \todo{Explain why
-  these lines; most but
-  not all. (Broad enough to fit the full range of galaxy and QSO types
-  over the full DESI redshift range while allowing selection and
-  follow-up of different scientifically interesting classes of
-  objects.} Twelve UV and AGN broad lines---from Ly$\alpha$ through
-\ion{He}{2}~$\lambda$4686---carry broad, independently fitted
-kinematics appropriate for quasar and AGN broad-line emission. Eight
-Balmer and helium lines (H6 through H$\alpha$, together with
-\ion{He}{1}~$\lambda\lambda$4471, 5876) receive narrow kinematic
-components, and the six Balmer lines (H6 through H$\alpha$)
-additionally receive independent broad components, enabling
-\fastspecfit{} to separate star-forming and AGN contributions to the
-Balmer emission. The remaining 20 lines are forbidden transitions,
-each fitted with a single narrow Gaussian. We describe the kinematic
-groupings and amplitude constraints that link these lines during
-fitting in \S\ref{sssec:kinematic}.
+We include 40 emission lines in the default \fastspecfit{} line list,
+spanning rest-frame Ly$\alpha$~$\lambda$1215 to
+[\ion{S}{3}]~$\lambda$9532, and organize them into four fitting
+categories---UV/QSO, narrow Balmer/helium, broad Balmer/helium, and
+narrow forbidden---in Table~\ref{table:emlines}. These categories
+inform the kinematic fitting priors we describe fully
+\S\ref{sssec:kinematic}.
+
+We select this list to span the full range of galaxy and QSO spectral
+types over the DESI redshift range, targeting the strongest and most
+diagnostically useful transitions rather than every line detectable in
+a DESI spectrum; the resulting set supports target selection and
+scientific follow-up across a broad range of object classes, from
+star-forming galaxies to high-redshift quasars.
+
+%Twelve UV and AGN broad lines---from Ly$\alpha$ through
+%\ion{He}{2}~$\lambda$4686---carry broad, independently fitted
+%kinematics appropriate for quasar and AGN broad-line emission. Eight
+%Balmer and helium lines (H6 through H$\alpha$, together with
+%\ion{He}{1}~$\lambda\lambda$4471, 5876) receive narrow kinematic
+%components, and the six Balmer lines (H6 through H$\alpha$)
+%additionally receive independent broad components, enabling
+%\fastspecfit{} to separate star-forming and AGN contributions to the
+%Balmer emission. The remaining 20 lines are forbidden transitions,
+%each fitted with a single narrow Gaussian. We describe the kinematic
+%groupings and amplitude constraints that link these lines during
+%fitting in \S\ref{sssec:kinematic}.
 
 \input{tables/table-emlines}
 
@@ -579,8 +592,8 @@ file \texttt{data/emlines.ecsv}. Each patch groups lines whose
 wavelength windows overlap or nearly touch; for example, one patch
 contains \hb\ together with [O\,\textsc{iii}]~$\lambda\lambda$4959,5007,
 and another groups \ha\ with [N\,\textsc{ii}]~$\lambda\lambda$6548,6584.
-Only patches with at least one line in the observed spectral range are
-activated for a given spectrum. Each line carries an \texttt{isstrong}
+We activate only patches with at least one line in the observed
+spectral range for a given spectrum. Each line carries an \texttt{isstrong}
 flag identifying the subset with typical fluxes reliable enough to
 measure kinematics; the patch-fitting steps use only strong lines, while
 the full list enters the final mask.
@@ -602,8 +615,8 @@ kinematics for masking, and otherwise retain the narrow-only
 widths. Third, we rebuild the pixel mask over the full line list using
 the converged kinematic parameters, widening the exclusion window to
 $\pm5\,\sigma$ to conservatively exclude all line-contaminated pixels
-from the continuum fit; weak non-strong lines with $S/N < 3.5$ are
-omitted from the final mask to avoid over-masking. We additionally
+from the continuum fit; we omit weak non-strong lines with $S/N < 3.5$
+from the final mask to avoid over-masking. We additionally
 mask pixels flagged as sky-line residuals and pixels with zero inverse
 variance.
 
@@ -638,26 +651,9 @@ the sum of a \emph{stellar continuum model} $C$ (this section) and an
 reproduces $F$ in a maximum-likelihood sense.
 
 We represent the stellar continuum as a non-negative linear
-superposition of the $N$ SPS templates $S_n(\lambda)$
-(\S\ref{ssec:templates}), with the star-formation history (SFH) itself
-modeled nonparametrically as a piecewise-constant function over five
-lookback-time bins, following the continuity-SFH prescription of
-\citet{leja17a}, as implemented in \texttt{Prospector}'s
-\texttt{adjust\_continuity\_agebins} function \citep{johnson21a}: the
-two youngest bins span 0--30~Myr and 30--100~Myr (with fixed widths of
-$\Delta\log_{10}(t/\mathrm{yr}) = 7.48$ and $8.0$, respectively), while
-the three oldest bins are logarithmically spaced between 100~Myr and
-$0.85\,t_\mathrm{univ}$, with the outer edge of the final bin extended
-to $t_\mathrm{univ}$ itself---corresponding, at $z=0$, to approximately
-0.1--1.1~Gyr, 1.1--11.6~Gyr, and 11.6--13.7~Gyr. We generate templates
-at fixed solar metallicity, $\log_{10}(Z/Z_\odot) = 0$, in two
-parallel variants---one including and one excluding nebular emission
-(continuum and lines) from the FSPS built-in photoionization
-grid---so that we can control the nebular contribution independently
-during fitting. Although templates older than the age of the universe
-at the target's redshift are, in principle, unphysical, we include all
-five age bins by default because the coarse age sampling makes the
-exclusion boundary poorly defined \citep{leja19a}.
+superposition of the $N$ SPS templates $S_n(\lambda)$, each indexed by
+star-formation history (SFH) age bin and nebular-emission variant
+(\S\ref{ssec:templates}).
 
 \todo{Mention that speed and memory management are paramount:
   aggressive caching of reused arrays.} We construct the continuum
@@ -693,12 +689,12 @@ uniform foreground screen,
 
 \begin{equation}
   k(\lambda) \;=\;
-  \left(\frac{\lambda}{5500\,\text{\AA}}\right)^{\alpha}
+  \left(\frac{\lambda}{5500\,\text{\AA}}\right)^{n}
   \label{eq:kl}
 \end{equation}
 
 \noindent is the attenuation curve, which we model as a simple power
-law with fixed power-law index $\alpha=-0.7$ based on the
+law with fixed power-law index $n=-0.7$ based on the
 \citet{charlot00a} birth-cloud model.
 %, consistent with the \citet{calzetti00a} attenuation law shortward of $\sim$6000~\AA.
 Absorbed photons are re-emitted in the infrared following energy
@@ -768,13 +764,12 @@ back to direct pixel-space convolution.
   computing velocity dispersion is computationally expensive. So: Case
   A, Case B. Then describe the algorithms.}
 
-\todo{Compare with MILES in the DESI FP paper.} The C3K
-stellar library has a native spectral resolution of
-$R\equiv\lambda/\Delta\lambda = 10000$, corresponding to a Gaussian
-broadening of $\sigma_\mathrm{C3K} =
-c\,/\,(R\,2\sqrt{2\ln 2}) \approx 12.7$~\kms. Because the optimizer
-searches for the \emph{additional} broadening required on top of this
-template resolution, the quantity it fits---which we denote
+\todo{Compare with MILES in the DESI FP paper.} The C3K library's
+native resolution (\S\ref{ssec:templates}) corresponds to a Gaussian
+broadening of $\sigma_\mathrm{C3K} = c\,/\,(R\,2\sqrt{2\ln 2}) \approx
+12.7$~\kms. Because the optimizer searches for the \emph{additional}
+broadening required on top of this template resolution, the quantity
+it fits---which we denote
 $\vdisp^\mathrm{kern}$---is a convolution kernel rather than $\vdisp$
 itself. We recover the intrinsic stellar velocity dispersion by adding
 the template resolution in quadrature,
@@ -818,7 +813,7 @@ because $\vdisp > \vdisp^\mathrm{kern}$ by construction
 (Eq.~\ref{eq:vdisptot}), the fractional uncertainty on $\vdisp$ is
 smaller than on $\vdisp^\mathrm{kern}$.
 
-When $\vdisp$ cannot be independently measured---either because
+When we cannot independently measure $\vdisp$---either because
 wavelength coverage is insufficient (Case~A) or the $\chi^2$ scan
 fails (Case~B)---we fall back to a physically motivated estimate from
 the stellar-mass--velocity-dispersion ($\sigma$--$M_\star$) scaling
@@ -857,8 +852,8 @@ slightly below unity. The scalar correction $\bar{\eta} =
 \mathrm{median}(\eta_g,\,\eta_r,\,\eta_z)$ is wavelength-independent. We scale the
 fiber spectrum and its inverse-variance array by $\bar{\eta}$ before the joint
 spectrophotometric fit, placing the spectrum on the total-flux scale; output model
-spectra are then divided by $\bar{\eta}$ to recover fiber-aperture units. The
-per-band values are stored as catalog columns \texttt{APERCORR\_G},
+spectra are then divided by $\bar{\eta}$ to recover fiber-aperture units. We
+store the per-band values as catalog columns \texttt{APERCORR\_G},
 \texttt{APERCORR\_R}, and \texttt{APERCORR\_Z}; large band-to-band scatter indicates
 strong color gradients within the fiber aperture.
 
@@ -867,6 +862,12 @@ strong color gradients within the fiber aperture.
 
 \todo{Explicitly mention the priors in this section, $\tauv \in
   [0,2]$.}
+
+\todo{Need to add this comment somewhere: Although templates older
+  than the age of the universe at the target's redshift are, in
+  principle, unphysical, we include all five age bins by default
+  because the coarse age sampling makes the exclusion boundary poorly
+  defined \citep{leja19a}.}
 
 We fit the stellar continuum by minimizing the
 inverse-variance-weighted sum of squared spectroscopic and photometric
@@ -898,7 +899,7 @@ velocity-broadened, attenuated, redshifted template $S_n^\mathrm{obs}$
 pixels and synthesized through the photometric bandpasses, and
 weighted by $\sqrt{I_i}$ or $\sqrt{I_{D,k}}$ as
 appropriate. \todo{Need a clearer explanation or discussion of
-  VARPRO.} This separable structure is exploited via variable
+  VARPRO.} We exploit this separable structure via variable
 projection (VARPRO \citealt{golub73a}): an outer Brent scalar
 minimization over $\tauv$ (typically 10--15 evaluations) with an inner
 NNLS solve for $\mathbf{c}$,
@@ -941,7 +942,7 @@ spectrum with the emission-line model $E(\lambda;\theta_E)$ introduced
 in equation~\eqref{eq:totmodel}: a forward model built from the
 log-Gaussian profiles of individual lines, coupled to the DESI
 resolution matrix (\S\ref{sssec:emline_model}). We first describe how
-lines are grouped by shared kinematics (this section), then the
+we group lines by shared kinematics (this section), then the
 forward model itself (\S\ref{sssec:emline_model}), and finally how we
 decide between narrow-only and narrow+broad kinematic models
 (\S\ref{sssec:kinematic}).
@@ -1075,8 +1076,8 @@ where $r_j \equiv d_j - C_j$ is the continuum-subtracted observed flux
 \ivardensity), and $E_j$ is the emission-line model
 (\S\ref{sssec:emline_model}), using the trust-region reflective
 algorithm
-\citep[\texttt{scipy.optimize.least\_squares};][]{branch99a}.  Line
-fluxes are computed analytically from the fitted $(A,\,\lambda^*,\,s)$
+\citep[\texttt{scipy.optimize.least\_squares};][]{branch99a}.  We
+compute line fluxes analytically from the fitted $(A,\,\lambda^*,\,s)$
 via equation~\eqref{eq:flux_phys}, without reference to the pixel
 sampling or the resolution matrix.
 
@@ -1095,7 +1096,7 @@ models: Ly$\alpha$, [N\,\textsc{v}]~$\lambda$1240,
 O\,\textsc{i}~$\lambda$1304, Si\,\textsc{iv}~$\lambda$1396,
 C\,\textsc{iv}~$\lambda$1549, He\,\textsc{ii}~$\lambda$1640,
 Al\,\textsc{iii}~$\lambda$1857, and He\,\textsc{ii}~$\lambda$4686.
-Two doublet pairs are treated as global kinematic anchors in both
+We treat two doublet pairs as global kinematic anchors in both
 models: Si\,\textsc{iii}]~$\lambda$1892 is tied to
 C\,\textsc{iii}]~$\lambda$1908, and Mg\,\textsc{ii}~$\lambda\lambda$2796,2803
 shares a single kinematic solution with a free amplitude ratio.
@@ -1103,12 +1104,11 @@ shares a single kinematic solution with a free amplitude ratio.
 \input{tables/table-kinematic-bounds}
 
 We fit two profile models whose kinematic structure depends on whether a
-significant broad Balmer component is present
-(\S\ref{sssec:kinematic}). The \emph{narrow-only} model
-(\texttt{linemodel\_nobroad}) places all forbidden lines in a single
-group anchored to [O\,\textsc{iii}]~$\lambda$5007, and groups the
+significant broad Balmer component is present. The \emph{narrow-only}
+model (\texttt{linemodel\_nobroad}) places all forbidden lines in a
+single group anchored to [O\,\textsc{iii}]~$\lambda$5007, groups the
 narrow Balmer series together with He\,\textsc{i} lines in a second
-group anchored to H$\alpha$; all broad Balmer amplitudes are fixed to
+group anchored to H$\alpha$, and fixes all broad Balmer amplitudes to
 zero. The \emph{narrow+broad} model (\texttt{linemodel\_broad})
 collapses all narrow lines---Balmer, He\,\textsc{i}, and
 forbidden---into a single group anchored to narrow H$\alpha$, retains a
@@ -1132,7 +1132,7 @@ Mg\,\textsc{ii}~$\lambda\lambda$2796,2803---carry free amplitude ratios
 that encode the electron density.
 
 After the primary constrained fit, \fastspecfit{} runs a second
-optimization pass in which individual velocity shifts are freed for each
+optimization pass that frees individual velocity shifts for each
 narrow line, allowing it to absorb small wavelength-calibration
 residuals; line widths remain shared within each kinematic group.
 Doublet-constrained pairs retain their kinematic ties during the relaxed
@@ -1162,24 +1162,23 @@ be wider than the narrow component,
 $\sigma_\mathrm{broad}(\ha) > \sigma_\mathrm{narrow}(\ha)$, ensuring a
 physical hierarchy between the two kinematic components. Fourth, at
 least one of the two brightest broad Balmer lines in the spectral range
-must satisfy $S/N_\mathrm{broad} > 2.5$, where the noise is estimated
+must satisfy $S/N_\mathrm{broad} > 2.5$, where we estimate the noise
 robustly from the interquartile range of the fit residuals in the
 Balmer-line pixels after subtracting the full broad model. If any
-condition fails, we retain the narrow-only result. The pixel-level
-$\chi^2$ comparison is recorded in the output columns
+condition fails, we retain the narrow-only result. We record the
+pixel-level $\chi^2$ comparison in the output columns
 \texttt{DELTA\_LINECHI2} and \texttt{DELTA\_LINENDOF}.
 
-After the broad/narrow model selection, \fastspecfit{} runs the
-optional kinematic relaxation pass described in
-\S\ref{sssec:kinematic}. For the narrow-only model, individual velocity
-shifts are freed within a $\pm100$~\kms\ window around each line's
-primary best-fit value, while line widths remain tied; this
+After the broad/narrow model selection, \fastspecfit{} runs an optional
+kinematic relaxation pass. For the narrow-only model, we free
+individual velocity shifts within a $\pm100$~\kms\ window around each
+line's primary best-fit value, while line widths remain tied; this
 configuration accommodates galaxies with forbidden-line outflows, where
 the forbidden and Balmer lines often settle at slightly different
-systemic velocities. For the narrow+broad model, no kinematic parameters
-are relaxed, because the three-group structure already absorbs most
-residual complexity through the broad Balmer component, and freeing
-kinematics in that model risks over-fitting. In both cases we adopt the relaxed
+systemic velocities. For the narrow+broad model, we do not relax any
+kinematic parameters, because the three-group structure already
+absorbs most residual complexity through the broad Balmer component,
+and freeing kinematics in that model risks over-fitting. In both cases we adopt the relaxed
 solution only when the $\chi^2$ improvement weighted by the degrees of
 freedom exceeds the degrees of freedom added by the relaxation;
 otherwise we retain the primary result. We record this comparison in the
@@ -1205,7 +1204,7 @@ consistency check on the stellar population fit.
 
 We flag a line as a significant detection when $A\,\sqrt{I_A} > 1.5$,
 where $I_A$ is the inverse variance of the observed flux density at
-the line center; lines falling below this threshold are reported as
+the line center; we report lines falling below this threshold as
 $1\sigma$ upper limits, with continuum flux densities interpolated
 from the best-fitting continuum model $C(\lambda)$. Equivalent widths
 use the same continuum-model-interpolated continuum.
@@ -1276,7 +1275,7 @@ share the same template library, dust model, and physical output
 quantities; they differ only in the data that enter the fit and in
 whether the stellar velocity dispersion is a free parameter.
 
-In \fastphot{} mode no velocity dispersion is fitted: we
+In \fastphot{} mode we do not fit a velocity dispersion: we
 convolve all templates with ${\vdisp}^\mathrm{kern}_\mathrm{nom}$ and
 report $\vdisp = 150$~\kms\ with \texttt{VDISP\_IVAR}~$= 0$.
 
