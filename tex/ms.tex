@@ -518,12 +518,12 @@ the MIST stellar isochrones \citep{choi16a,dotter16a}, and a
 \citet{chabrier03a} IMF. The \texttt{C3K\_R3K} library spans 100~\AA{}
 to 1000~$\mu$m with $\mathcal{R} \approx 7065$
 ($\lambda/\mathrm{FWHM}=3000$) in the rest-frame optical
-(3500--9800~\AA) and constant-velocity 50~\kms{} pixels. At shorter
-and longer wavelengths our models have lower resolution and sparser
-wavelength sampling, which keeps the UV-to-IR template lightweight for
-synthetic photometry and dust-emission modeling (\S\ref{sssec:dust})
-without wasting resolution where the spectroscopic fit does not need
-it.
+(3500--9800~\AA) and constant-velocity $\Delta v=50$~\kms{} pixels. At
+shorter and longer wavelengths our models have lower resolution and
+sparser wavelength sampling, which keeps the UV-to-IR template
+lightweight for synthetic photometry and dust-emission modeling
+(\S\ref{sssec:fitting}) without wasting resolution where the
+spectroscopic fit does not need it.
 
 Following \citet{leja17a}, we build five ``continuity age'' basis
 templates spanning fixed lookback-time bins, each assuming a constant
@@ -725,93 +725,17 @@ parameters (e.g., a two-component dust model or QSO model spectra),
 which we discuss, in part, in \S\S \ref{sec:modes} and
 \ref{sec:summary}.
 
-We build $C$ by taking the $N$ SPS templates $S_n(\lambda)$
-(\S\ref{ssec:templates}, each indexed by SFH age bin and
-nebular-emission variant) and applying four transformations in
-sequence: dust attenuation and infrared re-emission
-(\S\ref{sssec:dust}), cosmological redshifting with IGM absorption
-(\S\ref{sssec:zfactors}), stellar velocity-dispersion broadening
-(\S\ref{sssec:vdisp}), and a joint spectrophotometric fit for $\tauv$
-and $\mathbf{c}$ (\S\ref{sssec:fitting}).
-
-For each object, we execute three fitting stages in sequence: we first
-determine $\vdisp$ from stellar absorption features
-(\S\ref{sssec:vdisp}); we then derive a per-band aperture correction
-(\S\ref{sssec:apercorr}); and finally we jointly fit $\tauv$ and
-$\mathbf{c}$ against the spectrum and photometry
-(\S\ref{sssec:fitting}). A nonparametric smooth-continuum correction
-then removes residual low-level systematics before the spectrum passes
-to the emission-line fitter (\S\ref{sssec:smooth}).
-
-\subsubsection{Dust Attenuation and Emission}
-\label{sssec:dust}
-
-We model the attenuation of each stellar continuum template as a
-uniform foreground screen,
-\begin{equation}
-  S_n^\mathrm{att}(\lambda) = S_n(\lambda)\,e^{-\tauv k(\lambda)},
-  \label{eq:atten}
-\end{equation}
-
-\noindent where $S_n(\lambda)$ is the unattenuated template
-(\S\ref{ssec:templates}), $\tauv$ is the $V$-band optical depth, and
-
-\begin{equation}
-  k(\lambda) =
-  \left(\frac{\lambda}{5500\,\text{\AA}}\right)^{n}
-  \label{eq:kl}
-\end{equation}
-
-\noindent is the attenuation curve, which we model as a simple power
-law with fixed power-law index $n=-0.7$ based on the
-\citet{charlot00a} birth-cloud model.
-%, consistent with the \citet{calzetti00a} attenuation law shortward of $\sim$6000~\AA.
-Absorbed photons are re-emitted in the infrared following energy
-balance: we scale the \citet{draine07a} dust emission template
-$S_\mathrm{dust}(\lambda)$ (normalized to unit bolometric luminosity)
-by the luminosity absorbed from each template,
-\begin{equation}
-  L_{\mathrm{abs},n} = \int_0^\infty S_n(\lambda) (1 - e^{-\tauv
-    k(\lambda)})\,d\lambda,
-\end{equation}
-so that the total (attenuated plus reradiated) continuum template
-conserves bolometric luminosity:
-\begin{equation}
-  S_n^\mathrm{tot}(\lambda) = S_n^\mathrm{att}(\lambda) +
-  L_{\mathrm{abs},n}\,S_\mathrm{dust}(\lambda).
-  \label{eq:ftot}
-\end{equation}
-The dust emission template uses default parameters ($q_\mathrm{PAH}=3.5$,
-$U_\mathrm{min}=1.0$, $\gamma=0.01$) and contributes only to the
-photometric fit.
-
-\subsubsection{Redshift, IGM, and Flux Scaling}
-\label{sssec:zfactors}
-
-For an object at redshift $z$ with luminosity distance $D_L$ (in Mpc), we relate
-each rest-frame continuum template to its observed-frame counterpart,
-\begin{equation}
-  S_n^\mathrm{obs}(\lambda)
-  =
-  T_\mathrm{IGM}(\lambda,z)\,
-  \frac{\mathcal{F}_0\,\mathcal{M}_0}
-       {4\pi\,(3.086\times10^{24}\,D_L)^2}
-  \,\frac{S_n^\mathrm{tot}(\lambda/(1+z))}{1+z},
-  \label{eq:zfactor}
-\end{equation}
-where $T_\mathrm{IGM}(\lambda,z)$ is the \citet{inoue14a} IGM
-transmission accounting for Ly$\alpha$ forest and Lyman-limit
-attenuation; $\mathcal{F}_0 = 10^{17}$ is a dimensionless scale factor
-converting the cgs flux densities of \S\ref{ssec:templates} to our
-internal flux units of $10^{-17}$~erg~s$^{-1}$~cm$^{-2}$~\AA$^{-1}$;
-and $\mathcal{M}_0 = 10^{10}\,\msun$ is a fixed mass normalization
-that rescales the fitted template coefficients to order unity for a
-well-conditioned NNLS solve (\S\ref{sssec:fitting})---we fold
-$\mathcal{M}_0$ back in at this stage, so that the coefficients
-$\mathbf{c}$ carry units of $\msun$ throughout the rest of the fit. We
-combine the scalar prefactor and IGM transmission into a single array
-(\texttt{zfactors}) evaluated once per object at initialization and
-reused for all template evaluations during fitting.
+For each object, we determine $\theta_C$ in three stages: we first
+measure $\vdisp$ from stellar absorption features
+(\S\ref{sssec:vdisp}); we then derive a scalar aperture correction
+that places the DESI fiber spectrum on the total-flux scale of the
+broadband photometry (\S\ref{sssec:apercorr}); and finally we jointly
+fit for dust attenuation $\tauv$ and the template coefficients
+$\mathbf{c}$, holding $z$ fixed at its input (Redrock) value
+(\S\ref{sssec:fitting}). An optional nonparametric smooth-continuum
+correction then removes residual low-level systematics
+(\S\ref{sssec:smooth}) before the spectrum passes to the emission-line
+fitter.
 
 \subsubsection{Velocity Dispersion}
 \label{sssec:vdisp}
@@ -825,18 +749,16 @@ back to a scaling relation otherwise.
 
 We convolve the SPS templates with a Gaussian kernel to model
 $\vdisp$, working on the fitting code's constant-velocity wavelength
-grid ($\Delta v \approx 15$~\kms\ per pixel) so that the kernel has a
-fixed pixel width $\sigma_\mathrm{pix} = \vdisp/\Delta v$ and
-convolution reduces to a single FFT multiplication; we pre-compute and
-cache the Fourier transforms of all templates for $\vdisp \leq
-500$~\kms\ and fall back to direct pixel-space convolution above that.
-Because the C3K templates themselves have finite native resolution
-($\mathcal{R} = 3000$, or $\sigma_\mathrm{C3K} \approx 42$~\kms\ at
-their 50~\kms\ pixel scale; \S\ref{ssec:templates}), the optimizer
-only ever recovers the \emph{additional} kernel width
-$\vdisp^\mathrm{kern} \in [50,\,500]$~\kms\ needed on top of that
-floor, and we add the template resolution back in quadrature to
-recover the physical velocity dispersion,
+grid so that the kernel has a fixed pixel width $\sigma_\mathrm{pix} =
+\vdisp/\Delta v$ and convolution reduces to a single FFT
+multiplication; we pre-compute and cache the Fourier transforms of all
+templates for $\vdisp \leq 500$~\kms\ and fall back to direct
+pixel-space convolution above that. The optimizer recovers the
+\emph{additional} kernel width $\vdisp^\mathrm{kern} \in
+     [50,\,500]$~\kms{} needed on top of the template resolution,
+     $\sigma_\mathrm{C3K} \approx 42~\kms$
+     (\S\ref{ssec:templates})). We add the template resolution back in
+     quadrature to recover the physical velocity dispersion,
 \begin{equation}
   \vdisp = \sqrt{(\vdisp^\mathrm{kern})^2 + \sigma_\mathrm{C3K}^2}.
   \label{eq:vdisptot}
@@ -881,7 +803,7 @@ measured.
 The DESI fiber subtends 1\farcs5 and intercepts only a fraction of the light from
 extended sources, while the Legacy Survey photometry measures total flux. We bridge
 this mismatch with a per-band aperture-correction factor $\eta_f$
-(\S\ref{ssec:continuum}) derived from the initial $\vdisp$ fit. That fit yields a
+derived from the initial $\vdisp$ fit. That fit yields a
 continuum model $C_f^\mathrm{fib}$ normalized to the fiber spectrum; we synthesize
 photometry from it in the $g$, $r$, and $z$ bands and compare it to the Tractor
 total flux $D_f$,
@@ -901,6 +823,71 @@ strong color gradients within the fiber aperture.
 
 \subsubsection{Fitting Algorithm}
 \label{sssec:fitting}
+
+We model the attenuation of each stellar continuum template as a
+uniform foreground screen,
+\begin{equation}
+  S_n^\mathrm{att}(\lambda) = S_n(\lambda)\,e^{-\tauv k(\lambda)},
+  \label{eq:atten}
+\end{equation}
+
+\noindent where $S_n(\lambda)$ is the unattenuated template
+(\S\ref{ssec:templates}), $\tauv$ is the $V$-band optical depth, and
+
+\begin{equation}
+  k(\lambda) =
+  \left(\frac{\lambda}{5500\,\text{\AA}}\right)^{n}
+  \label{eq:kl}
+\end{equation}
+
+\noindent is the attenuation curve, which we model as a simple power
+law with fixed power-law index $n=-0.7$ based on the
+\citet{charlot00a} birth-cloud model.
+%, consistent with the \citet{calzetti00a} attenuation law shortward of $\sim$6000~\AA.
+Absorbed photons are re-emitted in the infrared following energy
+balance: we scale the \citet{draine07a} dust emission template
+$S_\mathrm{dust}(\lambda)$ (normalized to unit bolometric luminosity)
+by the luminosity absorbed from each template,
+\begin{equation}
+  L_{\mathrm{abs},n} = \int_0^\infty S_n(\lambda) (1 - e^{-\tauv
+    k(\lambda)})\,d\lambda,
+  \label{eq:labs}
+\end{equation}
+so that the total (attenuated plus reradiated) continuum template
+conserves bolometric luminosity:
+\begin{equation}
+  S_n^\mathrm{tot}(\lambda) = S_n^\mathrm{att}(\lambda) +
+  L_{\mathrm{abs},n}\,S_\mathrm{dust}(\lambda).
+  \label{eq:ftot}
+\end{equation}
+The dust emission template uses default parameters ($q_\mathrm{PAH}=3.5$,
+$U_\mathrm{min}=1.0$, $\gamma=0.01$) and contributes only to the
+photometric fit.
+
+For an object at redshift $z$ with luminosity distance $D_L$ (in Mpc), we relate
+each rest-frame continuum template to its observed-frame counterpart,
+\begin{equation}
+  S_n^\mathrm{obs}(\lambda)
+  =
+  T_\mathrm{IGM}(\lambda,z)\,
+  \frac{\mathcal{F}_0\,\mathcal{M}_0}
+       {4\pi\,(3.086\times10^{24}\,D_L)^2}
+  \,\frac{S_n^\mathrm{tot}(\lambda/(1+z))}{1+z},
+  \label{eq:zfactor}
+\end{equation}
+where $T_\mathrm{IGM}(\lambda,z)$ is the \citet{inoue14a} IGM
+transmission accounting for Ly$\alpha$ forest and Lyman-limit
+attenuation; $\mathcal{F}_0 = 10^{17}$ is a dimensionless scale factor
+converting the cgs flux densities of \S\ref{ssec:templates} to our
+internal flux units of $10^{-17}$~erg~s$^{-1}$~cm$^{-2}$~\AA$^{-1}$;
+and $\mathcal{M}_0 = 10^{10}\,\msun$ is a fixed mass normalization
+that rescales the fitted template coefficients to order unity for a
+well-conditioned NNLS solve below---we fold
+$\mathcal{M}_0$ back in at this stage, so that the coefficients
+$\mathbf{c}$ carry units of $\msun$ throughout the rest of the fit. We
+combine the scalar prefactor and IGM transmission into a single array
+(\texttt{zfactors}) evaluated once per object at initialization and
+reused for all template evaluations during fitting.
 
 \todo{Explicitly mention the priors in this section, $\tauv \in
   [0,2]$.}
@@ -936,8 +923,9 @@ $\mathbf{c}$ for any fixed $\tauv$,
   \label{eq:designmatrix}
 \end{equation}
 where each column of the design matrix $\boldsymbol{\Psi}$ is one
-velocity-broadened, attenuated, redshifted template $S_n^\mathrm{obs}$
-(\S\S\ref{sssec:dust}--\ref{sssec:vdisp}), evaluated at the spectral
+fully transformed template $S_n^\mathrm{obs}$---attenuated and
+redshifted as above, and broadened by $\vdisp$
+(\S\ref{sssec:vdisp})---evaluated at the spectral
 pixels and synthesized through the photometric bandpasses, and
 weighted by $\sqrt{I_i}$ or $\sqrt{I_{D,k}}$ as
 appropriate. \todo{Need a clearer explanation or discussion of
@@ -1591,7 +1579,7 @@ spectrum by target class, total wall-clock time, etc.}
 Because \fastspec{} fits hundreds of thousands of spectra, we cache
 reused arrays aggressively throughout---precomputed template FFTs
 (\S\ref{sssec:vdisp}) and per-object redshift/IGM prefactors
-(\S\ref{sssec:zfactors}) chief among them---to minimize redundant
+(\S\ref{sssec:fitting}) chief among them---to minimize redundant
 computation.
 
 \subsection{Validation}
