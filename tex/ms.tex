@@ -437,7 +437,31 @@ examples of \fastspec{} applied to individual DESI targets may safely
 skip to \S\ref{sec:casestudy}, while those interested only in the
 resulting DR2 value-added catalog may skip to \S\ref{sec:vac}.
 
-We begin with the fitting pipeline's two primary model inputs, the
+Let $F(\lambda;\theta)$ be the observed-frame UV-through-IR spectral
+energy distribution (SED) of a galaxy, where $\theta$ denotes the
+physical properties---stellar mass, star-formation history, dust
+content, kinematics, redshift, and so on---that determine it.
+%In practice, DESI fiber spectroscopy captures only $f(\lambda;\theta)
+%\equiv F(\lambda;\theta)/\eta$, where $\eta$ is the
+%aperture-correction factor relating the flux enclosed within the fiber
+%to the galaxy's total flux (generally $\eta \gtrsim 1$, although in
+%practice it can scatter below unity; see \S\ref{sssec:apercorr}). We
+%rescale the observed fiber spectrum by $\eta$ before fitting, so that
+%our data---the spectral pixels $d_i$ and broadband photometry $D_k$
+%(\S\ref{sssec:fitting})---are on the same total-flux scale as $F$.
+Our
+overarching goal is to find the model
+\begin{equation}
+  M(\lambda;\theta) \;=\; C(\lambda;\theta_C) + E(\lambda;\theta_E),
+  \label{eq:totmodel}
+\end{equation}
+the sum of a \emph{stellar continuum model} $C$ (\S\ref{ssec:continuum})
+and an \emph{emission-line model} $E$ (\S\ref{ssec:emlines}), that best
+reproduces $F$ in a maximum-likelihood sense, where $\theta \equiv
+\theta_C \cup \theta_E$ is the union of the continuum and
+emission-line parameter sets.
+
+We begin by describing the fitting pipeline's two primary model inputs, the
 stellar population synthesis template library (\S\ref{ssec:templates})
 and the emission-line list (\S\ref{ssec:emlinelist}).  We then
 describe the three sequential algorithmic stages \fastspec{} executes
@@ -533,9 +557,10 @@ We include 40 emission lines in the default \fastspecfit{} line list,
 spanning rest-frame Ly$\alpha$~$\lambda$1215 to
 [\ion{S}{3}]~$\lambda$9532, and organize them into four fitting
 categories---UV/QSO, narrow Balmer/helium, broad Balmer/helium, and
-narrow forbidden---in Table~\ref{table:emlines}. These categories
-inform the kinematic fitting priors we describe fully
-\S\ref{sssec:kinematic}.
+narrow forbidden---in Table~\ref{table:emlines}. \todo{Should the
+  table include an isstrong notation or the list of patches (to
+  connect with \S\ref{ssec:patches})?} These categories inform the
+kinematic fitting priors we describe fully \S\ref{sssec:kinematic}.
 
 We select this list to span the full range of galaxy and QSO spectral
 types over the DESI redshift range, targeting the strongest and most
@@ -572,16 +597,17 @@ database.\footnote{\url{https://db.chiantidatabase.org}}
 \subsection{Fast Fitting in Wavelength Patches}
 \label{ssec:patches}
 
-We cannot fit the stellar continuum robustly without first identifying
-which pixels line emission contaminates, yet DESI targets span an
-enormous range of emission-line properties, from purely
-absorption-line quiescent galaxies with no measurable line emission at
-all to extreme starbursts and broad-line AGN whose emission dominates
-large stretches of the observed spectrum. A single, fixed masking
-window sized for the strongest expected lines would over-mask
-quiescent spectra and discard usable continuum information, while a
-window sized for typical narrow lines would under-mask starburst and
-broad-line spectra and bias the stellar continuum fit.
+\todo{Needs some editing/cleanup/simplification.} We cannot fit the
+stellar continuum robustly without first identifying which pixels line
+emission contaminates, yet DESI targets span an enormous range of
+emission-line properties, from purely absorption-line quiescent
+galaxies with no measurable line emission at all to extreme starbursts
+and broad-line AGN whose emission dominates large stretches of the
+observed spectrum. A single, fixed masking window sized for the
+strongest expected lines would over-mask quiescent spectra and discard
+usable continuum information, while a window sized for typical narrow
+lines would under-mask starburst and broad-line spectra and bias the
+stellar continuum fit.
 
 Before fitting the stellar continuum, we therefore run a lightweight
 pre-fitting pass---the \emph{line masker}---that adapts to each
@@ -665,49 +691,30 @@ variance.
 \subsection{Stellar Continuum Model}
 \label{ssec:continuum}
 
-Let $F(\lambda,\theta)$ be the UV-through-IR spectral energy
-distribution (SED) of a galaxy, where $\theta$ denotes the physical
-properties---stellar mass, star-formation history, dust content,
-kinematics, redshift, and so on---that determine it. In practice, DESI
-fiber spectroscopy captures only $f(\lambda,\theta) \equiv
-F(\lambda,\theta)/\eta$, where $\eta$ is the aperture-correction factor
-relating the flux enclosed within the fiber to the galaxy's total flux
-(generally $\eta \gtrsim 1$, although it can scatter slightly below
-unity; \S\ref{sssec:apercorr}). We rescale the observed fiber spectrum
-by $\eta$ before fitting, so that our data---the spectral pixels $d_i$
-and broadband photometry $D_k$ (\S\ref{sssec:fitting})---are on the
-same total-flux scale as $F$. Our goal is to find the model
-\begin{equation}
-  M(\lambda;\theta) \;=\; C(\lambda;\theta_C) + E(\lambda;\theta_E),
-  \label{eq:totmodel}
-\end{equation}
-the sum of a \emph{stellar continuum model} $C$ (this section) and an
-\emph{emission-line model} $E$ (\S\ref{ssec:emlines}), that best
-reproduces $F$ in a maximum-likelihood sense.
+Our goal in this section is to find the continuum model
+$C(\lambda;\theta_C)$, with parameter set $\theta_C =
+\{\tauv,\vdisp,\mathbf{c},z\}$---the $V$-band dust optical depth
+$\tauv$ (\S\ref{sssec:dust}), stellar velocity dispersion $\vdisp$
+(\S\ref{sssec:vdisp}), non-negative template coefficients $\mathbf{c}$
+(\S\ref{sssec:fitting}), and redshift $z$
+(\S\ref{sssec:zfactors})---that best reproduces the observed spectrum
+and photometry. We build $C$ by taking the $N$ SPS templates
+$S_n(\lambda)$ (\S\ref{ssec:templates}, each indexed by SFH age bin
+and nebular-emission variant) and applying four transformations in
+sequence: dust attenuation and infrared re-emission
+(\S\ref{sssec:dust}), cosmological redshifting with IGM absorption
+(\S\ref{sssec:zfactors}), stellar velocity-dispersion broadening
+(\S\ref{sssec:vdisp}), and a joint spectrophotometric fit for $\tauv$
+and $\mathbf{c}$ (\S\ref{sssec:fitting}).
 
-We represent the stellar continuum as a non-negative linear
-superposition of the $N$ SPS templates $S_n(\lambda)$, each indexed by
-star-formation history (SFH) age bin and nebular-emission variant
-(\S\ref{ssec:templates}).
-
-\todo{Mention that speed and memory management are paramount:
-  aggressive caching of reused arrays.} We construct the continuum
-model $C(\lambda;\theta_C)$, with $\theta_C = \{\tauv,\vdisp,\mathbf{c},z\}$,
-by sequentially applying four transformations to the SPS templates
-$S_n(\lambda)$ (\S\ref{ssec:templates}): dust attenuation and infrared
-re-emission (\S\ref{sssec:dust}), cosmological redshifting with IGM
-absorption (\S\ref{sssec:zfactors}), stellar velocity-dispersion
-broadening (\S\ref{sssec:vdisp}), and joint spectrophotometric fitting
-(\S\ref{sssec:fitting}). For each object we execute three fitting
-stages in sequence: we first determine $\vdisp$ from stellar
-absorption features (\S\ref{sssec:vdisp}); we then estimate a per-band
-aperture correction to place the fiber spectrum on the total-flux
-scale of the broadband photometry (\S\ref{sssec:apercorr}); and
-finally we perform a joint spectrophotometric fit for dust attenuation
-$\tauv$ and template coefficients $\mathbf{c}$ (\S\ref{sssec:fitting}).
-A nonparametric smooth continuum correction removes low-level residuals
-after the primary fit, before the spectrum is passed to the
-emission-line fitter (\S\ref{sssec:smooth}).
+For each object, we execute three fitting stages in sequence: we first
+determine $\vdisp$ from stellar absorption features
+(\S\ref{sssec:vdisp}); we then derive a per-band aperture correction
+(\S\ref{sssec:apercorr}); and finally we jointly fit $\tauv$ and
+$\mathbf{c}$ against the spectrum and photometry
+(\S\ref{sssec:fitting}). A nonparametric smooth-continuum correction
+then removes residual low-level systematics before the spectrum passes
+to the emission-line fitter (\S\ref{sssec:smooth}).
 
 \subsubsection{Dust Attenuation and Emission}
 \label{sssec:dust}
@@ -749,13 +756,12 @@ conserves bolometric luminosity:
 \end{equation}
 The dust emission template uses default parameters ($q_\mathrm{PAH}=3.5$,
 $U_\mathrm{min}=1.0$, $\gamma=0.01$) and contributes only to the
-photometric fit (it falls outside the DESI spectral range for most
-targets).
+photometric fit.
 
 \subsubsection{Redshift, IGM, and Flux Scaling}
 \label{sssec:zfactors}
 
-For an object at redshift $z$ with luminosity distance $D_L$, we relate
+For an object at redshift $z$ with luminosity distance $D_L$ (in Mpc), we relate
 each rest-frame continuum template to its observed-frame counterpart,
 \begin{equation}
   S_n^\mathrm{obs}(\lambda)
@@ -768,10 +774,14 @@ each rest-frame continuum template to its observed-frame counterpart,
 \end{equation}
 where $T_\mathrm{IGM}(\lambda,z)$ is the \citet{inoue14a} IGM
 transmission accounting for Ly$\alpha$ forest and Lyman-limit
-attenuation, $\mathcal{F}_0 = 10^{17}$ converts to our internal flux
-units of $10^{-17}$~erg~s$^{-1}$~cm$^{-2}$~\AA$^{-1}$, and
-$\mathcal{M}_0 = 10^{10}\,\msun$ is the mass
-normalization. \todo{Explain the purpose of $\mathcal{M}_0$.} We
+attenuation; $\mathcal{F}_0 = 10^{17}$ is a dimensionless scale factor
+converting the cgs flux densities of \S\ref{ssec:templates} to our
+internal flux units of $10^{-17}$~erg~s$^{-1}$~cm$^{-2}$~\AA$^{-1}$;
+and $\mathcal{M}_0 = 10^{10}\,\msun$ is a fixed mass normalization
+that rescales the fitted template coefficients to order unity for a
+well-conditioned NNLS solve (\S\ref{sssec:fitting})---we fold
+$\mathcal{M}_0$ back in at this stage, so that the coefficients
+$\mathbf{c}$ carry units of $\msun$ throughout the rest of the fit. We
 combine the scalar prefactor and IGM transmission into a single array
 (\texttt{zfactors}) evaluated once per object at initialization and
 reused for all template evaluations during fitting.
@@ -779,94 +789,64 @@ reused for all template evaluations during fitting.
 \subsubsection{Velocity Dispersion}
 \label{sssec:vdisp}
 
-\todo{Need a science opening statement---velocity dispersion is due to
-  the integrated motions of stars due to the total gravitational
-  potential well of the galaxy. DESI Fundamental Plane, LEGA-C
-  papers.}
+The line-of-sight stellar velocity dispersion $\vdisp$ traces the
+depth of a galaxy's gravitational potential well and feeds several
+downstream diagnostics, from dynamical mass estimates to the
+Fundamental Plane, so we measure it directly from the stellar
+absorption features whenever the spectral coverage allows, and fall
+back to a scaling relation otherwise.
 
-We convolve the SPS templates with a Gaussian kernel to model the
-line-of-sight stellar velocity dispersion $\vdisp$. On the
-constant-velocity wavelength grid ($\Delta v \approx 15$~\kms\ per pixel),
-the kernel has a fixed pixel width $\sigma_\mathrm{pix} =
-\vdisp/\Delta v$, enabling efficient FFT-based convolution over the
-3500--9800~\AA\ subrange. To avoid recomputing the transform at every
-trial $\vdisp$, we pre-compute and cache the Fourier transforms of all
-templates for $\vdisp \leq 500$~\kms; convolution then requires only a
-single inverse FFT per evaluation. For $\vdisp > 500$~\kms\ we fall
-back to direct pixel-space convolution.
-
-\todo{Subsequent paragraphs are hard to follow. Something like: ``But
-  computing velocity dispersion is computationally expensive. So: Case
-  A, Case B. Then describe the algorithms.}
-
-\todo{Compare with MILES in the DESI FP paper.} The C3K library's
-native resolution (\S\ref{ssec:templates}) corresponds to a Gaussian
-broadening of $\sigma_\mathrm{C3K} = c\,/\,(R\,2\sqrt{2\ln 2}) \approx
-12.7$~\kms. Because the optimizer searches for the \emph{additional}
-broadening required on top of this template resolution, the quantity
-it fits---which we denote
-$\vdisp^\mathrm{kern}$---is a convolution kernel rather than $\vdisp$
-itself. We recover the intrinsic stellar velocity dispersion by adding
-the template resolution in quadrature,
+We convolve the SPS templates with a Gaussian kernel to model
+$\vdisp$, working on the fitting code's constant-velocity wavelength
+grid ($\Delta v \approx 15$~\kms\ per pixel) so that the kernel has a
+fixed pixel width $\sigma_\mathrm{pix} = \vdisp/\Delta v$ and
+convolution reduces to a single FFT multiplication; we pre-compute and
+cache the Fourier transforms of all templates for $\vdisp \leq
+500$~\kms\ and fall back to direct pixel-space convolution above that.
+Because the C3K templates themselves have finite native resolution
+($\mathcal{R} = 3000$, or $\sigma_\mathrm{C3K} \approx 42$~\kms\ at
+their 50~\kms\ pixel scale; \S\ref{ssec:templates}), the optimizer
+only ever recovers the \emph{additional} kernel width
+$\vdisp^\mathrm{kern} \in [50,\,500]$~\kms\ needed on top of that
+floor, and we add the template resolution back in quadrature to
+recover the physical velocity dispersion,
 \begin{equation}
-  \vdisp = \sqrt{(\vdisp^\mathrm{kern})^2 + \sigma_\mathrm{C3K}^2},
+  \vdisp = \sqrt{(\vdisp^\mathrm{kern})^2 + \sigma_\mathrm{C3K}^2}.
   \label{eq:vdisptot}
 \end{equation}
-and we restrict the kernel to $\vdisp^\mathrm{kern} \in [50,\,500]$~\kms.
 
-We fit $\vdisp$ over the 3800--6000~\AA\ rest-frame window, which
-captures the Ca~H\&K break, $G$-band, H$\beta$, Mg~$b$, and Fe
-absorption features sensitive to velocity broadening, and only when the
-observed spectrum satisfies $\lambda_\mathrm{min}^\mathrm{rest} <
-3800$~\AA\ (so that Ca~H\&K is present) and
-$\lambda_\mathrm{max}^\mathrm{rest} > 4900$~\AA\ (so that the spectrum
-reaches at least H$\beta$, corresponding to $z \lesssim 1$ for DESI
-spectra). If either condition fails, we bypass the fit and adopt the
-$\sigma$--$M_\star$ fallback described below (Case~A).
+We attempt this fit over the 3800--6000~\AA\ rest-frame window
+(covering Ca~H\&K, the $G$-band, H$\beta$, Mg~$b$, and Fe features)
+only when the spectrum reaches both 3800 and 4900~\AA\ rest-frame
+(roughly $z \lesssim 1$ for DESI); otherwise we skip directly to the
+$\sigma$--$M_\star$ fallback below. When the window is available, we
+first scan a $\chi^2$ grid of $N=6$ kernel values spanning
+$[50,\,500]$~\kms, fixing $\tauv=0$ and solving for the template
+coefficients by linear least-squares at each grid point. If the scan
+yields $\Delta\chi^2 \geq 25$ with the minimum away from either
+boundary, we refine it with \texttt{scipy.optimize.least\_squares}
+(Trust-Region Reflective; \citealt{branch99a}), fitting
+$\vdisp^\mathrm{kern}$ and $\tauv$ jointly from the grid minimum, and
+estimate \texttt{VDISP\_IVAR} by propagating $n_\mathrm{Monte}$ noise
+realizations of the observed flux through Equation~\ref{eq:vdisptot}.
+A failed scan, like insufficient wavelength coverage, falls back to
+the $\sigma$--$M_\star$ relation below.
 
-When wavelength coverage is sufficient, we employ a three-stage strategy.
-First, we perform a $\chi^2$ grid scan over $N = 6$ kernel values evenly
-spaced in $[50,\,500]$~\kms: at each grid point we convolve the
-line-free templates to that kernel with $\tauv = 0$ and solve for the
-template coefficients via linear least-squares over the vdisp wavelength
-window. We accept the scan only if $\Delta\chi^2 \geq 25$ and the
-best-fit kernel does not fall at either boundary; a failed scan triggers
-the $\sigma$--$M_\star$ fallback (Case~B). Second, if the scan succeeds,
-we refine the estimate with \texttt{scipy.optimize.least\_squares} using
-the Trust-Region Reflective (TRF) method \citep{branch99a}, fitting
-$\vdisp^\mathrm{kern}$ and $\tauv$ jointly over the vdisp wavelength
-window, initialized at the grid minimum. Third, we estimate
-\texttt{VDISP\_IVAR} from $n_\mathrm{Monte}$ noise realizations drawn
-from the observed flux errors, converting the inverse variance of the
-kernel to that of $\vdisp$ via the Jacobian,
-\begin{equation}
-  \mathrm{IVAR}(\vdisp) \;=\; \mathrm{IVAR}(\vdisp^\mathrm{kern})\,
-    \left(\frac{\vdisp}{\vdisp^\mathrm{kern}}\right)^{\!2};
-  \label{eq:vdisp_ivar}
-\end{equation}
-because $\vdisp > \vdisp^\mathrm{kern}$ by construction
-(Eq.~\ref{eq:vdisptot}), the fractional uncertainty on $\vdisp$ is
-smaller than on $\vdisp^\mathrm{kern}$.
-
-When we cannot independently measure $\vdisp$---either because
-wavelength coverage is insufficient (Case~A) or the $\chi^2$ scan
-fails (Case~B)---we fall back to a physically motivated estimate from
-the stellar-mass--velocity-dispersion ($\sigma$--$M_\star$) scaling
-relation.  We first run a preliminary continuum fit at the nominal
-kernel (${\vdisp}_\mathrm{nom}^\mathrm{kern} \approx 143.9$~\kms) to
-obtain template coefficients and a preliminary $M_\star$; we then use
+When we cannot measure $\vdisp$ directly, we estimate it instead from
+the stellar-mass--velocity-dispersion relation,
 \begin{equation}
   \log_{10}(\vdisp/\kms) = a + b\,(\logmstar - 11),
   \label{eq:sigma_mstar}
 \end{equation}
-with $(a,b) = (2.30, 0.25)$ and convert the inferred $\vdisp$ to the
-corresponding $\vdisp^\mathrm{kern}$ via
-Equation~\ref{eq:vdisptot}. \todo{ref needed} If the preliminary fit
-yields no valid stellar mass ($M_\star \leq 0$), we instead adopt the
-hard fallback $\vdisp = 150$~\kms---\texttt{VDISP\_NOMINAL}, which
-corresponds to ${\vdisp}^\mathrm{kern}_\mathrm{nom}$. In all fallback
-cases we set \texttt{VDISP\_IVAR}~$= 0$ to flag that $\vdisp$ was not
-independently fitted.
+with $(a,b) = (2.30,\,0.25)$. \todo{ref needed} We derive $M_\star$
+from a preliminary continuum fit at the nominal kernel
+(${\vdisp}_\mathrm{nom}^\mathrm{kern} \approx 143.9$~\kms) and convert
+the resulting $\vdisp$ to $\vdisp^\mathrm{kern}$ via
+Equation~\ref{eq:vdisptot}. If that preliminary fit yields no valid
+stellar mass, we adopt the hard fallback $\vdisp = 150$~\kms\
+(\texttt{VDISP\_NOMINAL}). In either fallback case we set
+\texttt{VDISP\_IVAR}~$=0$ to flag that $\vdisp$ was not independently
+measured.
 
 \subsubsection{Aperture Correction}
 \label{sssec:apercorr}
@@ -1578,6 +1558,13 @@ per-spectrum fits across all available cores within each node. Processing the
 complete DR2 catalog of approximately 38~million spectra required approximately
 \todo{X}~node-hours on Perlmutter. \todo{Add benchmark breakdown: seconds per
 spectrum by target class, total wall-clock time, etc.}
+
+\todo{Pulled in from \S\ref{ssec:continuum}; maybe it goes here?}
+Because \fastspec{} fits hundreds of thousands of spectra, we cache
+reused arrays aggressively throughout---precomputed template FFTs
+(\S\ref{sssec:vdisp}) and per-object redshift/IGM prefactors
+(\S\ref{sssec:zfactors}) chief among them---to minimize redundant
+computation.
 
 \subsection{Validation}
 \label{ssec:validation}
