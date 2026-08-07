@@ -113,8 +113,7 @@ def make_figure(specdata, objmeta, coadd_type, out, patchids, outfile):
     """
     sys.path.insert(0, os.path.join(REPODIR, 'code'))
     from util import plot_style
-    from scipy.ndimage import gaussian_filter
-    from matplotlib.patches import ConnectionPatch
+    from matplotlib.patches import ConnectionPatch, Rectangle
 
     from fastspecfit.emlines import EMFitTools
     from fastspecfit.emline_fit import EMLine_MultiLines
@@ -227,34 +226,76 @@ def make_figure(specdata, objmeta, coadd_type, out, patchids, outfile):
             e = max(e, int(np.max(contpix)) + 1)
         patch_windows[patchid] = (s, e)
 
-    fig = plt.figure(figsize=(3.3 * npanel, 6.5), constrained_layout=True)
-    fig.get_layout_engine().set(w_pad=0.12, h_pad=0.12, wspace=0.10, hspace=0.14)
+    fig = plt.figure(figsize=(2.8 * npanel, 6.5), constrained_layout=True)
+    # rect leaves room at bottom/left for the fig.text() axis labels added
+    # below (plain fig.text() isn't margin-managed by constrained_layout,
+    # unlike supxlabel/supylabel, so we reserve the space by hand)
+    fig.get_layout_engine().set(w_pad=0.02, h_pad=0.12, wspace=0.0, hspace=0.14,
+                                rect=(0.04, 0.045, 0.945, 0.935))
     gs = fig.add_gridspec(2, npanel, height_ratios=[1.1, 1])
 
-    # top panel: full per-camera spectrum, with each patch's span shaded
+    # top panel: full spectrum, camera-colored where pixels remain available
+    # for continuum fitting, light gray where masked by a kept emission line
+    # (out['coadd_linepix'], the final S/N-thresholded mask).
     specax = fig.add_subplot(gs[0, :])
-    for icam, cam in enumerate(specdata['cameras']):
-        specax.plot(specdata['wave0'][icam], gaussian_filter(specdata['flux0'][icam], 2),
-                   color=CAMERA_COLORS[icam % len(CAMERA_COLORS)], lw=0.7)
+    specax.plot(coadd_wave, coadd_flux, color='0.82', lw=0.6, zorder=1)
+
+    full_linemask = np.zeros(len(coadd_wave), bool)
+    for linepix in out['coadd_linepix'].values():
+        full_linemask[linepix] = True
+    plot_segments(specax, coadd_wave, coadd_flux, camids, ~full_linemask,
+                 CAMERA_COLORS, lw=0.8, zorder=3)
     specax.margins(x=0)
+    # lock in the range set by the spectrum itself, before overlaying the
+    # (possibly much taller) per-patch line-fit models below. The lower
+    # bound is sigma-clipped so a handful of noisy negative pixels don't
+    # drag the whole panel down.
+    from astropy.stats import sigma_clipped_stats
+    _, flux_median, flux_std = sigma_clipped_stats(coadd_flux, sigma=3.)
+    specax_ylim = (flux_median - 5. * flux_std, specax.get_ylim()[1])
+    specax.set_ylim(specax_ylim)
+    specax_ybottom = specax_ylim[0]
+
+    # overlay every fitted patch's best-fit model (Gaussians + linear
+    # continuum pedestal) directly on top of its masked (gray) stretch, so
+    # masked regions show what was actually fit there instead of
+    # disappearing into gray -- not just the patches featured as zoom panels
+    # below. Strong lines can exceed the spectrum's own range and simply
+    # clip against it, rather than rescaling the whole panel.
+    for endpts, slope, intercept, pivotwave in contfit.iterrows(
+            'endpts', 'slope', 'intercept', 'pivotwave'):
+        s0, e0 = endpts
+        modelkeep = np.ones(e0 - s0, bool)
+        plot_segments(specax, coadd_wave[s0:e0], pf['bestfit'][s0:e0], camids[s0:e0],
+                     modelkeep, CAMERA_COLORS_DARK, lw=1., zorder=4)
+        cmodel = slope * (coadd_wave[s0:e0] - pivotwave) + intercept
+        specax.plot(coadd_wave[s0:e0], cmodel, color='k', ls='--', lw=0.6, zorder=4)
+    specax.set_ylim(specax_ylim)
 
     target = _target_label(objmeta, coadd_type)
-    specax.text(0.98, 0.95, '\n'.join(target), transform=specax.transAxes,
-               ha='right', va='top', fontsize=12, linespacing=1.5, bbox=bbox)
+    specax.text(0.02, 0.95, '\n'.join(target), transform=specax.transAxes,
+               ha='left', va='top', fontsize=12, linespacing=1.5, bbox=bbox)
 
-    spans = []
-    for patchid in patchids:
+    # tight callout box around each zoomed patch's actual spectral feature
+    # (sized to the local data/model extent, not the full panel height)
+    callouts = []
+    for patchid, endpts in rows.iterrows('patchid', 'endpts'):
         s, e = patch_windows[patchid]
-        spans.append((coadd_wave[s], coadd_wave[e - 1]))
-        # shading each patch's span in the full spectrum -- disabled for now
-        # specax.axvspan(coadd_wave[s], coadd_wave[e - 1], color='0.85', lw=0, zorder=0)
-    specax_ybottom = specax.get_ylim()[0]
+        s0, e0 = endpts
+        x0, x1 = coadd_wave[s], coadd_wave[e - 1]
+        ylo = min(np.min(coadd_flux[s:e]), np.min(pf['bestfit'][s0:e0]))
+        yhi = max(np.max(coadd_flux[s:e]), np.max(pf['bestfit'][s0:e0]))
+        pad = 0.15 * (yhi - ylo)
+        y0 = max(specax_ybottom, ylo - pad)
+        y1 = min(specax_ylim[1], yhi + pad)
+        callouts.append((x0, x1, y0, y1))
 
     # bottom row: one zoom panel per patch
     zoomaxes = []
     for ipanel, (i, (patchid, endpts, slope, intercept, pivotwave)) in enumerate(
             zip(order, rows.iterrows('patchid', 'endpts', 'slope', 'intercept', 'pivotwave'))):
-        s, e = patch_windows[patchid]
+        s0, e0 = endpts  # original patch fit window -- bestfit is only valid here
+        s, e = patch_windows[patchid]  # widened to show the full continuum-pixel extent
         noise = pf['noises'][i]
 
         ax = fig.add_subplot(gs[1, ipanel])
@@ -268,8 +309,10 @@ def make_figure(specdata, objmeta, coadd_type, out, patchids, outfile):
         plot_segments(ax, coadd_wave[s:e], coadd_flux[s:e], camids[s:e], contkeep,
                      CAMERA_COLORS, lw=1.2, alpha=0.9, zorder=3)
 
-        modelkeep = np.ones(e - s, bool)
-        plot_segments(ax, coadd_wave[s:e], pf['bestfit'][s:e], camids[s:e], modelkeep,
+        # bestfit is only defined over the original fit window [s0:e0) --
+        # outside it, it drops to zero, so restrict the model curve to it.
+        modelkeep = np.ones(e0 - s0, bool)
+        plot_segments(ax, coadd_wave[s0:e0], pf['bestfit'][s0:e0], camids[s0:e0], modelkeep,
                      CAMERA_COLORS_DARK, lw=1.8, zorder=4)
 
         cmodel = slope * (coadd_wave[s:e] - pivotwave) + intercept
@@ -278,34 +321,46 @@ def make_figure(specdata, objmeta, coadd_type, out, patchids, outfile):
         ax.plot(coadd_wave[s:e], cmodel - noise, color='0.6', lw=0.8)
 
         ax.set_xlim(coadd_wave[s], coadd_wave[e - 1])
-        ymax = 1.1 * np.max((np.max(coadd_flux[s:e]), np.max(pf['bestfit'][s:e]),
+        ymax = 1.25 * np.max((np.max(coadd_flux[s:e]), np.max(pf['bestfit'][s0:e0]),
                             np.max(cmodel + noise)))
         ax.set_ylim(0., ymax)
 
-        ax.text(0.05, 0.94, f'Patch "{patchid}"', transform=ax.transAxes,
-                ha='left', va='top', fontweight='bold', fontsize=9)
+        ax.text(0.95, 0.94, f'Patch "{patchid}"', transform=ax.transAxes,
+                ha='right', va='top', fontweight='bold', fontsize=9)
 
         linelabels = []
         for line, iline in zip(pf['patchMap'][patchid][0], pf['patchMap'][patchid][2]):
             (ls, le), _ = lines.getLine(iline)
             if ls != le:
                 linelabels.append(f'S/N({format_niceline(line)})={pf["linesnrs"][iline]:.1f}')
-        ax.text(0.95, 0.94, '\n'.join(linelabels), transform=ax.transAxes,
-                ha='right', va='top', fontsize=7, linespacing=1.5)
+        ax.text(0.05, 0.94, '\n'.join(linelabels), transform=ax.transAxes,
+                ha='left', va='top', fontsize=7, linespacing=1.5)
 
         zoomaxes.append(ax)
 
-    # connector lines tying each zoom panel back to its shaded span above
-    for ax, (x0, x1) in zip(zoomaxes, spans):
+    # callout box in the top panel around each zoomed patch's feature, with
+    # connector lines tying its bottom corners to the zoom panel below
+    for ax, (x0, x1, y0, y1) in zip(zoomaxes, callouts):
+        specax.add_patch(Rectangle((x0, y0), x1 - x0, y1 - y0, fill=False,
+                                   edgecolor='k', lw=1.2, zorder=6))
         ytop = ax.get_ylim()[1]
         for x in (x0, x1):
-            con = ConnectionPatch(xyA=(x, specax_ybottom), coordsA='data', axesA=specax,
+            con = ConnectionPatch(xyA=(x, y0), coordsA='data', axesA=specax,
                                   xyB=(x, ytop), coordsB='data', axesB=ax,
-                                  color='k', lw=1.5, zorder=0)
+                                  color='k', lw=1.2, zorder=5)
             fig.add_artist(con)
 
-    fig.supxlabel(r'Observed-frame Wavelength ($\mathrm{\AA}$)')
-    fig.supylabel(r'$F_{\lambda}\ (10^{-17}~{\rm erg}~{\rm s}^{-1}~{\rm cm}^{-2}~\AA^{-1})$')
+    for ax in fig.axes:
+        ax.grid(False)
+
+    # plain fig.text() rather than supxlabel/supylabel -- gives direct
+    # control over placement instead of constrained_layout's auto-reserved
+    # (and here, overly generous) margin; nudge x/y to taste
+    labelsize = plt.rcParams.get('figure.labelsize', plt.rcParams['font.size'])
+    fig.text(0.5, 0.012, r'Observed-frame Wavelength ($\mathrm{\AA}$)',
+             ha='center', va='bottom', fontsize=labelsize)
+    fig.text(0.012, 0.5, r'$F_{\lambda}\ (10^{-17}~{\rm erg}~{\rm s}^{-1}~{\rm cm}^{-2}~\AA^{-1})$',
+             ha='left', va='center', rotation='vertical', fontsize=labelsize)
 
     outdir = os.path.dirname(outfile)
     if outdir:

@@ -572,18 +572,57 @@ database.\footnote{\url{https://db.chiantidatabase.org}}
 \subsection{Fast Fitting in Wavelength Patches}
 \label{ssec:patches}
 
-\todo{Need to motivate this section again. The key point is
-  flexibility: we need to be adaptive to the full range of galaxy
-  types, broad vs narrow vs no lines at all. Emphasize why this step
-  is so crucial.} Before fitting the stellar continuum, we run a
-lightweight pre-fitting pass---the \emph{line masker}---that measures
-empirical line widths and velocity shifts for each kinematic
-population and constructs per-line pixel masks that the continuum
-fitter uses to exclude emission-line-contaminated regions.
+We cannot fit the stellar continuum robustly without first identifying
+which pixels line emission contaminates, yet DESI targets span an
+enormous range of emission-line properties, from purely
+absorption-line quiescent galaxies with no measurable line emission at
+all to extreme starbursts and broad-line AGN whose emission dominates
+large stretches of the observed spectrum. A single, fixed masking
+window sized for the strongest expected lines would over-mask
+quiescent spectra and discard usable continuum information, while a
+window sized for typical narrow lines would under-mask starburst and
+broad-line spectra and bias the stellar continuum fit.
+
+Before fitting the stellar continuum, we therefore run a lightweight
+pre-fitting pass---the \emph{line masker}---that adapts to each
+spectrum individually: it measures empirical line widths and velocity
+shifts for each kinematic population present, narrow and (where
+detected) broad, and constructs per-line pixel masks that the
+continuum fitter uses to exclude emission-line-contaminated
+regions. The line masker is intentionally fast and approximate: it
+fits a simple linear local continuum per patch rather than the full
+SPS template, uses only strong lines, and runs for just two iterations
+with loose convergence tolerances; its sole purpose is to supply
+accurate-enough pixel masks and kinematic initial guesses for the main
+continuum and emission-line fits that follow (\S\ref{ssec:continuum},
+\S\ref{ssec:emlines}).
 
 \begin{figure*}
 \includegraphics[width=6.5in]{example-emlines}
-\caption{\todo{Need to totally redo this figure.} \label{fig:linefit}}
+\caption{Illustration of the line-masking algorithm
+  (\S\ref{ssec:patches}) for an example \fastspec\ target, whose
+  survey, program, healpix, and \texttt{TARGETID} label the top
+  panel. \emph{Top:} the full per-camera coadded DESI spectrum ($b$,
+  $r$, $z$ in blue, green, and red), with the pixels excluded by the
+  final line mask drawn in light gray rather than removed outright.
+  Overplotted on each masked stretch, in the same dark camera colors,
+  is that patch's best-fit model---the Gaussian line profile(s) plus
+  local linear continuum pedestal---showing what the line masker
+  actually fits in the regions it excludes from the continuum fit.
+  Black boxes and connector lines tie four representative patches to
+  the zoom panels below. \emph{Bottom:} the boxed patches, left to
+  right---a UV doublet (Mg\,\textsc{ii}~$\lambda\lambda$2796,2803), a
+  strong forbidden doublet
+  ([O\,\textsc{ii}]~$\lambda\lambda$3726,3729), a joint Balmer/forbidden
+  group spanning H$\gamma$ through [O\,\textsc{iii}]~$\lambda$5007, and
+  the merged \ha+[N\,\textsc{ii}]+[S\,\textsc{ii}] complex. In each
+  zoom panel, camera-colored pixels mark the continuum pixels used for
+  that patch's local linear fit; the dark curve shows the combined
+  best-fit line-plus-continuum model; the dashed black line and
+  surrounding gray band show the local linear continuum and its
+  $\pm1\sigma$ noise envelope; and the labeled S/N values report each
+  line's amplitude significance in the line masker's own approximate
+  fit. \label{fig:linefit}}
 \end{figure*}
 
 We organize the 40 emission lines (\S\ref{ssec:emlinelist}) into 23
@@ -599,8 +638,11 @@ measure kinematics; the patch-fitting steps use only strong lines, while
 the full list enters the final mask.
 
 The algorithm proceeds in three steps. First, we fit all strong lines
-with the narrow-only kinematic model \todo{(not yet defined)}. For
-each line, we define a pixel window of $\pm2.5\,\sigma_\mathrm{line}$
+with the narrow-only kinematic model (\S\ref{sssec:kinematic}), which
+ties all forbidden lines to a single kinematic group anchored on
+[O\,\textsc{iii}]~$\lambda$5007 and the narrow Balmer and
+He\,\textsc{i} lines to a second group anchored on \ha. For each line,
+we define a pixel window of $\pm2.5\,\sigma_\mathrm{line}$
 centered on the expected observed-frame wavelength---with a minimum
 floor of 50~\kms---and identify local continuum pixels from a
 surrounding window that we iteratively expand until at least 11
@@ -619,13 +661,6 @@ from the continuum fit; we omit weak non-strong lines with $S/N < 3.5$
 from the final mask to avoid over-masking. We additionally
 mask pixels flagged as sky-line residuals and pixels with zero inverse
 variance.
-
-The line masker is intentionally fast and approximate, fitting a simple
-linear local continuum per patch rather than the full SPS template, using
-only strong lines, and running for just two iterations with loose
-convergence tolerances. Its sole purpose is to supply accurate-enough
-pixel masks and kinematic initial guesses for the main continuum and
-emission-line fits that follow.
 
 \subsection{Stellar Continuum Model}
 \label{ssec:continuum}
