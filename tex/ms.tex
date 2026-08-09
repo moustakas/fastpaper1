@@ -36,7 +36,7 @@
 \newcommand{\deltachisq}{{\ensuremath{\Delta\chi^2}}}
 \newcommand{\vdisp}{\ensuremath{\sigma_\star}}
 \newcommand{\tauv}{\ensuremath{\tau_V}}
-\newcommand{\Mstar}{\ensuremath{\mathcal{M}_{\mathrm{star}}}}
+\newcommand{\Mstar}{\ensuremath{\mathcal{M}_{\star}}}
 \newcommand{\msun}{\ensuremath{\mathcal{M}_{\odot}}}
 \newcommand{\logmstar}{\log_{10}(\Mstar/\msun)}
 % macros used in table-desi.tex
@@ -289,9 +289,8 @@ pointing of the full 5000-fiber focal plane defines a \emph{tile}, the
 basic unit of the survey's tiling strategy \citep{schlafly23a}. The
 three cameras sense blue (B: 3600--5930\,\AA), red (R:
 5600--7720\,\AA), and near-infrared (Z: 7470--9824\,\AA) light, at a
-spectral resolution of $\mathcal{R}\equiv\lambda/\Delta\lambda \approx
-2000$, 4000, and 5500, respectively, enabling the \oiidoublet{} to be
-resolved up to $z\approx1.6$.
+spectral resolution of $\mathcal{R}\equiv\lambda/\Delta\lambda
+2000-3500$, $3400-4800$, and $3800-5200$, respectively \citep{guy23a}.
 
 The spectroscopic pipeline \citep{guy23a} performs an optimal spectral
 extraction \citep[following][]{bolton10a}, encoding the
@@ -338,16 +337,16 @@ stars \citep{guy23a}.
 
 \fastspecfit{} uses broadband photometry from the DESI Legacy Imaging
 Surveys Data Release 9 (DR9) \citep[hereafter, Legacy
-  Surveys;][]{dey19a}, which cover the full DESI footprint using two
-complementary imaging systems: the Dark Energy Camera \citep[DECam;][]{flaugher15a}
-on the Blanco 4-m telescope at the Cerro Tololo Inter-American
-Observatory (CTIO) in the south, and the Mosaic-3
-\citep[$z$-band;][]{dey16a} and 90Prime \citep[$g$- and
-$r$-band;][]{williams04a} cameras on the Mayall and Bok telescopes in
-the north. Both systems deliver photometry in $g$, $r$, and $z$ bands.
-We track the imaging system for each target via the \texttt{PHOTSYS}
-flag (\texttt{N} or \texttt{S}) to assign the appropriate filter
-curves.
+  Surveys;][]{dey19a}, which cover the full DESI footprint using three
+complementary imaging systems: the Dark Energy Camera
+\citep[DECam;][]{flaugher15a} on the Blanco 4-m telescope at the Cerro
+Tololo Inter-American Observatory (CTIO) in the south, and the
+Mosaic-3 \citep[$z$-band;][]{dey16a} and 90Prime \citep[$g$- and
+  $r$-band;][]{williams04a} cameras on the Mayall and Bok telescopes
+in the north. Both systems deliver photometry in $g$, $r$, and $z$
+bands.  We track the imaging system for each target via the
+\texttt{PHOTSYS} flag (\texttt{N} or \texttt{S}) to assign the
+appropriate filter curves.
 
 The Legacy Survey catalogs also include forced photometry in all four
 WISE bands---$W1$ (3.4\,\micron), $W2$ (4.6\,\micron), $W3$
@@ -358,16 +357,17 @@ the full WISE and NEOWISE mission imaging \citep{wright10a, lang14a,
 spectrophotometric fit; fluxes in bands where the source is undetected
 enter the fit as $1\sigma$ upper limits.
 
-The Legacy Survey catalogs provide two distinct photometric
-measurements for each source: \emph{total} photometry, which
-integrates the full surface brightness profile, and \emph{fiber}
-photometry, which estimates the flux a 1\farcs5-diameter fiber would
-collect at 1\arcsec{} FWHM seeing. Because the DESI fiber samples only
-the central region of an extended source, \fastspecfit{} fits the
-total photometry by default, first rescaling the fiber spectrum onto
-this same total-flux scale via a per-band aperture correction derived
-self-consistently from the stellar continuum fit
-(\S\ref{sssec:apercorr}).
+The Legacy Survey catalogs, generated using the Tractor
+forward-modeling photometry pipeline \citep{lang16a, lang16b}, provide
+two distinct photometric measurements for each source: \emph{total}
+photometry, which integrates the full surface brightness profile, and
+\emph{fiber} photometry, which estimates the flux a 1\farcs5-diameter
+fiber would collect at 1\arcsec{} FWHM seeing. Because the DESI fiber
+samples only the central region of an extended source, \fastspecfit{}
+fits the total photometry by default, first rescaling the fiber
+spectrum onto this same total-flux scale via a scalar aperture
+correction---the median of per-band ratios---derived self-consistently
+from the stellar continuum fit (\S\ref{sssec:apercorr}).
 
 %\input{tables/table-desi}
 
@@ -460,6 +460,8 @@ reproduces $F$ in a maximum-likelihood sense, where $\theta \equiv
 \theta_C \cup \theta_E$ is the union of the continuum and
 emission-line parameter sets.
 
+\input{tables/table-notation}
+
 A key algorithmic choice we make in \fastspec{} is to fit $C$ and $E$
 sequentially rather than jointly, subtracting the best-fitting
 continuum model from the data before fitting the emission lines
@@ -516,7 +518,7 @@ interface. We construct these models using a custom version of the
 \texttt{C3K\_R3K}\footnote{\url{https://github.com/moustakas/c3k}},
 the MIST stellar isochrones \citep{choi16a,dotter16a}, and a
 \citet{chabrier03a} IMF. The \texttt{C3K\_R3K} library spans 100~\AA{}
-to 1000~$\mu$m with $\mathcal{R} \approx 7065$
+to 1000~$\mu$m with $\mathcal{R}_{\mathrm{C3K}} \approx 7065$
 ($\lambda/\mathrm{FWHM}=3000$) in the rest-frame optical
 (3500--9800~\AA) and constant-velocity $\Delta v=50$~\kms{} pixels. At
 shorter and longer wavelengths our models have lower resolution and
@@ -737,102 +739,147 @@ correction then removes residual low-level systematics
 (\S\ref{sssec:smooth}) before the spectrum passes to the emission-line
 fitter.
 
-\subsubsection{Velocity Dispersion}
+\subsubsection{Stellar Velocity Dispersion}
 \label{sssec:vdisp}
 
-The line-of-sight stellar velocity dispersion $\vdisp$ traces the
-depth of a galaxy's gravitational potential well and feeds several
-downstream diagnostics, from dynamical mass estimates to the
-Fundamental Plane, so we measure it directly from the stellar
-absorption features whenever the spectral coverage allows, and fall
-back to a scaling relation otherwise.
+The line-of-sight stellar velocity dispersion \vdisp{} traces the
+depth of a galaxy's gravitational potential well; it is a key
+observable for several galaxy scaling relations---the Fundamental
+Plane, the black hole mass--\vdisp{} relation, and the
+halo-mass--stellar-mass relation---and a fundamental ingredient for
+most theoretical models of galaxy formation \citep[and references
+  therein]{renzini06a, blanton09a, kormendy13a, vegetti24a}. A
+reliable measurement, however, requires adequate rest-frame wavelength
+coverage and relatively high signal-to-noise spectroscopy of the
+absorption-line features most sensitive to dynamical broadening (e.g.,
+Ca~H\&K, the $G$-band, H$\beta$, Mg~$b$). In DESI, these conditions
+are generally met only for BGS and LRG targets; however, because
+\fastspec{} does not use targeting information as a prior, we attempt
+to measure \vdisp{} for every spectroscopic target.
 
-We convolve the SPS templates with a Gaussian kernel to model
-$\vdisp$, working on the fitting code's constant-velocity wavelength
-grid so that the kernel has a fixed pixel width $\sigma_\mathrm{pix} =
-\vdisp/\Delta v$ and convolution reduces to a single FFT
-multiplication; we pre-compute and cache the Fourier transforms of all
-templates for $\vdisp \leq 500$~\kms\ and fall back to direct
-pixel-space convolution above that. The optimizer recovers the
-\emph{additional} kernel width $\vdisp^\mathrm{kern} \in
-     [50,\,500]$~\kms{} needed on top of the template resolution,
-     $\sigma_\mathrm{C3K} \approx 42~\kms$
-     (\S\ref{ssec:templates})). We add the template resolution back in
-     quadrature to recover the physical velocity dispersion,
-\begin{equation}
-  \vdisp = \sqrt{(\vdisp^\mathrm{kern})^2 + \sigma_\mathrm{C3K}^2}.
-  \label{eq:vdisptot}
-\end{equation}
+We determine whether a direct measurement of \vdisp{} is possible from
+two conditions: rest-frame wavelength coverage and ``fit
+significance.'' First, we require a given target to have at least
+1100~\AA{} of (unmasked) rest-frame wavelength coverage between 3800
+and 4900~\AA, bridging Ca~H\&K, the 4000-\AA{} break, and H$\beta$. If
+this condition is satisfied, then we perform the actual fit using all
+unmasked pixels between 3800--6000~\AA{} (in the rest-frame). In
+practice, this requirement means that we can only estimate \vdisp{}
+for galaxies up to $z\approx1$. Second, we determine fit significance
+by performing a fast $\chi^2$ grid scan of $N=6$ trial
+velocity-broadening widths spanning $[50,\,500]$~\kms{}, fixing
+$\tauv=0$ and solving for the template coefficients by linear
+least-squares at each grid point (see \S\ref{sssec:fitting}). If this
+scan yields a peak-to-peak $\Delta\chi^2 \geq 25$ (and with the
+minimum value away from either boundary) then we proceed with a direct
+measurement. In general, $\Delta\chi^2 < 25$ implies that the spectrum
+has inadequate signal-to-noise ratio in the stellar continuum (e.g., a
+faint ELG target) to require \vdisp{} as an additional free parameter.
 
-We attempt this fit over the 3800--6000~\AA\ rest-frame window
-(covering Ca~H\&K, the $G$-band, H$\beta$, Mg~$b$, and Fe features)
-only when the spectrum reaches both 3800 and 4900~\AA\ rest-frame
-(roughly $z \lesssim 1$ for DESI); otherwise we skip directly to the
-$\sigma$--$M_\star$ fallback below. When the window is available, we
-first scan a $\chi^2$ grid of $N=6$ kernel values spanning
-$[50,\,500]$~\kms, fixing $\tauv=0$ and solving for the template
-coefficients by linear least-squares at each grid point. If the scan
-yields $\Delta\chi^2 \geq 25$ with the minimum away from either
-boundary, we refine it with \texttt{scipy.optimize.least\_squares}
-(Trust-Region Reflective; \citealt{branch99a}), fitting
-$\vdisp^\mathrm{kern}$ and $\tauv$ jointly from the grid minimum, and
-estimate \texttt{VDISP\_IVAR} by propagating $n_\mathrm{Monte}$ noise
-realizations of the observed flux through Equation~\ref{eq:vdisptot}.
-A failed scan, like insufficient wavelength coverage, falls back to
-the $\sigma$--$M_\star$ relation below.
-
-When we cannot measure $\vdisp$ directly, we estimate it instead from
-the stellar-mass--velocity-dispersion relation,
+Most DESI targets in DR2 fail one or both of the preceding conditions;
+however, we would still like to use an approximately correct value of
+\vdisp. In this case, we estimate \vdisp{} from the
+stellar-mass--velocity-dispersion relation,
 \begin{equation}
   \log_{10}(\vdisp/\kms) = a + b\,(\logmstar - 11),
   \label{eq:sigma_mstar}
 \end{equation}
-with $(a,b) = (2.30,\,0.25)$. \todo{ref needed} We derive $M_\star$
-from a preliminary continuum fit at the nominal kernel
-(${\vdisp}_\mathrm{nom}^\mathrm{kern} \approx 143.9$~\kms) and convert
-the resulting $\vdisp$ to $\vdisp^\mathrm{kern}$ via
-Equation~\ref{eq:vdisptot}. If that preliminary fit yields no valid
-stellar mass, we adopt the hard fallback $\vdisp = 150$~\kms\
-(\texttt{VDISP\_NOMINAL}). In either fallback case we set
-\texttt{VDISP\_IVAR}~$=0$ to flag that $\vdisp$ was not independently
-measured.
+with $(a,b) = (2.30,\,0.25)$ (\todo{ref?}) and using a fast,
+preliminary estimate of the stellar mass, \Mstar{}
+(\S\ref{sssec:fitting}). If our estimate of \Mstar{} fails---for
+whatever reason---we instead adopt a fallback $\vdisp = 150$~\kms{}
+(\texttt{VDISP\_NOMINAL}), close to the characteristic ``knee'' of the
+velocity dispersion function \citep{bezanson11a, taylor22a}. In either
+fallback case we set \texttt{VDISP\_IVAR}~$=0$ to flag that \vdisp{}
+has not been independently measured.
+
+When a direct measurement is warranted, we determine \vdisp{} by
+finding the optimal Gaussian kernel dispersion,
+$\vdisp^\mathrm{kern} \in [50,\,500]$~\kms{}, using
+\texttt{scipy.optimize.least\_squares} with a Trust-Region Reflective
+minimization algorithm \citep{branch99a}, fitting for
+$\vdisp^\mathrm{kern}$ and \tauv{} simultaneously over the same range
+as above. We then recover the physical velocity dispersion by adding
+back the intrinsic resolution of our SPS models in quadrature,
+\begin{equation}
+  \vdisp = \sqrt{(\vdisp^\mathrm{kern})^2 + \sigma_\mathrm{C3K}^2},
+  \label{eq:vdisptot}
+\end{equation}
+where $\sigma_\mathrm{C3K} = c/\mathcal{R}_{\mathrm{C3K}} \approx
+42$~\kms{} (\S\ref{ssec:templates}).
 
 \subsubsection{Aperture Correction}
 \label{sssec:apercorr}
 
-The DESI fiber subtends 1\farcs5 and intercepts only a fraction of the light from
-extended sources, while the Legacy Survey photometry measures total flux. We bridge
-this mismatch with a per-band aperture-correction factor $\eta_f$
-derived from the initial $\vdisp$ fit. That fit yields a
-continuum model $C_f^\mathrm{fib}$ normalized to the fiber spectrum; we synthesize
-photometry from it in the $g$, $r$, and $z$ bands and compare it to the Tractor
-total flux $D_f$,
+\fastspecfit{} models the total-light spectral energy distribution of
+each target---the quantity needed to derive total, rather than
+fiber-aperture, physical properties such as stellar mass and
+star-formation rate---but the DESI fiber subtends only 1\farcs5 and
+intercepts just a fraction of the light from extended sources. We
+bridge this mismatch with a scalar aperture correction that rescales
+the fiber spectrum onto the total-flux scale defined by the Tractor
+photometry (\S\ref{ssec:photometry}). Using a single,
+wavelength-independent scale factor implicitly assumes that the
+spectral shape within the fiber aperture is representative of the
+galaxy as a whole---that is, that there are no radial gradients in
+color, stellar population age, or metallicity across the aperture
+boundary. This assumption is most severely violated for extended,
+low-redshift BGS targets, for which the fiber subtends only a small
+fraction of the total light and radial gradients are typically
+strongest; it is much better justified for higher-redshift, more
+compact targets, for which the fiber captures a larger fraction of the
+total light.
+
+We derive $\eta_f$ from the initial continuum fit used to measure
+\vdisp{} (\S\ref{sssec:vdisp}): that fit yields a continuum model
+$C_f^\mathrm{fib}$ normalized to the fiber spectrum; we synthesize
+photometry from it in the $g$, $r$, and $z$ bands and compare it to
+the Tractor total flux $D_f$,
 \begin{equation}
   \eta_f = \frac{D_f}{C_f^\mathrm{fib}},
   \label{eq:apercorr}
 \end{equation}
-where $f \in \{g,\,r,\,z\}$; $\eta_f$ is generally $\gtrsim 1$ but can scatter
-slightly below unity. The scalar correction $\bar{\eta} =
-\mathrm{median}(\eta_g,\,\eta_r,\,\eta_z)$ is wavelength-independent. We scale the
-fiber spectrum and its inverse-variance array by $\bar{\eta}$ before the joint
-spectrophotometric fit, placing the spectrum on the total-flux scale; output model
-spectra are then divided by $\bar{\eta}$ to recover fiber-aperture units. We
-store the per-band values as catalog columns \texttt{APERCORR\_G},
-\texttt{APERCORR\_R}, and \texttt{APERCORR\_Z}; large band-to-band scatter indicates
-strong color gradients within the fiber aperture.
+where $f \in \{g,\,r,\,z\}$; $\eta_f$ is generally $\gtrsim 1$ but can
+scatter slightly below unity. We adopt the scalar correction
+$\bar{\eta} = \mathrm{median}(\eta_g,\,\eta_r,\,\eta_z)$, which by
+construction is wavelength-independent, and scale the fiber spectrum
+and its inverse-variance array by $\bar{\eta}$ before the joint
+spectrophotometric fit, placing the spectrum on the total-flux scale;
+output model spectra are then divided by $\bar{\eta}$ to recover
+fiber-aperture units. We store the per-band values as catalog columns
+\texttt{APERCORR\_G}, \texttt{APERCORR\_R}, and \texttt{APERCORR\_Z};
+large band-to-band scatter indicates strong color gradients within the
+fiber aperture. We treat $\bar{\eta}$ as exact and do not propagate an
+additional uncertainty from the aperture-correction step into the fit
+or the output parameter uncertainties (\S\ref{ssec:uncertainties}).
+
+By default---and throughout this paper---\fastspecfit{} applies this
+correction to every target. The \texttt{--ignore-photometry} option
+disables it, but only as a side effect of disabling the photometric
+fit entirely, leaving the fiber spectrum on its native, uncorrected
+flux scale; we do not use this option in the DR2 production runs.
 
 \subsubsection{Fitting Algorithm}
 \label{sssec:fitting}
 
-We model the attenuation of each stellar continuum template as a
+To fit the stellar continuum we use a fully forward-modeling approach:
+we carry each rest-frame SPS template (\S\ref{ssec:templates}) through
+a sequence of physical and instrumental transformations---dust
+attenuation, redshifting, and instrumental broadening---into a
+prediction that can be compared directly to the observed
+spectrophotometry, and then solve for the template weights and dust
+attenuation (at fixed \vdisp; see \S\ref{sssec:vdisp}) that minimize
+the inverse-variance-weighted residuals.
+
+First, we model the attenuation of each template as a
 uniform foreground screen,
 \begin{equation}
   S_n^\mathrm{att}(\lambda) = S_n(\lambda)\,e^{-\tauv k(\lambda)},
   \label{eq:atten}
 \end{equation}
 
-\noindent where $S_n(\lambda)$ is the unattenuated template
-(\S\ref{ssec:templates}), $\tauv$ is the $V$-band optical depth, and
+\noindent where $S_n(\lambda)$ is the unattenuated template given by
+equation~(\ref{eq:fnorm}), $\tauv$ is the $V$-band optical depth, and
 
 \begin{equation}
   k(\lambda) =
@@ -842,30 +889,32 @@ uniform foreground screen,
 
 \noindent is the attenuation curve, which we model as a simple power
 law with fixed power-law index $n=-0.7$ based on the
-\citet{charlot00a} birth-cloud model.
-%, consistent with the \citet{calzetti00a} attenuation law shortward of $\sim$6000~\AA.
-Absorbed photons are re-emitted in the infrared following energy
-balance: we scale the \citet{draine07a} dust emission template
-$S_\mathrm{dust}(\lambda)$ (normalized to unit bolometric luminosity)
-by the luminosity absorbed from each template,
+\citet{charlot00a} birth-cloud model.  Absorbed photons are re-emitted
+in the IR following energy balance: we scale the \citet{draine07a}
+dust emission template from \S\ref{ssec:templates},
+$S_\mathrm{dust}(\lambda)$, by the luminosity absorbed from each SPS
+template,
 \begin{equation}
   L_{\mathrm{abs},n} = \int_0^\infty S_n(\lambda) (1 - e^{-\tauv
     k(\lambda)})\,d\lambda,
   \label{eq:labs}
 \end{equation}
 so that the total (attenuated plus reradiated) continuum template
-conserves bolometric luminosity:
+conserves bolometric luminosity,
 \begin{equation}
   S_n^\mathrm{tot}(\lambda) = S_n^\mathrm{att}(\lambda) +
   L_{\mathrm{abs},n}\,S_\mathrm{dust}(\lambda).
   \label{eq:ftot}
 \end{equation}
-The dust emission template uses default parameters ($q_\mathrm{PAH}=3.5$,
-$U_\mathrm{min}=1.0$, $\gamma=0.01$) and contributes only to the
-photometric fit.
+We use a single dust emission template with default parameters
+$q_\mathrm{PAH}=3.5$, $U_\mathrm{min}=1.0$, and $\gamma=0.01$ both for
+speed and because most DESI targets do not have adequately deep IR
+photometry to constrain a larger number of dust emission
+parameters.
 
-For an object at redshift $z$ with luminosity distance $D_L$ (in Mpc), we relate
-each rest-frame continuum template to its observed-frame counterpart,
+For an object at redshift $z$ with luminosity distance $D_L$ (in Mpc),
+we relate each rest-frame continuum template to its observed-frame
+counterpart,
 \begin{equation}
   S_n^\mathrm{obs}(\lambda)
   =
@@ -875,34 +924,33 @@ each rest-frame continuum template to its observed-frame counterpart,
   \,\frac{S_n^\mathrm{tot}(\lambda/(1+z))}{1+z},
   \label{eq:zfactor}
 \end{equation}
-where $T_\mathrm{IGM}(\lambda,z)$ is the \citet{inoue14a} IGM
-transmission accounting for Ly$\alpha$ forest and Lyman-limit
-attenuation; $\mathcal{F}_0 = 10^{17}$ is a dimensionless scale factor
-converting the cgs flux densities of \S\ref{ssec:templates} to our
-internal flux units of $10^{-17}$~erg~s$^{-1}$~cm$^{-2}$~\AA$^{-1}$;
-and $\mathcal{M}_0 = 10^{10}\,\msun$ is a fixed mass normalization
-that rescales the fitted template coefficients to order unity for a
-well-conditioned NNLS solve below---we fold
-$\mathcal{M}_0$ back in at this stage, so that the coefficients
-$\mathbf{c}$ carry units of $\msun$ throughout the rest of the fit. We
-combine the scalar prefactor and IGM transmission into a single array
-(\texttt{zfactors}) evaluated once per object at initialization and
-reused for all template evaluations during fitting.
+where $T_\mathrm{IGM}(\lambda,z)$ is the \citet{inoue14a}
+intergalactic medium (IGM) transmission function, accounting for
+Ly$\alpha$ forest and Lyman-limit attenuation; $\mathcal{F}_0 =
+10^{17}$ is a dimensionless scale factor converting the cgs flux
+densities of \S\ref{ssec:templates} to our internal flux units of
+$10^{-17}$~erg~s$^{-1}$~cm$^{-2}$~\AA$^{-1}$; and $\mathcal{M}_0 =
+10^{10}\,\msun$ is a fixed mass normalization that rescales the fitted
+template coefficients to order unity for a well-conditioned
+non-negative least-squares (NNLS) solve (see below).
 
-\todo{Explicitly mention the priors in this section, $\tauv \in
-  [0,2]$.}
+%We combine the scalar prefactor and IGM transmission into a single
+%array (\texttt{zfactors}) evaluated once per object at initialization
+%and reused for all template evaluations during fitting.
 
-\todo{Need to add this comment somewhere: Although templates older
-  than the age of the universe at the target's redshift are, in
-  principle, unphysical, we include all five age bins by default
-  because the coarse age sampling makes the exclusion boundary poorly
-  defined \citep{leja19a}.}
+We restrict the dust optical depth to the physically motivated range
+$\tauv \in [0,\,2]$, and by default include coefficients for all five
+SPS age bins (\S\ref{ssec:templates}), even for stellar populations
+nominally older than the age of the universe at the redshift of a
+given object. Because our age sampling is coarse, the boundary between
+physical and unphysical ages is poorly defined, and excluding bins
+outright would introduce more redshift-dependent bias than it removes
+\citep{leja19a}.
 
 We fit the stellar continuum by minimizing the
 inverse-variance-weighted sum of squared spectroscopic and photometric
 residuals between the data and the continuum model
-$C(\lambda;\theta_C)$, \todo{Should we explicitly show $\eta$ in this
-  equation? Also need to mention the resolution matrix here!}
+$C(\lambda;\theta_C)$,
 \begin{equation}
   \chi^2(\tauv,\vdisp,\mathbf{c})
   =
@@ -916,7 +964,9 @@ and inverse variance $I_i$, the second runs over photometric bands with
 data $D_k$ and inverse variance $I_{D,k} > 0$, and $C_i \equiv
 C(\lambda_i;\theta_C)$ and $C_k$ denote the continuum model evaluated
 at each spectral pixel and synthesized through each bandpass,
-respectively. When $\vdisp$ is fixed, the continuum model is linear in
+respectively; $d_i$ already carries the aperture correction from
+\S\ref{sssec:apercorr}, so no additional scaling factor appears here.
+When $\vdisp$ is fixed, the continuum model is linear in
 $\mathbf{c}$ for any fixed $\tauv$,
 \begin{equation}
   \mathbf{C} = \boldsymbol{\Psi}\,\mathbf{c},
@@ -924,27 +974,32 @@ $\mathbf{c}$ for any fixed $\tauv$,
 \end{equation}
 where each column of the design matrix $\boldsymbol{\Psi}$ is one
 fully transformed template $S_n^\mathrm{obs}$---attenuated and
-redshifted as above, and broadened by $\vdisp$
-(\S\ref{sssec:vdisp})---evaluated at the spectral
-pixels and synthesized through the photometric bandpasses, and
-weighted by $\sqrt{I_i}$ or $\sqrt{I_{D,k}}$ as
-appropriate. \todo{Need a clearer explanation or discussion of
-  VARPRO.} We exploit this separable structure via variable
-projection (VARPRO \citealt{golub73a}): an outer Brent scalar
-minimization over $\tauv$ (typically 10--15 evaluations) with an inner
-NNLS solve for $\mathbf{c}$,
+redshifted as above, broadened by $\vdisp$
+(\S\ref{sssec:vdisp}), and convolved with the wavelength-dependent
+DESI resolution matrix (\S\ref{sssec:emline_model})---evaluated at the
+spectral pixels and synthesized through the photometric bandpasses,
+and weighted by $\sqrt{I_i}$ or $\sqrt{I_{D,k}}$ as appropriate.
+
+This structure is linear in the many template coefficients
+$\mathbf{c}$ but nonlinear only in the single scalar $\tauv$, so
+rather than search all free parameters simultaneously we exploit the
+separability via variable projection (VARPRO;
+\citealt{golub73a}): an outer Brent scalar minimization over $\tauv$
+(typically 10--15 evaluations) with an inner NNLS solve for
+$\mathbf{c}$ at each trial $\tauv$,
 \begin{equation}
   \mathbf{c}^* = \arg\min_{\mathbf{c}\,\geq\,0}
   \bigl\|\boldsymbol{\Psi}\,\mathbf{c} - \mathbf{b}\bigr\|^2,
   \label{eq:nnls}
 \end{equation}
 where $\mathbf{b}$ is the corresponding $\sqrt{I}$-weighted vector of
-stacked spectroscopic and photometric data. The VARPRO approach
-converges $\sim10\times$ faster than direct optimization over the full
-parameter vector by avoiding finite-differencing across all template
+stacked spectroscopic and photometric data. Because the inner NNLS
+solve is exact at every trial $\tauv$, VARPRO converges $\sim10\times$
+faster than direct optimization over the full parameter vector, which
+would otherwise require finite-differencing across all template
 coefficients. When $\vdisp$ is a free parameter, the separability is
-broken and we instead use \texttt{scipy.optimize.least\_squares} with
-the TRF method.
+broken and we instead fit all parameters jointly with
+\texttt{scipy.optimize.least\_squares} using the TRF method.
 
 \subsubsection{Smooth Continuum Correction}
 \label{sssec:smooth}
@@ -1021,19 +1076,19 @@ matrix.
 
 \fastspecfit{} takes advantage of the fact that DESI spectra are
 produced by an optimal extraction that encodes the
-wavelength-dependent line-spread function (LSF) in a sparse,
-band-format resolution matrix $\mathbf{R}$ (with $\sim$11 diagonals),
-normalized to preserve integrated flux. The standard discrete model
-$\mathbf{m} \approx \mathbf{R}\,\boldsymbol{\phi}$ (with
-$\boldsymbol{\phi}$ evaluated at pixel centers) fails for features
-narrower than approximately one pixel. A more accurate discretization
-uses a Gaussian-pre-convolved spectrum evaluated at pixel centers:
-defining $\mathbf{W} = \mathbf{R}\,\mathbf{M}^{-1}$, where
-$\mathbf{M}_{ij} = G(\lambda_i - \lambda_j;\,0,\,\sigma_G)$ is a
-Gaussian design matrix with width $\sigma_G = 0.5$\,\AA, the predicted
-line model is $\mathbf{m} \approx \mathbf{W}\,\mathbf{h}$, where
-$\mathbf{h}$ is the $\sigma_G$-pre-convolved profile evaluated at
-pixel centers \citep[following][]{koposov25a}.
+wavelength-dependent instrumental resolution in a sparse, band-format
+resolution matrix $\mathbf{R}$ (with $\sim$11 diagonals), normalized
+to preserve integrated flux. The standard discrete model $\mathbf{m}
+\approx \mathbf{R}\,\boldsymbol{\phi}$ (with $\boldsymbol{\phi}$
+evaluated at pixel centers) fails for features narrower than
+approximately one pixel. A more accurate discretization uses a
+Gaussian-pre-convolved spectrum evaluated at pixel centers: defining
+$\mathbf{W} = \mathbf{R}\,\mathbf{M}^{-1}$, where $\mathbf{M}_{ij} =
+G(\lambda_i - \lambda_j;\,0,\,\sigma_G)$ is a Gaussian design matrix
+with width $\sigma_G = 0.5$\,\AA, the predicted line model is
+$\mathbf{m} \approx \mathbf{W}\,\mathbf{h}$, where $\mathbf{h}$ is the
+$\sigma_G$-pre-convolved profile evaluated at pixel centers
+\citep[following][]{koposov25a}.
 
 Because the log-Gaussian profile~\eqref{eq:intrinsic} is an exact
 Gaussian in log-$\lambda$ space, the convolution with $G_{\sigma_G}$ is
