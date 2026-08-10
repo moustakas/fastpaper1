@@ -280,10 +280,10 @@ DESI is a highly multiplexed fiber spectrograph mounted on the Mayall
 4-m telescope at Kitt Peak National Observatory
 \citep{desi-collaboration16b, abareshi22a}.  A wide-field optical
 corrector \citep{miller24a} feeds a $3\fdg2$-diameter field of view,
-within which 5000 robotically actuated fibers \citep{poppett24a} are
-positioned onto target coordinates and feed ten three-arm
-spectrographs covering 3600--9824\,\AA\ in the observed frame
-\citep{guy23a}. The focal plane is divided into ten wedge-shaped
+within which 5000 robotically actuated, $1\farcs5$-diameter fibers
+\citep{poppett24a} are positioned onto target coordinates and feed ten
+three-arm spectrographs covering 3600--9824\,\AA\ in the observed
+frame \citep{guy23a}. The focal plane is divided into ten wedge-shaped
 \emph{petals}, each read out by one spectrograph, and a single
 pointing of the full 5000-fiber focal plane defines a \emph{tile}, the
 basic unit of the survey's tiling strategy \citep{schlafly23a}. The
@@ -337,37 +337,35 @@ stars \citep{guy23a}.
 
 \fastspecfit{} uses broadband photometry from the DESI Legacy Imaging
 Surveys Data Release 9 (DR9) \citep[hereafter, Legacy
-  Surveys;][]{dey19a}, which cover the full DESI footprint using three
-complementary imaging systems: the Dark Energy Camera
+  Surveys;][]{dey19a}, which cover the full DESI footprint using two
+imaging surveys and three cameras. South of a declination boundary of
+approximately $+32\arcdeg$, $grz$ imaging comes from the DECam Legacy
+Survey \citep[DECaLS;][]{dey19a}, obtained with the Dark Energy Camera
 \citep[DECam;][]{flaugher15a} on the Blanco 4-m telescope at the Cerro
-Tololo Inter-American Observatory (CTIO) in the south, and the
-Mosaic-3 \citep[$z$-band;][]{dey16a} and 90Prime \citep[$g$- and
-  $r$-band;][]{williams04a} cameras on the Mayall and Bok telescopes
-in the north. Both systems deliver photometry in $g$, $r$, and $z$
-bands.  We track the imaging system for each target via the
-\texttt{PHOTSYS} flag (\texttt{N} or \texttt{S}) to assign the
-appropriate filter curves.
+Tololo Inter-American Observatory (CTIO).  North of this boundary,
+$g$- and $r$-band imaging comes from the Beijing-Arizona Sky Survey
+\citep[BASS;][]{zou17a}, obtained with the 90Prime camera
+\citep{williams04a} on the Bok 2.3-m telescope, and $z$-band imaging
+comes from the Mayall $z$-band Legacy Survey (MzLS), obtained with the
+Mosaic-3 camera \citep{dey16a} on the Mayall 4-m telescope; both
+telescopes are sited at Kitt Peak National Observatory
+(KPNO). Following \citet{myers23a}, we track the imaging system for
+each target via the \texttt{PHOTSYS} flag (\texttt{N} or \texttt{S})
+to assign the appropriate filter curves.
 
-The Legacy Survey catalogs also include forced photometry in all four
-WISE bands---$W1$ (3.4\,\micron), $W2$ (4.6\,\micron), $W3$
-(12\,\micron), and $W4$ (22\,\micron)---derived from unWISE coadds of
-the full WISE and NEOWISE mission imaging \citep{wright10a, lang14a,
-  meisner21a}.
-\fastspecfit{} incorporates all four WISE bands in the
-spectrophotometric fit; fluxes in bands where the source is undetected
-enter the fit as $1\sigma$ upper limits.
-
-The Legacy Survey catalogs, generated using the Tractor
-forward-modeling photometry pipeline \citep{lang16a, lang16b}, provide
-two distinct photometric measurements for each source: \emph{total}
-photometry, which integrates the full surface brightness profile, and
-\emph{fiber} photometry, which estimates the flux a 1\farcs5-diameter
-fiber would collect at 1\arcsec{} FWHM seeing. Because the DESI fiber
-samples only the central region of an extended source, \fastspecfit{}
-fits the total photometry by default, first rescaling the fiber
-spectrum onto this same total-flux scale via a scalar aperture
-correction---the median of per-band ratios---derived self-consistently
-from the stellar continuum fit (\S\ref{sssec:apercorr}).
+The Legacy Survey catalogs are generated using the Tractor
+forward-modeling photometry pipeline \citep{lang16a, lang16b}, which
+fits a common source model simultaneously across all available imaging
+to derive the integrated flux for each source. The catalogs also
+include forced photometry in all four WISE bands---$W1$
+(3.4\,\micron), $W2$ (4.6\,\micron), $W3$ (12\,\micron), and $W4$
+(22\,\micron)---derived from unWISE coadds of the full WISE and
+NEOWISE mission imaging \citep{wright10a, lang14a,
+  meisner21a}. \fastspecfit{} fits this total photometry, in all seven
+$grz$+WISE bands, together with the DESI spectrum in a joint
+spectrophotometric fit (\S\ref{sec:modeling}); in any band where a
+source is undetected, the $1\sigma$ flux uncertainty is used as an
+upper limit.
 
 %\input{tables/table-desi}
 
@@ -767,14 +765,15 @@ unmasked pixels between 3800--6000~\AA{} (in the rest-frame). In
 practice, this requirement means that we can only estimate \vdisp{}
 for galaxies up to $z\approx1$. Second, we determine fit significance
 by performing a fast $\chi^2$ grid scan of $N=6$ trial
-velocity-broadening widths spanning $[50,\,500]$~\kms{}, fixing
-$\tauv=0$ and solving for the template coefficients by linear
-least-squares at each grid point (see \S\ref{sssec:fitting}). If this
-scan yields a peak-to-peak $\Delta\chi^2 \geq 25$ (and with the
-minimum value away from either boundary) then we proceed with a direct
-measurement. In general, $\Delta\chi^2 < 25$ implies that the spectrum
-has inadequate signal-to-noise ratio in the stellar continuum (e.g., a
-faint ELG target) to require \vdisp{} as an additional free parameter.
+velocity-broadening widths spanning $[50,\,500]$~\kms{},
+simultaneously solving for \tauv{} and the template coefficients by
+linear least-squares at each grid point (see
+\S\ref{sssec:fitting}). If this scan yields a peak-to-peak
+$\Delta\chi^2 \geq 25$ (and with the minimum value away from either
+boundary) then we proceed with a direct measurement. In general,
+$\Delta\chi^2 < 25$ implies that the spectrum has inadequate
+signal-to-noise ratio in the stellar continuum (e.g., a faint ELG
+target) to require \vdisp{} as an additional free parameter.
 
 Most DESI targets in DR2 fail one or both of the preceding conditions;
 however, we would still like to use an approximately correct value of
@@ -811,53 +810,64 @@ where $\sigma_\mathrm{C3K} = c/\mathcal{R}_{\mathrm{C3K}} \approx
 \subsubsection{Aperture Correction}
 \label{sssec:apercorr}
 
-\fastspecfit{} models the total-light spectral energy distribution of
-each target---the quantity needed to derive total, rather than
-fiber-aperture, physical properties such as stellar mass and
-star-formation rate---but the DESI fiber subtends only 1\farcs5 and
-intercepts just a fraction of the light from extended sources. We
-bridge this mismatch with a scalar aperture correction that rescales
-the fiber spectrum onto the total-flux scale defined by the Tractor
-photometry (\S\ref{ssec:photometry}). Using a single,
-wavelength-independent scale factor implicitly assumes that the
-spectral shape within the fiber aperture is representative of the
-galaxy as a whole---that is, that there are no radial gradients in
-color, stellar population age, or metallicity across the aperture
-boundary. This assumption is most severely violated for extended,
-low-redshift BGS targets, for which the fiber subtends only a small
-fraction of the total light and radial gradients are typically
-strongest; it is much better justified for higher-redshift, more
-compact targets, for which the fiber captures a larger fraction of the
-total light.
+By default, \fastspec{} fits the spectrum ($0.36-0.98$\,\micron) of
+each extragalactic DESI target simultaneously with its corresponding
+seven-band ($grz$W1--W4) Legacy Surveys integrated photometry
+($0.47-22$\,\micron; \S\ref{ssec:photometry}). Fitting all the
+available spectrophotometry over the broadest possible wavelength
+baseline helps constrain physical properties like dust attenuation,
+and ties the derived stellar masses, star-formation rates, and
+rest-frame photometry to the total light of each source rather than to
+the light captured by the $1\farcs5$-diameter DESI fiber. However, we
+have to account for the fact that the spectrum and photometry are
+measured over different spatial scales before combining them.
 
-We derive $\eta_f$ from the initial continuum fit used to measure
-\vdisp{} (\S\ref{sssec:vdisp}): that fit yields a continuum model
-$C_f^\mathrm{fib}$ normalized to the fiber spectrum; we synthesize
-photometry from it in the $g$, $r$, and $z$ bands and compare it to
-the Tractor total flux $D_f$,
+So-called aperture effects (or aperture bias) are extremely difficult
+to treat in detail because galaxies exhibit genuine radial gradients
+(or, more generally, spatial inhomogeneities) in color, stellar
+populations, age, metallicity, and more \citep[and references
+  therein]{sanchez20a}. In addition, the amount of light the DESI
+fiber captures depends on each galaxy's apparent (angular) size on the
+sky, and therefore on redshift through the angular diameter distance
+\citep{hogg99a}. These effects conspire to make aperture bias a strong
+function of target class, affecting low-redshift BGS targets the most
+and higher-redshift, angularly compact, and more
+spectrophotometrically homogeneous LRG and ELG targets the least.
+
+Nevertheless, in the current version of \fastspec{} we use the
+simplest possible model to account for aperture bias: we assume that
+the spectral shape within the fiber is representative of the galaxy as
+a whole, independent of wavelength or the magnitude of the aperture
+correction. We derive this correction by synthesizing $grz$ photometry
+from a fast initial fit to the DESI spectrum to get $C_f^\mathrm{fib}$
+with $f \in \{g,\,r,\,z\}$, and computing the per-band multiplicative
+factor
 \begin{equation}
   \eta_f = \frac{D_f}{C_f^\mathrm{fib}},
   \label{eq:apercorr}
 \end{equation}
-where $f \in \{g,\,r,\,z\}$; $\eta_f$ is generally $\gtrsim 1$ but can
-scatter slightly below unity. We adopt the scalar correction
-$\bar{\eta} = \mathrm{median}(\eta_g,\,\eta_r,\,\eta_z)$, which by
-construction is wavelength-independent, and scale the fiber spectrum
-and its inverse-variance array by $\bar{\eta}$ before the joint
-spectrophotometric fit, placing the spectrum on the total-flux scale;
-output model spectra are then divided by $\bar{\eta}$ to recover
-fiber-aperture units. We store the per-band values as catalog columns
-\texttt{APERCORR\_G}, \texttt{APERCORR\_R}, and \texttt{APERCORR\_Z};
-large band-to-band scatter indicates strong color gradients within the
-fiber aperture. We treat $\bar{\eta}$ as exact and do not propagate an
-additional uncertainty from the aperture-correction step into the fit
-or the output parameter uncertainties (\S\ref{ssec:uncertainties}).
+where $D_f$ is the total Tractor flux of the object in each
+bandpass. We then scale the DESI spectrum by the median value,
+$\bar{\eta}=\mathrm{median}(\eta_g,\,\eta_r,\,\eta_z)$ during joint
+spectrophotometric fitting (\S\ref{sssec:fitting}). \todo{Do we need
+  to say any more? Or point to a discussion of the limitations of this
+  correction?}
 
-By default---and throughout this paper---\fastspecfit{} applies this
-correction to every target. The \texttt{--ignore-photometry} option
-disables it, but only as a side effect of disabling the photometric
-fit entirely, leaving the fiber spectrum on its native, uncorrected
-flux scale; we do not use this option in the DR2 production runs.
+%large band-to-band scatter indicates strong color gradients within the
+%fiber aperture. We treat $\bar{\eta}$ as exact and do not propagate
+%additional uncertainty from the aperture-correction step into the fit
+%or the output parameter uncertainties (\S\ref{ssec:uncertainties}).
+%which is generally $\gtrsim 1$ but can scatter slightly below unity.
+%We adopt the scalar correction $\bar{\eta} =
+%\mathrm{median}(\eta_g,\,\eta_r,\,\eta_z)$, which by construction is
+%wavelength-independent, and scale the fiber spectrum and its
+%inverse-variance array by $\bar{\eta}$ before the joint
+%spectrophotometric fit, placing the spectrum on the total-flux scale;
+%output model spectra are then divided by $\bar{\eta}$ to recover
+%fiber-aperture units.
+%
+%In \S\ref{sec:modes}, we illustrate the effect of disabling this
+%aperture correction.
 
 \subsubsection{Fitting Algorithm}
 \label{sssec:fitting}
@@ -1352,6 +1362,12 @@ densities.
 \todo{Need to also document the \texttt{ignore-photometry} mode, the
   ability to use external photometric catalogs and input (e.g., VI)
   redshifts.}
+
+%By default---and throughout this paper---\fastspecfit{} applies this
+%correction to every target. The \texttt{--ignore-photometry} option
+%disables it, but only as a side effect of disabling the photometric
+%fit entirely, leaving the fiber spectrum on its native, uncorrected
+%flux scale; we do not use this option in the DR2 production runs.
 
 \fastspecfit{} operates in two modes. \fastphot{} fits broadband spectral
 energy distributions (SEDs) to Legacy Survey photometry with no
