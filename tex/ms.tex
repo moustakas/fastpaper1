@@ -367,8 +367,6 @@ spectrophotometric fit (\S\ref{sec:modeling}); in any band where a
 source is undetected, the $1\sigma$ flux uncertainty is used as an
 upper limit.
 
-%\input{tables/table-desi}
-
 \subsection{DESI Target Classes and Redshifts}
 \label{ssec:targets}
 
@@ -452,11 +450,15 @@ Our overarching goal is to find the model
   M(\lambda;\theta) = C(\lambda;\theta_C) + E(\lambda;\theta_E),
   \label{eq:totmodel}
 \end{equation}
-the sum of a \emph{stellar continuum model} $C$ (\S\ref{ssec:continuum})
-and an \emph{emission-line model} $E$ (\S\ref{ssec:emlines}), that best
-reproduces $F$ in a maximum-likelihood sense, where $\theta \equiv
-\theta_C \cup \theta_E$ is the union of the continuum and
-emission-line parameter sets.
+the sum of a \emph{stellar continuum model} $C$
+(\S\ref{ssec:continuum}) and an \emph{emission-line model} $E$
+(\S\ref{ssec:emlines}), that best reproduces $F$ in a
+maximum-likelihood sense, where $\theta \equiv \theta_C \cup \theta_E$
+is the union of the continuum and emission-line parameter
+sets. Table~\ref{table:notation} summarizes this and the additional
+notation introduced throughout the section. \todo{I am unlikely to
+  keep this table in its current form. I'll either remove it or
+  shorten it considerably.}
 
 \input{tables/table-notation}
 
@@ -560,9 +562,11 @@ fraction, $q_\mathrm{PAH}$, the minimum starlight intensity heating
 the diffuse ISM dust component $U_\mathrm{min}$, and the fraction
 $\gamma$ of dust mass exposed to a power-law distribution of starlight
 intensities (up to a fixed maximum $U_\mathrm{max}$) representing
-photodissociation regions. We adopt fiducial values for our IR
-template of $q_\mathrm{PAH} = 3.5$, $U_\mathrm{min} = 1.0$, and
-$\gamma = 0.01$, and normalize it to unit bolometric luminosity.
+photodissociation regions. Because most DESI targets do not have
+adequately deep IR photometry to constrain a large number of dust
+emission parameters, we adopt fiducial values of $q_\mathrm{PAH} =
+3.5$, $U_\mathrm{min} = 1.0$, and $\gamma = 0.01$, and normalize our
+IR template to unit bolometric luminosity.
 
 %\input{tables/table-templates}
 
@@ -804,8 +808,8 @@ back the intrinsic resolution of our SPS models in quadrature,
   \vdisp = \sqrt{(\vdisp^\mathrm{kern})^2 + \sigma_\mathrm{C3K}^2},
   \label{eq:vdisptot}
 \end{equation}
-where $\sigma_\mathrm{C3K} = c/\mathcal{R}_{\mathrm{C3K}} \approx
-42$~\kms{} (\S\ref{ssec:templates}).
+where $\sigma_\mathrm{C3K} = c/\mathcal{R}_{\mathrm{C3K}}=42$~\kms{}
+(\S\ref{ssec:templates}).
 
 \subsubsection{Aperture Correction}
 \label{sssec:apercorr}
@@ -839,17 +843,19 @@ simplest possible model to account for aperture bias: we assume that
 the spectral shape within the fiber is representative of the galaxy as
 a whole, independent of wavelength or the magnitude of the aperture
 correction. We derive this correction by synthesizing $grz$ photometry
-from a fast initial fit to the DESI spectrum to get $C_f^\mathrm{fib}$
-with $f \in \{g,\,r,\,z\}$, and computing the per-band multiplicative
+from a fast initial fit to the DESI spectrum to get $C_k^\mathrm{fib}$
+for $k \in \{g,\,r,\,z\}$, and computing the per-band multiplicative
 factor
 \begin{equation}
-  \eta_f = \frac{D_f}{C_f^\mathrm{fib}},
+  \eta_k = \frac{D_k}{C_k^\mathrm{fib}},
   \label{eq:apercorr}
 \end{equation}
-where $D_f$ is the total Tractor flux of the object in each
-bandpass. We then scale the DESI spectrum by the median value,
-$\bar{\eta}=\mathrm{median}(\eta_g,\,\eta_r,\,\eta_z)$ during joint
-spectrophotometric fitting (\S\ref{sssec:fitting}). \todo{Do we need
+where $D_k$ is the total Tractor flux of the object in bandpass
+$k$---the same photometric data that enter the joint spectrophotometric
+fit (\S\ref{sssec:fitting}). We adopt the scalar correction
+$\bar{\eta}=\mathrm{median}(\eta_g,\,\eta_r,\,\eta_z)$, which enters
+explicitly in the fit statistic (\S\ref{sssec:fitting}) rather than as
+a preprocessing step applied to the spectrum. \todo{Do we need
   to say any more? Or point to a discussion of the limitations of this
   correction?}
 
@@ -869,17 +875,17 @@ spectrophotometric fitting (\S\ref{sssec:fitting}). \todo{Do we need
 %In \S\ref{sec:modes}, we illustrate the effect of disabling this
 %aperture correction.
 
-\subsubsection{Fitting Algorithm}
+\subsubsection{Fitting the Stellar Continuum}
 \label{sssec:fitting}
 
 To fit the stellar continuum we use a fully forward-modeling approach:
 we carry each rest-frame SPS template (\S\ref{ssec:templates}) through
 a sequence of physical and instrumental transformations---dust
-attenuation, redshifting, and instrumental broadening---into a
-prediction that can be compared directly to the observed
-spectrophotometry, and then solve for the template weights and dust
-attenuation (at fixed \vdisp; see \S\ref{sssec:vdisp}) that minimize
-the inverse-variance-weighted residuals.
+attenuation, redshifting, and instrumental broadening (or filter
+convolution)---into a prediction that can be compared directly to the
+observed spectrophotometry, and then solve for the template weights
+and dust attenuation (at fixed \vdisp; see \S\ref{sssec:vdisp}) that
+minimize the inverse-variance-weighted residuals.
 
 First, we model the attenuation of each template as a
 uniform foreground screen,
@@ -901,9 +907,8 @@ equation~(\ref{eq:fnorm}), $\tauv$ is the $V$-band optical depth, and
 law with fixed power-law index $n=-0.7$ based on the
 \citet{charlot00a} birth-cloud model.  Absorbed photons are re-emitted
 in the IR following energy balance: we scale the \citet{draine07a}
-dust emission template from \S\ref{ssec:templates},
-$S_\mathrm{dust}(\lambda)$, by the luminosity absorbed from each SPS
-template,
+dust emission template, $S_\mathrm{dust}(\lambda)$, by the luminosity
+absorbed by each template,
 \begin{equation}
   L_{\mathrm{abs},n} = \int_0^\infty S_n(\lambda) (1 - e^{-\tauv
     k(\lambda)})\,d\lambda,
@@ -916,15 +921,10 @@ conserves bolometric luminosity,
   L_{\mathrm{abs},n}\,S_\mathrm{dust}(\lambda).
   \label{eq:ftot}
 \end{equation}
-We use a single dust emission template with default parameters
-$q_\mathrm{PAH}=3.5$, $U_\mathrm{min}=1.0$, and $\gamma=0.01$ both for
-speed and because most DESI targets do not have adequately deep IR
-photometry to constrain a larger number of dust emission
-parameters.
 
 For an object at redshift $z$ with luminosity distance $D_L$ (in Mpc),
-we relate each rest-frame continuum template to its observed-frame
-counterpart,
+we relate each rest-frame template to its observed-frame counterpart
+via
 \begin{equation}
   S_n^\mathrm{obs}(\lambda)
   =
@@ -935,99 +935,120 @@ counterpart,
   \label{eq:zfactor}
 \end{equation}
 where $T_\mathrm{IGM}(\lambda,z)$ is the \citet{inoue14a}
-intergalactic medium (IGM) transmission function, accounting for
+intergalactic medium (IGM) transmission function which accounts for
 Ly$\alpha$ forest and Lyman-limit attenuation; $\mathcal{F}_0 =
 10^{17}$ is a dimensionless scale factor converting the cgs flux
 densities of \S\ref{ssec:templates} to our internal flux units of
-$10^{-17}$~erg~s$^{-1}$~cm$^{-2}$~\AA$^{-1}$; and $\mathcal{M}_0 =
-10^{10}\,\msun$ is a fixed mass normalization that rescales the fitted
-template coefficients to order unity for a well-conditioned
-non-negative least-squares (NNLS) solve (see below).
+$10^{-17}$~erg~s$^{-1}$~cm$^{-2}$~\AA$^{-1}$ \citep{guy23a}; and
+$\mathcal{M}_0 = 10^{10}\,\msun$ is a fixed mass normalization that
+rescales the fitted template coefficients to order unity for a
+well-conditioned non-negative least-squares (NNLS) solve (see below).
 
 %We combine the scalar prefactor and IGM transmission into a single
 %array (\texttt{zfactors}) evaluated once per object at initialization
 %and reused for all template evaluations during fitting.
 
 We restrict the dust optical depth to the physically motivated range
-$\tauv \in [0,\,2]$, and by default include coefficients for all five
-SPS age bins (\S\ref{ssec:templates}), even for stellar populations
-nominally older than the age of the universe at the redshift of a
-given object. Because our age sampling is coarse, the boundary between
-physical and unphysical ages is poorly defined, and excluding bins
-outright would introduce more redshift-dependent bias than it removes
-\citep{leja19a}.
+$\tauv \in [0,\,2]$, and by default we include coefficients for all
+five SPS age bins (\S\ref{ssec:templates}), even for stellar
+populations nominally older than the age of the universe at the
+redshift of a given object. Because our age sampling is coarse, the
+boundary between physical and unphysical ages is poorly defined, and
+excluding bins outright would introduce more redshift-dependent bias
+than it removes \citep{leja19a}.
 
-We fit the stellar continuum by minimizing the
-inverse-variance-weighted sum of squared spectroscopic and photometric
-residuals between the data and the continuum model
-$C(\lambda;\theta_C)$,
+At this point, we have all the ingredients necessary to fit the
+stellar continuum. Let $d$, $I$, and $m$ be the observed DESI
+spectrum, inverse-variance spectrum, and binary emission-line mask
+from \S\ref{ssec:patches}, respectively, each an
+$n_\mathrm{pix}$-element array ($m_i=1$ for pixels retained in the fit
+and $0$ for masked pixels); and let $D$ and $I_D$ be the
+$n_\mathrm{band}=7$ ($grz$W1--W4) photometric fluxes and inverse
+variances, respectively. We construct the continuum model
+$C(\lambda;\theta_C)$ as the non-negative linear combination of the
+observed-frame templates $S_n^\mathrm{obs}(\lambda)$ from
+equation~(\ref{eq:zfactor}),
 \begin{equation}
-  \chi^2(\tauv,\vdisp,\mathbf{c})
-  =
-  \sum_i I_i\bigl(d_i - C_i\bigr)^2
-  \;+\;
-  \sum_k I_{D,k}\bigl(D_k - C_k\bigr)^2,
-  \label{eq:chi2cont}
+  C(\lambda;\theta_C) = \sum_n c_n\,S_n^\mathrm{obs}(\lambda),
+  \label{eq:ccont}
 \end{equation}
-where the first sum runs over unmasked spectral pixels with data $d_i$
-and inverse variance $I_i$, the second runs over photometric bands with
-data $D_k$ and inverse variance $I_{D,k} > 0$, and $C_i \equiv
-C(\lambda_i;\theta_C)$ and $C_k$ denote the continuum model evaluated
-at each spectral pixel and synthesized through each bandpass,
-respectively; $d_i$ already carries the aperture correction from
-\S\ref{sssec:apercorr}, so no additional scaling factor appears here.
-When $\vdisp$ is fixed, the continuum model is linear in
-$\mathbf{c}$ for any fixed $\tauv$,
+holding \vdisp{} fixed at the value determined in \S\ref{sssec:vdisp}
+and solving only for $\tauv$ (which enters through $S_n^\mathrm{obs}$)
+and the coefficients $\mathbf{c}$.
+
+To compare this model against the spectroscopic and photometric data,
+we transform it in two ways: (1) we broaden each template by \vdisp{}
+(\S\ref{sssec:vdisp}), convolve it with the wavelength-dependent
+resolution matrix $\mathbf{R}$ (\S\S\ref{ssec:spectra} and
+\ref{sssec:emline_model}), and resample (using a flux-conserving
+trapezoidal-resampling algorithm) onto the same $n_\mathrm{pix}$-pixel
+wavelength grid as $d$, giving $C_i \equiv C(\lambda_i;\theta_C)$; and
+(2) convolve each template with the $n_\mathrm{band}$ filter response
+functions (\S\ref{ssec:photometry}) to derive the synthetic photometry
+$C_k$. Collecting these fully transformed templates as the columns of
+a design matrix $\boldsymbol{\Psi}$, the continuum model at every
+pixel and bandpass becomes
 \begin{equation}
   \mathbf{C} = \boldsymbol{\Psi}\,\mathbf{c},
   \label{eq:designmatrix}
 \end{equation}
-where each column of the design matrix $\boldsymbol{\Psi}$ is one
-fully transformed template $S_n^\mathrm{obs}$---attenuated and
-redshifted as above, broadened by $\vdisp$
-(\S\ref{sssec:vdisp}), and convolved with the wavelength-dependent
-DESI resolution matrix (\S\ref{sssec:emline_model})---evaluated at the
-spectral pixels and synthesized through the photometric bandpasses,
-and weighted by $\sqrt{I_i}$ or $\sqrt{I_{D,k}}$ as appropriate.
+\noindent and we determine $\tauv$ and $\mathbf{c}$ by minimizing
+\begin{equation}
+  \chi^2(\tauv,\mathbf{c})
+  =
+  \sum_{i=1}^{n_\mathrm{pix}} m_i I_i\Bigl(d_i - \frac{C_i}{\bar\eta}\Bigr)^2
+  \;+\;
+  \sum_{k=1}^{n_\mathrm{band}} I_{D,k}\bigl(D_k - C_k\bigr)^2,
+  \label{eq:chi2cont}
+\end{equation}
+where $\bar\eta$ is the scalar aperture correction described in
+\S\ref{sssec:apercorr}.
 
-This structure is linear in the many template coefficients
-$\mathbf{c}$ but nonlinear only in the single scalar $\tauv$, so
-rather than search all free parameters simultaneously we exploit the
-separability via variable projection (VARPRO;
-\citealt{golub73a}): an outer Brent scalar minimization over $\tauv$
-(typically 10--15 evaluations) with an inner NNLS solve for
-$\mathbf{c}$ at each trial $\tauv$,
+Because equation~(\ref{eq:designmatrix}) is linear in the multiple
+template coefficients $\mathbf{c}$ but nonlinear only in the single
+scalar $\tauv$, rather than search both simultaneously we exploit the
+separability via variable projection (VARPRO; \citealt{golub73a}): an
+outer Brent scalar minimization over $\tauv$ with an inner NNLS solve
+for $\mathbf{c}$ at each trial $\tauv$,
 \begin{equation}
   \mathbf{c}^* = \arg\min_{\mathbf{c}\,\geq\,0}
   \bigl\|\boldsymbol{\Psi}\,\mathbf{c} - \mathbf{b}\bigr\|^2,
   \label{eq:nnls}
 \end{equation}
-where $\mathbf{b}$ is the corresponding $\sqrt{I}$-weighted vector of
-stacked spectroscopic and photometric data. Because the inner NNLS
-solve is exact at every trial $\tauv$, VARPRO converges $\sim10\times$
-faster than direct optimization over the full parameter vector, which
-would otherwise require finite-differencing across all template
-coefficients. When $\vdisp$ is a free parameter, the separability is
-broken and we instead fit all parameters jointly with
-\texttt{scipy.optimize.least\_squares} using the TRF method.
+where $\mathbf{b}$ is the corresponding weighted data vector, and the
+mask, inverse variances, and aperture correction enter as row weights
+on $\boldsymbol{\Psi}$ and $\mathbf{b}$---$\sqrt{m_i I_i}/\bar\eta$
+for spectral rows and $\sqrt{I_{D,k}}$ for photometric rows---so that
+minimizing $\|\boldsymbol{\Psi}\mathbf{c}-\mathbf{b}\|^2$ is
+equivalent to minimizing equation~(\ref{eq:chi2cont}) at fixed
+$\tauv$. Because the inner NNLS solve is exact at every trial $\tauv$,
+VARPRO converges an order-of-magnitude faster than direct optimization
+over the full parameter vector, which would otherwise require
+finite-differencing across all template coefficients.
+
+With $\tauv$ and $\mathbf{c}$ now in hand, and $z$ and $\vdisp$ fixed
+from the earlier stages, every element of $\theta_C$ is determined,
+giving the best-fitting stellar continuum model
+$C(\lambda;\theta_C)$. \todo{$\theta_c$ here and in Section 3.4 should
+  possibly list stellar mass explicitly rather than just the template
+  coefficients. Maybe?}
 
 \subsubsection{Smooth Continuum Correction}
 \label{sssec:smooth}
 
-The parametric continuum model $C(\lambda)$ may leave low-level
-systematic residuals due to imperfect template matching or
-flux-calibration uncertainties \citep[e.g.,][]{tremonti04a}. We
-estimate and remove these with a nonparametric smooth continuum
-computed per camera from the spectrum after subtracting the best-fit,
-line-free continuum model. Working per camera, we slide a 75-pixel
-window in 125-pixel steps across the residual spectrum, applying a
-$2\sigma$ iterative clip in each window and computing the robust
-median and inter-quartile sigma; we discard windows with fewer than 15
-unmasked pixels. We then fit a weighted quadratic spline
-(\texttt{UnivariateSpline}, $k = 2$) to the window medians and add the
-resulting smooth baseline back to $C(\lambda)$ before emission-line
-fitting, so that the line fitter operates on spectra with an accurate
-continuum level. \todo{New figure?}
+\todo{Does this section need a figure?} The parametric continuum model
+$C(\lambda)$ may leave low-level systematic residuals due to imperfect
+template matching or flux-calibration uncertainties. We estimate and
+remove these with a nonparametric smooth continuum computed per camera
+from the spectrum after subtracting the best-fit, line-free continuum
+model. Working per camera, we slide a 75-pixel window in 125-pixel
+steps across the residual spectrum, applying a $2\sigma$ iterative
+clip in each window and computing the robust median and inter-quartile
+sigma; we discard windows with fewer than 15 unmasked pixels. We then
+fit a weighted quadratic spline (\texttt{UnivariateSpline}, $k = 2$)
+to the window medians and add the resulting smooth baseline back to
+$C(\lambda)$ before emission-line fitting, so that the line fitter
+operates on spectra with an accurate continuum level.
 
 \subsection{Emission-Line Model}
 \label{ssec:emlines}
