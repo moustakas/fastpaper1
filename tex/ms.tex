@@ -1053,27 +1053,35 @@ operates on spectra with an accurate continuum level.
 \subsection{Emission-Line Model}
 \label{ssec:emlines}
 
-Having fit the continuum model $C(\lambda;\theta_C)$
-(\S\ref{ssec:continuum}), we model the continuum-subtracted residual
-spectrum with the emission-line model $E(\lambda;\theta_E)$ introduced
-in equation~\eqref{eq:totmodel}: a forward model built from the
-log-Gaussian profiles of individual lines, coupled to the DESI
-resolution matrix. We first describe the forward model
-itself---the line profile, its convolution with the DESI resolution
-matrix, and how we fit it (\S\ref{sssec:emline_model})---and then how
-we group lines into shared kinematic components and decide between
-narrow-only and narrow+broad kinematic models
-(\S\ref{sssec:kinematic}).
+After subtracting the best-fitting continuum model
+$C(\lambda;\theta_c)$ from the data $d_i$ (\S\ref{sssec:fitting}),
+including the smooth continuum correction (\S\ref{sssec:smooth}), we
+are left with a residual spectrum $r_i \equiv d_i - C_i$ (in
+\fluxdensity) containing one or more emission lines
+(\S\ref{ssec:emlinelist}). In the following three subsections we
+describe how we construct and fit the emission-line model,
+$E(\lambda;\theta_E)$ (\S\ref{sssec:emline_model}); how we use
+physically motivated ``kinematic groups'' among different sets of
+lines to reduce the number of free parameters in the fit, including
+(optionally) decomposing the Balmer lines into broad and narrow
+components (\S\ref{sssec:kinematic}); and we conclude with a summary
+of all the quantities we measure for each detected (or undetected)
+emission line (\S\ref{sssec:lines}).
 
 \subsubsection{Forward Model}
 \label{sssec:emline_model}
 
-After subtracting the best-fitting continuum model $C(\lambda)$ from
-the data $d_i$ (\S\ref{sssec:fitting}), including the smooth continuum
-correction (\S\ref{sssec:smooth}), we forward-model the residual
-spectrum $r_i \equiv d_i - C_i$ using a non-negative sum of emission
-lines (\S\ref{ssec:emlinelist}). We model the intrinsic spectral
-profile of each line as a log-Gaussian in observed wavelength,
+We forward-model each object's emission-line spectrum as the
+non-negative sum of the $n_\mathrm{line}$ emission lines from our line
+list (\S\ref{ssec:emlinelist}) that fall within the observed-frame
+wavelength range at the Redrock redshift $z$,
+\begin{equation}
+  E(\lambda;\theta_E) = \sum_{p=1}^{n_\mathrm{line}}
+    \phi(\lambda;\,A_p,\lambda_p^*,\sigma_p),
+  \label{eq:emline_sum}
+\end{equation}
+where we model each individual line as a log-Gaussian in observed
+wavelength,
 \begin{equation}
   \phi(\lambda;\,A,\lambda^*,\sigma)
   =
@@ -1089,7 +1097,7 @@ observed line center, including both cosmological ($z$) and peculiar
   \label{eq:lstar}
 \end{equation}
 and $\sigma = s/c$ is the line width in log-$\lambda$ units. With this
-parameterization, the total line flux in \flux{} is
+parameterization, the total flux of each line in \flux{} is
 \begin{equation}
   \Phi = \sqrt{2\pi}\,A\,\lambda^*\,\sigma,
        %= \sqrt{2\pi}\,A\,\lambda^*\,\frac{s}{c},
@@ -1130,21 +1138,29 @@ of a single line at pixel center $\lambda_j$ is
   \label{eq:model}
 \end{equation}
 The amplitude factor $\sigma/\sigma_\mathrm{eff} \leq 1$ accounts for
-broadening by the pre-convolution kernel. The full emission-line model
-is $\mathbf{E} = \mathbf{W}\,\mathbf{F}$, summed over all $N$ emission
-lines falling within the observed spectral range. Physical
-constraints---shared $\Delta v$ and $s$ within kinematic groups
+broadening by the pre-convolution kernel. Collecting the pre-convolved
+profiles of all $n_\mathrm{line}$ lines into $\mathbf{F}$, the
+pixelized counterpart of equation~(\ref{eq:emline_sum}) is
+\begin{equation}
+  \mathbf{E} = \mathbf{W}\,\mathbf{F}.
+  \label{eq:emline_pixel}
+\end{equation}
+Physical constraints---shared $\Delta v$ and $s$ within kinematic groups
 (\S\ref{sssec:kinematic}) and fixed doublet amplitude ratios---reduce
 the free-parameter count and improve reliability for blended or weak
 lines.
 
 Because \fastspecfit{} often fits dozens of blended lines
-simultaneously, fast and accurate gradients matter: rather than rely
-on finite-difference approximations, we supply
+simultaneously, fast and accurate gradients matter. Consequently,
+rather than rely on finite-difference approximations, we supply
 \texttt{scipy.optimize.least\_squares} with an analytic
-Jacobian---closed-form first derivatives of $F_j$
-(equation~\ref{eq:model}) with respect to each free parameter. Because
-$F_j$ is linear in $A$, the amplitude gradient is simply
+Jacobian---closed-form first derivatives of equation~(\ref{eq:model})
+with respect to each free parameter. Supplying these analytic
+derivatives eliminates finite-difference gradient evaluations and
+reduces the number of forward-model calls per optimizer iteration from
+$\mathcal{O}(N_\mathrm{param})$ to one.
+
+Because $F_j$ is linear in $A$, the amplitude gradient is simply
 \begin{equation}
   \frac{\partial F_j}{\partial A} = \frac{F_j}{A}.
   \label{eq:dF_dA}
@@ -1158,9 +1174,10 @@ $\Delta v$:
   \frac{F_j\,x_j}{\sigma_\mathrm{eff}^2\,c\,(1+z+\Delta v/c)}.
   \label{eq:dF_dv}
 \end{equation}
-The line-width gradient, written in a form that remains finite as
-$\sigma\to0$, accounts for the dependence of both the amplitude factor
-$\sigma/\sigma_\mathrm{eff}$ and the exponent on $\sigma = s/c$:
+And finally, the line-width gradient, written in a form that remains
+finite as $\sigma\to0$, accounts for the dependence of both the
+amplitude factor $\sigma/\sigma_\mathrm{eff}$ and the exponent on
+$\sigma = s/c$:
 \begin{equation}
   \frac{\partial F_j}{\partial s}
   =
@@ -1170,24 +1187,20 @@ $\sigma/\sigma_\mathrm{eff}$ and the exponent on $\sigma = s/c$:
   \bigr)/\sigma_\mathrm{eff}^2\Bigr].
   \label{eq:dF_ds}
 \end{equation}
-Supplying these analytic derivatives eliminates finite-difference
-gradient evaluations and reduces the number of forward-model calls per
-optimizer iteration from $\mathcal{O}(N_\mathrm{param})$ to one.
 
-We minimize
+With the Jacobian in-hand, we minimize
 \begin{equation}
-  \chi^2 = \sum_{j} I_{j}\bigl(r_j - E_j\bigr)^2,
+  \chi^2 = \sum_{i=1}^{n_\mathrm{pix}} I_{i}\bigl(r_i - E_i\bigr)^2,
   \label{eq:chi2line}
 \end{equation}
-where $r_j \equiv d_j - C_j$ is the continuum-subtracted observed flux
-(in \fluxdensity), $I_j$ is the corresponding inverse variance (in
-\ivardensity), and $E_j$ is the emission-line model
-(\S\ref{sssec:emline_model}), using the trust-region reflective
-algorithm
-\citep[\texttt{scipy.optimize.least\_squares};][]{branch99a}.  We
-compute line fluxes analytically from the fitted $(A,\,\lambda^*,\,s)$
-via equation~\eqref{eq:flux_phys}, without reference to the pixel
-sampling or the resolution matrix.
+using the trust-region reflective algorithm
+\citep[\texttt{scipy.optimize.least\_squares};][]{branch99a}, where
+$r_i$ is the residual spectrum, $I_i$ is the corresponding inverse
+variance spectrum, $E_i$ is the emission-line model given by
+equation~(\ref{eq:emline_pixel}), and $n_\mathrm{pix}$ is the number of
+pixels in the spectrum.
+
+\todo{Need a transition sentence here.}
 
 With the amplitude, velocity shift, and width of every line and
 kinematic group now determined by this minimization,
@@ -1198,24 +1211,22 @@ narrow-only and narrow+broad kinematic models.
 \subsubsection{Kinematic Groups and Broad-Line Decomposition}
 \label{sssec:kinematic}
 
-\todo{The kinematic groups stuff used to be its own subsection but it
-  needs to be consolidated and combined with the broad-line
-  decomposition description.}
-
 We reduce the dimensionality of the emission-line fit by grouping lines
 into \emph{kinematic groups}, within which all members share a common
-velocity shift $\Delta v$ and line width $s$. Eight UV and broad AGN
-permitted lines carry independently free kinematics in both fitting
-models: Ly$\alpha$, [N\,\textsc{v}]~$\lambda$1240,
-O\,\textsc{i}~$\lambda$1304, Si\,\textsc{iv}~$\lambda$1396,
-C\,\textsc{iv}~$\lambda$1549, He\,\textsc{ii}~$\lambda$1640,
-Al\,\textsc{iii}~$\lambda$1857, and He\,\textsc{ii}~$\lambda$4686.
-We treat two doublet pairs as global kinematic anchors in both
-models: Si\,\textsc{iii}]~$\lambda$1892 is tied to
-C\,\textsc{iii}]~$\lambda$1908, and Mg\,\textsc{ii}~$\lambda\lambda$2796,2803
-shares a single kinematic solution with a free amplitude ratio.
-
-\input{tables/table-kinematic-bounds}
+velocity shift $\Delta v$ and line width $s$. We first define these
+groups and the two competing kinematic models---narrow-only and
+narrow+broad---then describe how we select between them, and finally
+an optional relaxation pass that refines the winning model's
+kinematics. Eight UV and broad AGN permitted lines carry independently
+free kinematics in both fitting models: Ly$\alpha$,
+[N\,\textsc{v}]~$\lambda$1240, O\,\textsc{i}~$\lambda$1304,
+Si\,\textsc{iv}~$\lambda$1396, C\,\textsc{iv}~$\lambda$1549,
+He\,\textsc{ii}~$\lambda$1640, Al\,\textsc{iii}~$\lambda$1857, and
+He\,\textsc{ii}~$\lambda$4686. We treat two doublet pairs as global
+kinematic anchors in both models: Si\,\textsc{iii}]~$\lambda$1892 is
+tied to C\,\textsc{iii}]~$\lambda$1908, and
+Mg\,\textsc{ii}~$\lambda\lambda$2796,2803 shares a single kinematic
+solution with a free amplitude ratio.
 
 We fit two profile models whose kinematic structure depends on whether a
 significant broad Balmer component is present. The \emph{narrow-only}
@@ -1243,18 +1254,11 @@ emissivities: [N\,\textsc{ii}]~$\lambda$6548/$\lambda$6584 $= 1/3.033$,
 density-sensitive doublets---[O\,\textsc{ii}]~$\lambda\lambda$3726,3729;
 [S\,\textsc{ii}]~$\lambda\lambda$6716,6731; and
 Mg\,\textsc{ii}~$\lambda\lambda$2796,2803---carry free amplitude ratios
-that encode the electron density.
+that encode the electron density. Table~\ref{table:kinematic}
+summarizes these kinematic groups, bounds, and amplitude constraints
+for both profile models.
 
-After the primary constrained fit, \fastspecfit{} runs a second
-optimization pass that frees individual velocity shifts for each
-narrow line, allowing it to absorb small wavelength-calibration
-residuals; line widths remain shared within each kinematic group.
-Doublet-constrained pairs retain their kinematic ties during the relaxed
-pass, since releasing transitions from the same upper level individually
-would allow unphysical offsets between their velocity shifts. We adopt
-the relaxed solution only when the global $\chi^2$ improvement exceeds
-the number of additional free parameters; otherwise we retain the
-primary result.
+\input{tables/table-kinematic-bounds}
 
 \fastspecfit{} fits every spectrum with both the narrow-only and
 narrow+broad models simultaneously, then selects the preferred solution
@@ -1283,27 +1287,37 @@ condition fails, we retain the narrow-only result. We record the
 pixel-level $\chi^2$ comparison in the output columns
 \texttt{DELTA\_LINECHI2} and \texttt{DELTA\_LINENDOF}.
 
-After the broad/narrow model selection, \fastspecfit{} runs an optional
-kinematic relaxation pass. For the narrow-only model, we free
-individual velocity shifts within a $\pm100$~\kms\ window around each
-line's primary best-fit value, while line widths remain tied; this
-configuration accommodates galaxies with forbidden-line outflows, where
-the forbidden and Balmer lines often settle at slightly different
-systemic velocities. For the narrow+broad model, we do not relax any
-kinematic parameters, because the three-group structure already
-absorbs most residual complexity through the broad Balmer component,
-and freeing kinematics in that model risks over-fitting. In both cases we adopt the relaxed
-solution only when the $\chi^2$ improvement weighted by the degrees of
-freedom exceeds the degrees of freedom added by the relaxation;
-otherwise we retain the primary result. We record this comparison in the
-output columns \texttt{DELTA\_KINECHI2} and \texttt{DELTA\_KINENDOF}.
+Once a model is selected, \fastspecfit{} runs an optional final
+relaxation pass that frees individual velocity shifts for the
+narrow-only model only; the three-group narrow+broad model already has
+enough kinematic freedom to absorb residual complexity through its
+broad Balmer component, and relaxing it further would risk
+over-fitting. For the narrow-only model, we free each narrow line's
+velocity shift within a $\pm100$~\kms\ window around its primary
+best-fit value, while line widths remain tied within each kinematic
+group; this accommodates galaxies with forbidden-line outflows or small
+wavelength-calibration residuals, where individual lines can settle at
+slightly different velocities than their group's anchor. Doublet-tied
+pairs (e.g., [N\,\textsc{ii}]~$\lambda\lambda$6548,6584) retain a
+shared velocity shift during this relaxation, since releasing
+transitions from the same upper level independently would allow
+unphysical offsets between them. We adopt the relaxed solution only
+when $\Delta\chi^2 > \Delta N_\mathrm{dof}$; otherwise we retain the
+primary result. We record this comparison in the output columns
+\texttt{DELTA\_KINECHI2} and \texttt{DELTA\_KINENDOF}.
 
-\subsubsection{Emission-Line Quantities}
+\subsubsection{Summary of Measured Emission-Line Properties}
 \label{sssec:lines}
 
 \todo{New subsection. Need to describe and define the per-line data
   model (perhaps in a table): amplitude, model amplitude, EW, $\Phi$,
-  $F_c$, limit, and the units. }
+  $F_c$, limit, and the units.}
+
+\todo{Moments, boxflux, limits.}
+
+We compute line fluxes analytically from the fitted
+$(A,\,\lambda^*,\,s)$ via equation~\eqref{eq:flux_phys}, without
+reference to the pixel sampling or the resolution matrix.
 
 We compute equivalent widths (EWs) for all modeled emission lines as the ratio
 of the integrated line flux to the local continuum flux density, which we
@@ -1325,6 +1339,8 @@ use the same continuum-model-interpolated continuum.
 
 \subsection{Spectrophotometric and Physical Properties}
 \label{ssec:quantities}
+
+Define Dn4000.
 
 We derive several physical quantities from the best-fitting continuum
 model and report them in the output catalog
@@ -1647,8 +1663,13 @@ Figure~\ref{fig:compare-sfr-external} does stuff.
 \caption{Write me\label{fig:compare-sfr-external}}
 \end{figure*}
 
-%\texttt{kcorrect} \citep{blanton07a}
-%PROVABGS \citep{hahn24a}
+\subsection{Recommended Quality Cuts}
+\label{ssec:cuts}
+
+\todo{Pipeline cuts on delta-chi2, etc. Recommended S/N cuts on
+  amplitude, not flux. Depends on the science! Consider showing the
+  correlation between amplitude and flux S/N.}
+
 
 \subsection{Computational Performance}
 \label{ssec:performance}
@@ -1678,6 +1699,11 @@ invocation. \todo{Benchmark: X ms/spectrum, Y$\times$ faster than
 
 \subsection{Validation}
 \label{ssec:validation}
+
+\todo{Compare K-corrections?}
+
+%\texttt{kcorrect} \citep{blanton07a}
+%PROVABGS \citep{hahn24a}
 
 We validate the \fastspecfit{} measurements by comparing them against
 independent codes applied to overlapping subsets of the DR2 sample. For each
@@ -1729,14 +1755,6 @@ targets in the SDSS footprint. \todo{Describe agreement and key
   those from \texttt{pPXF} \citep{cappellari23a} for a matched BGS
   sample.\label{fig:vdisp}}
 \end{figure*}
-
-\subsection{Recommended Quality Cuts}
-\label{ssec:cuts}
-
-\todo{Pipeline cuts on delta-chi2, etc. Recommended S/N cuts on
-  amplitude, not flux. Depends on the science! Consider showing the
-  correlation between amplitude and flux S/N.}
-
 
 %% ============================================================
 \section{Discussion}

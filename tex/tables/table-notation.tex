@@ -60,7 +60,7 @@ $\Delta v$ & Line-of-sight velocity shift (distinct from the SPS pixel size abov
 $s$ & Emission-line width, in \kms{} & \S\ref{sssec:emline_model} \\
 $\sigma$ & Emission-line width in log-$\lambda$ units, $\sigma=s/c$ & \S\ref{sssec:emline_model} \\
 $\Phi$ & Total integrated emission-line flux & \S\ref{sssec:emline_model} \\
-$N$ & Number of emission lines within the observed spectral range (distinct from $N=5$ templates above) & \S\ref{sssec:emline_model} \\
+$n_\mathrm{line}$ & Number of emission lines (\S\ref{ssec:emlinelist}) within the observed-frame wavelength range at redshift $z$ & \S\ref{sssec:emline_model} \\
 $N_\mathrm{dof}$, $\Delta N_\mathrm{dof}$ & Degrees of freedom / change thereof & \S\ref{sssec:kinematic} \\
 $N_\sigma$ & Pixel-window half-width, in units of $\sigma$ & \S\ref{sssec:kinematic} \\
 $\sigma_\mathrm{broad}$, $\sigma_\mathrm{narrow}$ & Fitted broad-/narrow-component line width & \S\ref{sssec:kinematic} \\
@@ -87,7 +87,7 @@ $\sigma_\theta$ & Monte Carlo uncertainty on a fitted quantity $\theta$ & \S\ref
 \enddata
 \tablecomments{Symbols are grouped by role rather than strictly by order of
   appearance. Several symbols carry more than one meaning in
-  Section~\ref{sec:modeling}: $C$, $D$, $F$, $M$, $N$, and $\mathcal{R}$/$\mathbf{R}$
+  Section~\ref{sec:modeling}: $C$, $D$, $F$, $M$, and $\mathcal{R}$/$\mathbf{R}$
   each denote two or more distinct quantities, distinguished by typeface
   (roman/bold/calligraphic) and subscript; $\Delta v$ denotes both the SPS
   template pixel size (\S\ref{ssec:templates}) and the emission-line velocity
