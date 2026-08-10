@@ -1058,23 +1058,22 @@ Having fit the continuum model $C(\lambda;\theta_C)$
 spectrum with the emission-line model $E(\lambda;\theta_E)$ introduced
 in equation~\eqref{eq:totmodel}: a forward model built from the
 log-Gaussian profiles of individual lines, coupled to the DESI
-resolution matrix (\S\ref{sssec:emline_model}). We first describe how
-we group lines by shared kinematics (this section), then the
-forward model itself (\S\ref{sssec:emline_model}), and finally how we
-decide between narrow-only and narrow+broad kinematic models
+resolution matrix. We first describe the forward model
+itself---the line profile, its convolution with the DESI resolution
+matrix, and how we fit it (\S\ref{sssec:emline_model})---and then how
+we group lines into shared kinematic components and decide between
+narrow-only and narrow+broad kinematic models
 (\S\ref{sssec:kinematic}).
 
 \subsubsection{Forward Model}
 \label{sssec:emline_model}
 
 After subtracting the best-fitting continuum model $C(\lambda)$ from
-the data $d_i$ (\S~\ref{sssec:fitting}), including the smooth
-continuum correction (\S~\ref{sssec:smooth}), we fit the residual
-spectrum $r_i \equiv d_i - C_i$ using a forward model assuming
-log-Gaussian emission-line profiles.
-
-We model the intrinsic spectral profile of each emission line as a
-log-Gaussian in observed wavelength,
+the data $d_i$ (\S\ref{sssec:fitting}), including the smooth continuum
+correction (\S\ref{sssec:smooth}), we forward-model the residual
+spectrum $r_i \equiv d_i - C_i$ using a non-negative sum of emission
+lines (\S\ref{ssec:emlinelist}). We model the intrinsic spectral
+profile of each line as a log-Gaussian in observed wavelength,
 \begin{equation}
   \phi(\lambda;\,A,\lambda^*,\sigma)
   =
@@ -1082,8 +1081,8 @@ log-Gaussian in observed wavelength,
   \label{eq:intrinsic}
 \end{equation}
 where $A$ is the peak amplitude (in \fluxdensity), $\lambda^*$ is the
-observed line center, including both cosmological and peculiar motion
-of the line-emitting gas,
+observed line center, including both cosmological ($z$) and peculiar
+($\Delta v$) motion of the line-emitting gas,
 \begin{equation}
   \lambda^* = \lambda_\mathrm{rest}
     \left(1 + z + \frac{\Delta v}{c}\right),
@@ -1092,34 +1091,32 @@ of the line-emitting gas,
 and $\sigma = s/c$ is the line width in log-$\lambda$ units. With this
 parameterization, the total line flux in \flux{} is
 \begin{equation}
-  \Phi = \sqrt{2\pi}\,A\,\lambda^*\,\sigma
-       = \sqrt{2\pi}\,A\,\lambda^*\,\frac{s}{c},
+  \Phi = \sqrt{2\pi}\,A\,\lambda^*\,\sigma,
+       %= \sqrt{2\pi}\,A\,\lambda^*\,\frac{s}{c},
   \label{eq:flux_phys}
 \end{equation}
-which is independent of the instrumental pixel grid and resolution
-matrix.
+which is independent of the DESI wavelength grid and instrumental
+resolution.
 
-%\paragraph{Resolution matrix and pre-convolved forward model.}
-
-\todo{Need more or a better introduction. Very technical. Maybe move
-  to an appendix and show the bias plots?
-  \url{https://github.com/desihub/fastspecfit/issues/183}}
-
+Comparing this intrinsic profile to a DESI spectrum, however, requires
+modeling how the instrument disperses and pixelizes it.
 \fastspecfit{} takes advantage of the fact that DESI spectra are
 produced by an optimal extraction that encodes the
 wavelength-dependent instrumental resolution in a sparse, band-format
 resolution matrix $\mathbf{R}$ (with $\sim$11 diagonals), normalized
-to preserve integrated flux. The standard discrete model $\mathbf{m}
-\approx \mathbf{R}\,\boldsymbol{\phi}$ (with $\boldsymbol{\phi}$
-evaluated at pixel centers) fails for features narrower than
-approximately one pixel. A more accurate discretization uses a
-Gaussian-pre-convolved spectrum evaluated at pixel centers: defining
-$\mathbf{W} = \mathbf{R}\,\mathbf{M}^{-1}$, where $\mathbf{M}_{ij} =
-G(\lambda_i - \lambda_j;\,0,\,\sigma_G)$ is a Gaussian design matrix
-with width $\sigma_G = 0.5$\,\AA, the predicted line model is
-$\mathbf{m} \approx \mathbf{W}\,\mathbf{h}$, where $\mathbf{h}$ is the
-$\sigma_G$-pre-convolved profile evaluated at pixel centers
-\citep[following][]{koposov25a}.
+to preserve integrated flux. The obvious approach---evaluating
+$\phi(\lambda)$ at the pixel centers and applying $\mathbf{R}$
+directly, $\mathbf{m} \approx \mathbf{R}\,\boldsymbol{\phi}$---
+systematically underestimates the flux of any line whose intrinsic
+width approaches or falls below a pixel, since a single point sample
+of a narrow function captures only a small fraction of its area. We
+avoid this bias with a Gaussian-pre-convolved discretization instead:
+defining $\mathbf{W} = \mathbf{R}\,\mathbf{M}^{-1}$, where
+$\mathbf{M}_{ij} = G(\lambda_i - \lambda_j;\,0,\,\sigma_G)$ is a
+Gaussian design matrix with width $\sigma_G = 0.5$\,\AA, the predicted
+line model becomes $\mathbf{m} \approx \mathbf{W}\,\mathbf{h}$, where
+$\mathbf{h}$ is the $\sigma_G$-pre-convolved profile evaluated at
+pixel centers, following \citet{koposov25a}.
 
 Because the log-Gaussian profile~\eqref{eq:intrinsic} is an exact
 Gaussian in log-$\lambda$ space, the convolution with $G_{\sigma_G}$ is
@@ -1135,14 +1132,17 @@ of a single line at pixel center $\lambda_j$ is
 The amplitude factor $\sigma/\sigma_\mathrm{eff} \leq 1$ accounts for
 broadening by the pre-convolution kernel. The full emission-line model
 is $\mathbf{E} = \mathbf{W}\,\mathbf{F}$, summed over all $N$ emission
-lines falling within the observed spectral range. Physical constraints
-(shared $\Delta v$ and $s$ within kinematic groups; fixed doublet
-amplitude ratios) reduce the free-parameter count and improve
-reliability for blended or weak lines.
+lines falling within the observed spectral range. Physical
+constraints---shared $\Delta v$ and $s$ within kinematic groups
+(\S\ref{sssec:kinematic}) and fixed doublet amplitude ratios---reduce
+the free-parameter count and improve reliability for blended or weak
+lines.
 
-One of the advantages of this implementation is that we can supply
+Because \fastspecfit{} often fits dozens of blended lines
+simultaneously, fast and accurate gradients matter: rather than rely
+on finite-difference approximations, we supply
 \texttt{scipy.optimize.least\_squares} with an analytic
-Jacobian--closed-form first derivatives of $F_j$
+Jacobian---closed-form first derivatives of $F_j$
 (equation~\ref{eq:model}) with respect to each free parameter. Because
 $F_j$ is linear in $A$, the amplitude gradient is simply
 \begin{equation}
@@ -1158,10 +1158,9 @@ $\Delta v$:
   \frac{F_j\,x_j}{\sigma_\mathrm{eff}^2\,c\,(1+z+\Delta v/c)}.
   \label{eq:dF_dv}
 \end{equation}
-Using $1/c$ in place of $1/[c\,(1+z+\Delta v/c)]$ would introduce a
-fractional error of order $z$ at all redshifts and must be avoided. The
-line-width gradient accounts for the dependence of both the amplitude
-factor $\sigma/\sigma_\mathrm{eff}$ and the exponent on $\sigma = s/c$:
+The line-width gradient, written in a form that remains finite as
+$\sigma\to0$, accounts for the dependence of both the amplitude factor
+$\sigma/\sigma_\mathrm{eff}$ and the exponent on $\sigma = s/c$:
 \begin{equation}
   \frac{\partial F_j}{\partial s}
   =
@@ -1171,17 +1170,9 @@ factor $\sigma/\sigma_\mathrm{eff}$ and the exponent on $\sigma = s/c$:
   \bigr)/\sigma_\mathrm{eff}^2\Bigr].
   \label{eq:dF_ds}
 \end{equation}
-This form evaluates to a finite limit as $\sigma \to 0$. \todo{Need to
-  move this sentence earlier.} Supplying these analytic derivatives
-eliminates finite-difference gradient evaluations and reduces the
-number of forward-model calls per optimizer iteration from
-$\mathcal{O}(N_\mathrm{param})$ to one.
-
-\todo{Move this section to \S~\ref{ssec:performance}.} We implement
-the forward model and Jacobian using Numba JIT compilation
-\citep[v\,\todo{X.Y};][]{lam15a}, which compiles the pixel-level
-evaluation loops to native machine code at first invocation.
-\todo{Benchmark: X ms/spectrum, Y$\times$ faster than NumPy.}
+Supplying these analytic derivatives eliminates finite-difference
+gradient evaluations and reduces the number of forward-model calls per
+optimizer iteration from $\mathcal{O}(N_\mathrm{param})$ to one.
 
 We minimize
 \begin{equation}
@@ -1197,6 +1188,12 @@ algorithm
 compute line fluxes analytically from the fitted $(A,\,\lambda^*,\,s)$
 via equation~\eqref{eq:flux_phys}, without reference to the pixel
 sampling or the resolution matrix.
+
+With the amplitude, velocity shift, and width of every line and
+kinematic group now determined by this minimization,
+\S\ref{sssec:kinematic} describes how those parameters are shared and
+constrained across lines, and how \fastspecfit{} chooses between the
+narrow-only and narrow+broad kinematic models.
 
 \subsubsection{Kinematic Groups and Broad-Line Decomposition}
 \label{sssec:kinematic}
@@ -1672,7 +1669,12 @@ Because \fastspec{} fits hundreds of thousands of spectra, we cache
 reused arrays aggressively throughout---precomputed template FFTs
 (\S\ref{sssec:vdisp}) and per-object redshift/IGM prefactors
 (\S\ref{sssec:fitting}) chief among them---to minimize redundant
-computation.
+computation. Similarly, we implement the emission-line forward model
+and its Jacobian (\S\ref{sssec:emline_model}) using Numba JIT
+compilation \citep[v\,\todo{X.Y};][]{lam15a}, which compiles the
+pixel-level evaluation loops to native machine code at first
+invocation. \todo{Benchmark: X ms/spectrum, Y$\times$ faster than
+  NumPy.}
 
 \subsection{Validation}
 \label{ssec:validation}
