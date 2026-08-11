@@ -23,17 +23,19 @@ _DESI_VAC = '/pscratch/sd/i/ioannis/fastspecfit'
 # are released; set a value to None when the path is not yet known.
 _SPECPROD_CONFIG = {
     'loa': {
-        'fastspec': f'{_DESI_VAC}/fastspec-3.5.0/loa/catalogs',
-        'fastphot': f'{_DESI_VAC}/fastphot-3.5.0/loa/catalogs',
+        'fastspec': f'{_DESI_VAC}/loa-v2.0-fastspec/loa/catalogs',
+        'fastphot': f'{_DESI_VAC}/loa-v2.0-fastphot/loa/catalogs',
         #'fastspec': f'{_DESI_VAC}/dr2/fastspecfit/loa/v1.0/catalogs',
         #'fastphot': f'{_DESI_VAC}/dr2/fastphot/loa/v1.0/catalogs',
     },
     'iron': {
-        'fastspec': f'{_DESI_VAC}/dr1/fastspecfit/iron/v3.0/catalogs',
-        'fastphot': f'{_DESI_VAC}/dr1/fastphot/loa/v1.0/catalogs',
+        #'fastspec': f'{_DESI_VAC}/iron-v4.0/iron/catalogs',
+        #'fastphot': f'{_DESI_VAC}/iron-fastphot-v2.0/iron/catalogs',
+        'fastspec': '/dvs_ro/cfs/cdirs/desi/vac/dr1/fastspecfit/iron/v3.0/catalogs',
+        'fastspec': '/dvs_ro/cfs/cdirs/desi/vac/dr1/fastspecfit/iron/v3.0/catalogs',
     },
     'fuji': {
-        'fastspec': f'{_DESI_VAC}/edr/fastspecfit/fuji/v3.2/catalogs',
+        'fastspec': '/dvs_ro/cfs/cdirs/desi/vac/edr/fastspecfit/fuji/v3.2/catalogs',
         'fastphot': None,
     },
 }
