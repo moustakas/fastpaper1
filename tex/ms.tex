@@ -23,8 +23,8 @@
 \newcommand{\stackfit}{\texttt{stackfit}}
 \newcommand{\kms}{\ensuremath{\mathrm{km~s}^{-1}}}
 \newcommand{\flux}{\ensuremath{\mathrm{erg~s}^{-1}~\mathrm{cm}^{-2}}}
-\newcommand{\fluxdensity}{\ensuremath{\mathrm{erg~s}^{-1}~\mathrm{cm}^{-2}~\mathrm{\AA}^{-1}}}
-\newcommand{\ivardensity}{\ensuremath{\mathrm{erg}^{-2}~\mathrm{s}^{2}~\mathrm{cm}^{4}~\mathrm{\AA}^{2}}}
+\newcommand{\fluxdensity}{\ensuremath{\mathrm{erg~s}^{-1}~\mathrm{cm}^{-2}~\text{\AA}^{-1}}}
+\newcommand{\ivardensity}{\ensuremath{\mathrm{erg}^{-2}~\mathrm{s}^{2}~\mathrm{cm}^{4}~\text{\AA}^{2}}}
 \newcommand{\ivarflux}{\ensuremath{\mathrm{erg}^{-2}~\mathrm{s}^{2}~\mathrm{cm}^{4}}}
 \newcommand{\oii}{[\ion{O}{2}]$\lambda\lambda3726,3729$}
 \newcommand{\oiidoublet}{[\ion{O}{2}]$\lambda\lambda3726,3729$}
@@ -268,10 +268,11 @@ units with $h=1$.
 \label{sec:data}
 %% ============================================================
 
-In this section we describe the DESI spectroscopic and broadband
-photometric data that \fastspecfit{} fits (\S\ref{ssec:spectra},
-\S\ref{ssec:photometry}), and the target classes and redshift
-measurements that define the parent sample (\S\ref{ssec:targets}).
+In this section we describe the DESI spectroscopic
+(\S\ref{ssec:spectra}) and broadband photometric
+(\S\ref{ssec:photometry}) data that \fastspecfit{} fits, and the
+target classes and redshift measurements that define the parent sample
+(\S\ref{ssec:targets}).
 
 \subsection{DESI Spectroscopy}
 \label{ssec:spectra}
@@ -282,55 +283,60 @@ DESI is a highly multiplexed fiber spectrograph mounted on the Mayall
 corrector \citep{miller24a} feeds a $3\fdg2$-diameter field of view,
 within which 5000 robotically actuated, $1\farcs5$-diameter fibers
 \citep{poppett24a} are positioned onto target coordinates and feed ten
-three-arm spectrographs covering 3600--9824\,\AA\ in the observed
+three-arm spectrographs covering 3600--9824\,\AA{} in the observed
 frame \citep{guy23a}. The focal plane is divided into ten wedge-shaped
 \emph{petals}, each read out by one spectrograph, and a single
 pointing of the full 5000-fiber focal plane defines a \emph{tile}, the
 basic unit of the survey's tiling strategy \citep{schlafly23a}. The
 three cameras sense blue (B: 3600--5930\,\AA), red (R:
 5600--7720\,\AA), and near-infrared (Z: 7470--9824\,\AA) light, at a
-spectral resolution of $\mathcal{R}\equiv\lambda/\Delta\lambda
+spectral resolution of $\mathcal{R}\equiv\lambda/\Delta\lambda=
 2000-3500$, $3400-4800$, and $3800-5200$, respectively \citep{guy23a}.
 
-The spectroscopic pipeline \citep{guy23a} performs an optimal spectral
-extraction \citep[following][]{bolton10a}, encoding the
-wavelength-dependent line-spread function (LSF) for each fiber in a
-sparse resolution matrix, which \fastspecfit{} uses to convolve model
-spectra before comparing them to the data (see \S\ref{sec:modeling});
-the resulting one-dimensional spectra are flux-calibrated,
-sky-subtracted, and resampled onto a common linear wavelength grid, in
-vacuum, with 0.8~\AA{} pixels.
+\citet{guy23a} describe the DESI spectroscopic pipeline in detail.
+One-dimensional spectra are extracted from each fiber using the
+optimal, ``spectroperfectionism'' algorithm of \citet{bolton10a},
+wavelength- and flux-calibrated, and coadded across repeat exposures
+onto a common, 0.8~\AA{} linear (vacuum) wavelength grid. Wavelength
+calibration proceeds from an initial solution from arc-lamp spectra,
+through a per-exposure point-spread function (PSF) and trace
+refinement, to a final adjustment via cross-correlation with sky
+emission lines and an external high-resolution sky atlas, yielding a
+residual wavelength calibration uncertainty of $\approx 0.025$\,\AA{}
+per sky line or $\approx$1\,\kms{} at 7000\,\AA.
 
-Wavelength calibration proceeds in three steps: an initial solution
-from arc-lamp spectra, a per-exposure point-spread function (PSF) and
-trace refinement, and a final adjustment via cross-correlation with
-sky emission lines and an external high-resolution sky atlas. The
-residual wavelength calibration uncertainty after this correction is
-typically $\epsilon_\lambda \approx 0.025$\,\AA\ per sky
-line---roughly 3\% of a CCD pixel, or $\sim$1\,\kms\ at
-7000\,\AA\ \citep{guy23a}. This precision is independently
-corroborated by repeat radial-velocity measurements of stars in the
-DR1 stellar Value-Added Catalog, which find a systematic velocity
-floor of 1.0\,\kms\ (0.65\,\kms\ for exposures obtained on the same
-night) for the bright program (\S\ref{ssec:targets}) \citep{koposov25a}.
+%This precision has been independently corroborated by repeat
+%radial-velocity measurements of stars in the DR1 stellar Value-Added
+%Catalog, which find a systematic velocity floor of
+%1.0\,\kms\ (0.65\,\kms{} for exposures obtained on the same night) for
+%the bright program (\S\ref{ssec:targets}) \citep{guy23a, koposov25a}.
 
-Flux calibration uses approximately ten F-type standard stars per
-spectrograph petal, selected on the basis of their $g-r$ and $r-z$
-colors \citep{guy23a}. A stellar spectral model is fit to each
-standard-star spectrum, and the ratio of observed to model flux,
-averaged over all standard-star fibers in a camera, yields a mean
-wavelength-dependent throughput correction; consistency between petals
-is enforced upstream, during fiber flat-fielding, by combining the
-fiber flats from all ten spectrographs of a given camera and
-normalizing them to a common mean spectrum, effectively
-inter-calibrating the petals before the flux-calibration vector is
-derived \citep{guy23a}. Comparison of the calibrated spectra against
-hydrogen-atmosphere white dwarf models shows that the residual flux
-calibration error is about $2\%$ over most of the
-3600--9800\,\AA\ range, rising to $\sim6\%$ shortward of 3700\,\AA;
-the scatter between spectroscopically and photometrically (Legacy
-Survey) determined broadband fluxes is comparably $\pm6\%$ for bright
+Flux calibration is determined by approximately ten F-type standard
+stars per spectrograph petal: fiber flats from all ten spectrographs
+of a given camera are first combined and normalized to a common mean
+spectrum, effectively cross-calibrating the petals, before the ratio
+of each standard's observed to model flux, averaged over all
+standard-star fibers in a camera, yields a mean, wavelength-dependent
+throughput correction \citep{guy23a}. Comparison of the calibrated
+spectra against hydrogen-atmosphere white dwarf models shows that the
+residual flux calibration error is about $2\%$ over most of the
+3600--9800\,\AA\ range, rising to $\approx6\%$ shortward of 3700\,\AA;
+the scatter between synthesized DESI spectrophotometry and imaging
+photometry (\S\ref{ssec:photometry}) is comparably $\pm6\%$ for bright
 stars \citep{guy23a}.
+
+Beyond the flux itself, the spectroperfectionism algorithm
+\citep{bolton10a} returns a second data product central to
+\fastspecfit{}'s modeling: a band-diagonal, sparse \emph{resolution
+matrix} $\mathbf{R}$ that quantifies the effective instrument
+resolution as a function of wavelength, such that convolving a
+perfect, infinite-resolution model spectrum with $\mathbf{R}$ yields
+the equivalent model at DESI's effective spectral resolution.
+
+
+%\fastspecfit{} uses $\mathbf{R}$ in precisely this way, convolving its
+%stellar-continuum and emission-line models with $\mathbf{R}$ before
+%comparing them to the data (see \S\ref{sec:modeling}).
 
 \subsection{Broadband Photometry}
 \label{ssec:photometry}
@@ -455,12 +461,14 @@ the sum of a \emph{stellar continuum model} $C$
 (\S\ref{ssec:emlines}), that best reproduces $F$ in a
 maximum-likelihood sense, where $\theta \equiv \theta_C \cup \theta_E$
 is the union of the continuum and emission-line parameter
-sets. Table~\ref{table:notation} summarizes this and the additional
-notation introduced throughout the section. \todo{I am unlikely to
-  keep this table in its current form. I'll either remove it or
-  shorten it considerably.}
+sets.
 
-\input{tables/table-notation}
+%Table~\ref{table:notation} summarizes this and the additional notation
+%introduced throughout the section. \todo{I am unlikely to keep this
+%  table in its current form. I'll either remove it or shorten it
+%  considerably.}
+
+%\input{tables/table-notation}
 
 A key algorithmic choice we make in \fastspec{} is to fit $C$ and $E$
 sequentially rather than jointly, subtracting the best-fitting
@@ -1077,75 +1085,112 @@ list (\S\ref{ssec:emlinelist}) that fall within the observed-frame
 wavelength range at the Redrock redshift $z$,
 \begin{equation}
   E(\lambda;\theta_E) = \sum_{p=1}^{n_\mathrm{line}}
-    \phi(\lambda;\,A_p,\lambda_p^*,\sigma_p),
+    \phi(\lambda;\,A_p,\lambda_p^*,\sigma_{\ell,p}),
   \label{eq:emline_sum}
 \end{equation}
 where we model each individual line as a log-Gaussian in observed
 wavelength,
 \begin{equation}
-  \phi(\lambda;\,A,\lambda^*,\sigma)
+  \phi(\lambda;\,A,\lambda^*,\sigma_\ell)
   =
-  A\exp\!\left(-\frac{(\ln\lambda - \ln\lambda^*)^{2}}{2\sigma^{2}}\right),
+  A\exp\!\left(-\frac{(\ln\lambda - \ln\lambda^*)^{2}}{2\sigma_\ell^{2}}\right).
   \label{eq:intrinsic}
 \end{equation}
-where $A$ is the peak amplitude (in \fluxdensity), $\lambda^*$ is the
-observed line center, including both cosmological ($z$) and peculiar
-($\Delta v$) motion of the line-emitting gas,
+Here, $A$ is the peak amplitude (in \fluxdensity), $\lambda^*$ is the
+observed line center in \AA, including both cosmological ($z$) and
+peculiar ($\Delta v$) motion of the line-emitting gas,
 \begin{equation}
   \lambda^* = \lambda_\mathrm{rest}
     \left(1 + z + \frac{\Delta v}{c}\right),
   \label{eq:lstar}
 \end{equation}
-and $\sigma = s/c$ is the line width in log-$\lambda$ units. With this
-parameterization, the total flux of each line in \flux{} is
+and $\sigma_\ell = \sigma/c$ is the line width in log-$\lambda$ units,
+where $\sigma$ (in \kms) is the physical (Doppler) line-width. With
+this parameterization, the total flux of each line in \flux{} is
 \begin{equation}
-  \Phi = \sqrt{2\pi}\,A\,\lambda^*\,\sigma,
-       %= \sqrt{2\pi}\,A\,\lambda^*\,\frac{s}{c},
+  \Phi = \sqrt{2\pi}\,A\,\lambda^*\,\sigma_\ell
+       = \sqrt{2\pi}\,A\,\lambda^*\,\frac{\sigma}{c},
   \label{eq:flux_phys}
 \end{equation}
 which is independent of the DESI wavelength grid and instrumental
 resolution.
 
 Comparing this intrinsic profile to a DESI spectrum, however, requires
-modeling how the instrument disperses and pixelizes it.
-\fastspecfit{} takes advantage of the fact that DESI spectra are
-produced by an optimal extraction that encodes the
-wavelength-dependent instrumental resolution in a sparse, band-format
-resolution matrix $\mathbf{R}$ (with $\sim$11 diagonals), normalized
-to preserve integrated flux. The obvious approach---evaluating
-$\phi(\lambda)$ at the pixel centers and applying $\mathbf{R}$
-directly, $\mathbf{m} \approx \mathbf{R}\,\boldsymbol{\phi}$---
-systematically underestimates the flux of any line whose intrinsic
-width approaches or falls below a pixel, since a single point sample
-of a narrow function captures only a small fraction of its area. We
-avoid this bias with a Gaussian-pre-convolved discretization instead:
-defining $\mathbf{W} = \mathbf{R}\,\mathbf{M}^{-1}$, where
-$\mathbf{M}_{ij} = G(\lambda_i - \lambda_j;\,0,\,\sigma_G)$ is a
-Gaussian design matrix with width $\sigma_G = 0.5$\,\AA, the predicted
-line model becomes $\mathbf{m} \approx \mathbf{W}\,\mathbf{h}$, where
-$\mathbf{h}$ is the $\sigma_G$-pre-convolved profile evaluated at
-pixel centers, following \citet{koposov25a}.
+modeling how the instrument disperses and pixelizes it via the sparse,
+band-format resolution matrix $\mathbf{R}$ ($\sim$11 diagonals)
+introduced in \S\ref{ssec:spectra}, which is row-normalized so that a
+smooth spectrum sampled at the pixel centers is reproduced without
+loss of flux \citep{guy23a}. That row
+normalization is not matched by a corresponding column normalization,
+so the obvious forward-model choice, $\mathbf{m} \approx
+\mathbf{R}\,\boldsymbol{\phi}$, systematically under-predicts the flux
+of any line whose intrinsic width approaches or falls below a single
+pixel ($\sim$0.8\,\AA{} for DESI): a point sample of a narrow
+$\phi(\lambda)$ at one pixel center captures only a small,
+pixel-phase-dependent fraction of the line's true area, biasing the
+recovered flux low by amounts we find range from a few percent to
+$>$30\% depending on where the line center falls relative to the pixel
+grid. This is not merely a modeling artifact: simple Monte Carlo
+simulations (\S\ref{sssec:lines}) show that the pixel-integrated flux
+estimator BOXFLUX---summed directly from the continuum-subtracted
+spectrum rather than from any model---exhibits the same bias for lines
+narrower than about one pixel, so the problem cannot be sidestepped by
+measuring the flux from the data instead of the fit. The effect
+matters for \fastspecfit{} in particular because low-mass,
+low-metallicity star-forming galaxies routinely have emission lines
+with velocity dispersions of a few tens of \kms{} or less---narrower
+than a DESI pixel over most of the observed wavelength range---and are
+exactly the objects for which unbiased line fluxes matter most.
 
-Because the log-Gaussian profile~\eqref{eq:intrinsic} is an exact
-Gaussian in log-$\lambda$ space, the convolution with $G_{\sigma_G}$ is
-analytic. Defining $x_j = \ln\lambda_j - \ln\lambda^*$ and the
-effective width $\sigma_\mathrm{eff} = \sqrt{\sigma^2 + \sigma_{G,\ell}^2}$
-(where $\sigma_{G,\ell} = \sigma_G/\lambda^*$), the pre-convolved profile
-of a single line at pixel center $\lambda_j$ is
+We eliminate this bias with a Gaussian-pre-convolved discretization,
+following the deconvolution strategy devised by S.~Koposov for
+\texttt{rvspecfit} \citep{koposov25a}: instead of sampling
+$\phi(\lambda)$ at pixel centers, we pre-convolve it with a fixed
+Gaussian kernel of width $\sigma_G = 0.5$\,\AA{}---narrow compared to
+the DESI line-spread function but wide enough to regularize the
+sub-pixel structure of the model---and propagate the result through a
+correspondingly deconvolved resolution matrix $\mathbf{W} =
+\mathbf{R}\,\mathbf{M}^{-1}$, where $\mathbf{M}_{ij} = G(\lambda_i -
+\lambda_j;\,0,\,\sigma_G)$ is the Gaussian design matrix. The predicted
+line model is then $\mathbf{m} \approx \mathbf{W}\,\mathbf{h}$, where
+$\mathbf{h}$ is the $\sigma_G$-pre-convolved profile evaluated at
+pixel centers: because each $h_j$ is a weighted integral of
+$\phi(\lambda)$ rather than a point sample, it captures the correct
+line area regardless of the line's width or its phase relative to the
+pixel grid. Formally, $F_i \equiv h_i = (\phi * G_{\sigma_G})(\lambda_i)$,
+the convolution of the intrinsic profile (equation~\ref{eq:intrinsic})
+with the unit-area Gaussian kernel, evaluated at pixel center
+$\lambda_i$. Because both $\phi$ and the kernel are exact Gaussians in
+log-$\lambda$ space, their convolution is itself Gaussian, with
+variances that add in quadrature, giving the effective width
+$\sigma_\mathrm{eff} = \sqrt{\sigma_\ell^2 + \sigma_{G,\ell}^2}$
+(where $\sigma_{G,\ell} = \sigma_G/\lambda^*$). And because the kernel
+has unit area, the convolution conserves the total line flux,
+$A\,\sigma_\ell\sqrt{2\pi}$ (equation~\ref{eq:flux_phys}): since the
+profile has broadened from $\sigma_\ell$ to $\sigma_\mathrm{eff}$, its
+peak amplitude must shrink by the same factor to keep that area fixed,
+$A \to A\,\sigma_\ell/\sigma_\mathrm{eff}$---the prefactor in
+equation~\ref{eq:model} below. Defining $x_i = \ln\lambda_i - \ln\lambda^*$,
+the pre-convolved profile of a single line at pixel center $\lambda_i$ is
 \begin{equation}
-  F_j = A\,\frac{\sigma}{\sigma_\mathrm{eff}}
-    \exp\!\left(-\frac{x_j^2}{2\sigma_\mathrm{eff}^2}\right).
+  F_i = A\,\frac{\sigma_\ell}{\sigma_\mathrm{eff}}
+    \exp\!\left(-\frac{x_i^2}{2\sigma_\mathrm{eff}^2}\right).
   \label{eq:model}
 \end{equation}
-The amplitude factor $\sigma/\sigma_\mathrm{eff} \leq 1$ accounts for
-broadening by the pre-convolution kernel. Collecting the pre-convolved
-profiles of all $n_\mathrm{line}$ lines into $\mathbf{F}$, the
-pixelized counterpart of equation~(\ref{eq:emline_sum}) is
+The amplitude factor $\sigma_\ell/\sigma_\mathrm{eff} \leq 1$ accounts for
+the broadening introduced by the pre-convolution kernel, and
+$\sigma_\mathrm{eff} \geq \sigma_{G,\ell}$ guarantees that even a
+formally unresolved line ($\sigma_\ell \to 0$) is represented by a profile
+spanning several pixels, so its flux is correctly captured by the
+pixel grid rather than lost between samples. Collecting the
+pre-convolved profiles of all $n_\mathrm{line}$ lines into
+$\mathbf{F}$, the pixelized counterpart of
+equation~(\ref{eq:emline_sum}) is
 \begin{equation}
   \mathbf{E} = \mathbf{W}\,\mathbf{F}.
   \label{eq:emline_pixel}
 \end{equation}
-Physical constraints---shared $\Delta v$ and $s$ within kinematic groups
+Physical constraints---shared $\Delta v$ and $\sigma$ within kinematic groups
 (\S\ref{sssec:kinematic}) and fixed doublet amplitude ratios---reduce
 the free-parameter count and improve reliability for blended or weak
 lines.
@@ -1160,30 +1205,30 @@ derivatives eliminates finite-difference gradient evaluations and
 reduces the number of forward-model calls per optimizer iteration from
 $\mathcal{O}(N_\mathrm{param})$ to one.
 
-Because $F_j$ is linear in $A$, the amplitude gradient is simply
+Because $F_i$ is linear in $A$, the amplitude gradient is simply
 \begin{equation}
-  \frac{\partial F_j}{\partial A} = \frac{F_j}{A}.
+  \frac{\partial F_i}{\partial A} = \frac{F_i}{A}.
   \label{eq:dF_dA}
 \end{equation}
 The velocity-shift gradient follows from the dependence of
 $\ln\lambda^* = \ln[\lambda_\mathrm{rest}(1 + z + \Delta v/c)]$ on
 $\Delta v$:
 \begin{equation}
-  \frac{\partial F_j}{\partial \Delta v}
+  \frac{\partial F_i}{\partial \Delta v}
   =
-  \frac{F_j\,x_j}{\sigma_\mathrm{eff}^2\,c\,(1+z+\Delta v/c)}.
+  \frac{F_i\,x_i}{\sigma_\mathrm{eff}^2\,c\,(1+z+\Delta v/c)}.
   \label{eq:dF_dv}
 \end{equation}
 And finally, the line-width gradient, written in a form that remains
-finite as $\sigma\to0$, accounts for the dependence of both the
-amplitude factor $\sigma/\sigma_\mathrm{eff}$ and the exponent on
-$\sigma = s/c$:
+finite as $\sigma_\ell\to0$, accounts for the dependence of both the
+amplitude factor $\sigma_\ell/\sigma_\mathrm{eff}$ and the exponent on
+$\sigma_\ell = \sigma/c$:
 \begin{equation}
-  \frac{\partial F_j}{\partial s}
+  \frac{\partial F_i}{\partial \sigma}
   =
   \frac{A}{\sigma_\mathrm{eff}\,c}\,
-  e^{-x_j^2/(2\sigma_\mathrm{eff}^2)}\,
-  \Bigl[1 - \sigma^2\bigl(1 - x_j^2/\sigma_\mathrm{eff}^2
+  e^{-x_i^2/(2\sigma_\mathrm{eff}^2)}\,
+  \Bigl[1 - \sigma_\ell^2\bigl(1 - x_i^2/\sigma_\mathrm{eff}^2
   \bigr)/\sigma_\mathrm{eff}^2\Bigr].
   \label{eq:dF_ds}
 \end{equation}
@@ -1213,7 +1258,7 @@ narrow-only and narrow+broad kinematic models.
 
 We reduce the dimensionality of the emission-line fit by grouping lines
 into \emph{kinematic groups}, within which all members share a common
-velocity shift $\Delta v$ and line width $s$. We first define these
+velocity shift $\Delta v$ and line width $\sigma$. We first define these
 groups and the two competing kinematic models---narrow-only and
 narrow+broad---then describe how we select between them, and finally
 an optional relaxation pass that refines the winning model's
@@ -1239,9 +1284,9 @@ collapses all narrow lines---Balmer, He\,\textsc{i}, and
 forbidden---into a single group anchored to narrow H$\alpha$, retains a
 separate kinematic group for [O\,\textsc{iii}]~$\lambda\lambda$4959,5007,
 and adds a third group for broad Balmer emission anchored to broad
-H$\alpha$. Narrow-line bounds are $1 < s < 750$~\kms\ and
+H$\alpha$. Narrow-line bounds are $1 < \sigma < 750$~\kms\ and
 $|\Delta v| < 500$~\kms; broad-line bounds are
-$1 < s < 10{,}000$~\kms\ and $|\Delta v| < 2{,}500$~\kms. We load all
+$1 < \sigma < 10{,}000$~\kms\ and $|\Delta v| < 2{,}500$~\kms. We load all
 kinematic constraints, amplitude ratios, and optimizer bounds at startup
 from the bundled configuration file
 \texttt{data/emline-constraints.yaml}.
@@ -1316,7 +1361,7 @@ primary result. We record this comparison in the output columns
 \todo{Moments, boxflux, limits.}
 
 We compute line fluxes analytically from the fitted
-$(A,\,\lambda^*,\,s)$ via equation~\eqref{eq:flux_phys}, without
+$(A,\,\lambda^*,\,\sigma)$ via equation~\eqref{eq:flux_phys}, without
 reference to the pixel sampling or the resolution matrix.
 
 We compute equivalent widths (EWs) for all modeled emission lines as the ratio
