@@ -26,9 +26,13 @@
 \newcommand{\fluxdensity}{\ensuremath{\mathrm{erg~s}^{-1}~\mathrm{cm}^{-2}~\text{\AA}^{-1}}}
 \newcommand{\ivardensity}{\ensuremath{\mathrm{erg}^{-2}~\mathrm{s}^{2}~\mathrm{cm}^{4}~\text{\AA}^{2}}}
 \newcommand{\ivarflux}{\ensuremath{\mathrm{erg}^{-2}~\mathrm{s}^{2}~\mathrm{cm}^{4}}}
-\newcommand{\oii}{[\ion{O}{2}]~$\lambda\lambda3726,3729$}
+\newcommand{\sii}{[\ion{S}{2}]}
+\newcommand{\nii}{[\ion{N}{2}]}
+\newcommand{\niilam}{[\ion{N}{2}]~$\lambda\lambda6584$}
+\newcommand{\niidoublet}{[\ion{N}{2}]~$\lambda\lambda6548,84$}
+\newcommand{\oii}{[\ion{O}{2}]}
 \newcommand{\oiidoublet}{[\ion{O}{2}]~$\lambda\lambda3726,3729$}
-\newcommand{\oiii}{[\ion{O}{3}]~$\lambda\lambda4959,5007$}
+\newcommand{\oiii}{[\ion{O}{3}]}
 \newcommand{\oiiidoublet}{[\ion{O}{3}]~$\lambda\lambda4959,5007$}
 \newcommand{\oiiilam}{[\ion{O}{3}]~$\lambda5007$}
 \newcommand{\ha}{H\ensuremath{\alpha}}
@@ -402,7 +406,7 @@ hardware, data-quality, or redshift-fitting problems, and
 second-best fits across all spectral classes. Three after-burner
 processing steps follow Redrock: an emission-line fitter
 (\texttt{emlinefit}; \citealt{raichoor23a}) used to validate ELG
-redshifts; a Mg\,\textsc{ii}~$\lambda\lambda$2796,2803 doublet fitter
+redshifts; a \ion{Mg}{2}~$\lambda\lambda$2796,2803 doublet fitter
 \citep{chaussidon23a}; and the \texttt{QuasarNET} neural-network QSO
 classifier \citep{busca18a, green25a}. The latter two after-burners
 are essential for correctly classifying and measuring accurate
@@ -494,7 +498,7 @@ additional fitting modes, including a ``photometry-only'' mode called
   the oldest. The gray band marks the DESI optical spectral range
   (0.36--0.98~$\mu$m); the curves along the bottom of the panel show
   the DECam $grz$ and WISE W1-W4 broadband filter throughputs that
-  \fastspecfit\ includes in the simultaneous spectrophotometric
+  \fastspecfit{} includes in the simultaneous spectrophotometric
   fit. \label{fig:sps}}
 \end{figure*}
 
@@ -580,9 +584,8 @@ for the Balmer series, the helium lines,
 \ion{Mg}{2}~$\lambda\lambda$2796,2803, and most forbidden transitions;
 UV broad-line wavelengths follow \citet{vanden-berk01a}; and
 wavelengths for [\ion{N}{2}]~$\lambda\lambda$6548,84,
-[\ion{O}{3}]~$\lambda$4363, and [\ion{O}{3}]~$\lambda\lambda$4959,5007
-come from the CHIANTI atomic
-database.\footnote{\url{https://db.chiantidatabase.org}}
+[\ion{O}{3}]~$\lambda$4363, and \oiiidoublet{} come from the CHIANTI
+atomic database.\footnote{\url{https://db.chiantidatabase.org}}
 
 We organize these lines into four general fitting categories---UV/QSO,
 narrow Balmer/helium, broad Balmer/helium, and narrow forbidden, which
@@ -641,7 +644,7 @@ continuum and emission-line fits that follow (\S\ref{ssec:continuum},
 \includegraphics[width=6.5in]{example-emlines}
 \caption{\todo{Mention the redshift. And maybe an image cutout?}
   Illustration of the line-masking algorithm (\S\ref{ssec:patches})
-  for an example \fastspec\ target, whose survey, program, healpix,
+  for an example \fastspec{} target, whose survey, program, healpix,
   and \texttt{TARGETID} label the top panel. \emph{Top:} the full
   per-camera coadded DESI spectrum ($b$, $r$, $z$ in blue, green, and
   red), with the pixels excluded by the final line mask drawn in light
@@ -652,57 +655,52 @@ continuum and emission-line fits that follow (\S\ref{ssec:continuum},
   it excludes from the continuum fit.  Black boxes and connector lines
   tie four representative patches to the zoom panels
   below. \emph{Bottom:} the boxed patches, left to right---a UV
-  doublet (Mg\,\textsc{ii}~$\lambda\lambda$2796,2803), a strong
-  forbidden doublet ([O\,\textsc{ii}]~$\lambda\lambda$3726,3729), a
-  joint Balmer/forbidden group spanning H$\gamma$ through
-  [O\,\textsc{iii}]~$\lambda$5007, and the merged
-  \ha+[N\,\textsc{ii}]+[S\,\textsc{ii}] complex. In each zoom panel,
-  camera-colored pixels mark the continuum pixels used for that
-  patch's local linear fit; the dark curve shows the combined best-fit
-  line-plus-continuum model; the dashed black line and surrounding
-  gray band show the local linear continuum and its $\pm1\sigma$ noise
-  envelope; and the labeled S/N values report each line's amplitude
-  significance in the line masker's own approximate
-  fit. \label{fig:linefit}}
+  doublet (\ion{Mg}{2}~$\lambda\lambda$2796,2803), a strong forbidden
+  doublet (\oiidoublet), a joint Balmer/forbidden group spanning
+  H$\gamma$ through \oiiilam, and the merged \ha+\nii+\sii{}
+  complex. In each zoom panel, camera-colored pixels mark the
+  continuum pixels used for that patch's local linear fit; the dark
+  curve shows the combined best-fit line-plus-continuum model; the
+  dashed black line and surrounding gray band show the local linear
+  continuum and its $\pm1\sigma$ noise envelope; and the labeled S/N
+  values report each line's amplitude significance in the line
+  masker's own approximate fit. \label{fig:linefit}}
 \end{figure*}
 
 We organize the 46 emission lines (\S\ref{ssec:emlinelist}) into 23
 spectrally adjacent \emph{patches}, pre-assigned in the configuration
 file \texttt{data/emlines.ecsv}. Each patch groups lines whose
 wavelength windows overlap or nearly touch; for example, one patch
-contains \hb\ together with
-[O\,\textsc{iii}]~$\lambda\lambda$4959,5007, and another groups
-\ha\ with [N\,\textsc{ii}]~$\lambda\lambda$6548,6584.  We activate
-only patches with at least one line in the observed spectral range for
-a given spectrum. Each line carries an \texttt{isstrong} flag
-identifying the subset with typical fluxes reliable enough to measure
-kinematics; the patch-fitting steps use only strong lines, while the
-full list enters the final mask.
+contains \hb{} together with \oiiidoublet, and another groups
+\ha{} with \niidoublet. We activate only patches with at least one line
+in the observed spectral range for a given spectrum. Each line carries
+an \texttt{isstrong} flag identifying the subset with typical fluxes
+reliable enough to measure kinematics; the patch-fitting steps use
+only strong lines, while the full list enters the final mask.
 
 The algorithm proceeds in three steps. First, we fit all strong lines
 with the narrow-only kinematic model (\S\ref{sssec:kinematic}), which
 ties all forbidden lines to a single kinematic group anchored on
-[O\,\textsc{iii}]~$\lambda$5007 and the narrow Balmer and
-He\,\textsc{i} lines to a second group anchored on \ha. For each line,
-we define a pixel window of $\pm2.5\,\sigma_\mathrm{line}$
-centered on the expected observed-frame wavelength---with a minimum
-floor of 50~\kms---and identify local continuum pixels from a
-surrounding window that we iteratively expand until at least 11
-unmasked pixels are available.  Within each patch we jointly fit line
-amplitudes and a linear local continuum; we run two iterations,
-updating the line-pixel windows with the best-fit velocity shifts and
-widths before the second pass. Second, if any broad Balmer line falls
-within the observed spectral range, we repeat the procedure with the
-narrow+broad model, initializing the broad Balmer width at 1000~\kms;
-if any broad Balmer line reaches $S/N > 1.5$ we adopt the broad-model
-kinematics for masking, and otherwise retain the narrow-only
-widths. Third, we rebuild the pixel mask over the full line list using
-the converged kinematic parameters, widening the exclusion window to
-$\pm5\,\sigma$ to conservatively exclude all line-contaminated pixels
-from the continuum fit; we omit weak non-strong lines with $S/N < 3.5$
-from the final mask to avoid over-masking. We additionally
-mask pixels flagged as sky-line residuals and pixels with zero inverse
-variance.
+\oiiilam{} and the narrow Balmer and \ion{He}{1} lines to a second
+group anchored on \ha. For each line, we define a pixel window of
+$\pm2.5\,\sigma_\mathrm{line}$ centered on the expected observed-frame
+wavelength---with a minimum floor of 50~\kms---and identify local
+continuum pixels from a surrounding window that we iteratively expand
+until at least 11 unmasked pixels are available.  Within each patch we
+jointly fit line amplitudes and a linear local continuum; we run two
+iterations, updating the line-pixel windows with the best-fit velocity
+shifts and widths before the second pass. Second, if any broad Balmer
+line falls within the observed spectral range, we repeat the procedure
+with the narrow+broad model, initializing the broad Balmer width at
+1000~\kms; if any broad Balmer line reaches $S/N > 1.5$ we adopt the
+broad-model kinematics for masking, and otherwise retain the
+narrow-only widths. Third, we rebuild the pixel mask over the full
+line list using the converged kinematic parameters, widening the
+exclusion window to $\pm5\,\sigma$ to conservatively exclude all
+line-contaminated pixels from the continuum fit; we omit weak
+non-strong lines with $S/N < 3.5$ from the final mask to avoid
+over-masking. We additionally mask pixels flagged as sky-line
+residuals and pixels with zero inverse variance.
 
 \subsection{Stellar Continuum Model}
 \label{ssec:continuum}
@@ -1279,12 +1277,12 @@ that all the lines share the same $\Delta v$ and $\sigma$.
 
 Meanwhile, the narrow+broad model consists of three groups: one group
 consisting of all...forbidden...instead collapses every narrow line
-into a single group anchored on narrow \ha, keeps \oiii{} as its own
-group, and adds a third group for broad Balmer emission anchored on
-broad \ha.
+into a single group anchored on narrow \ha, keeps \oiiidoublet{} as
+its own group, and adds a third group for broad Balmer emission
+anchored on broad \ha.
 
-Narrow-line bounds are $1 < \sigma < 750$~\kms\ and $|\Delta v| <
-500$~\kms; broad-line bounds are $1 < \sigma < 10{,}000$~\kms\ and
+Narrow-line bounds are $1 < \sigma < 750$~\kms{} and $|\Delta v| <
+500$~\kms; broad-line bounds are $1 < \sigma < 10{,}000$~\kms{} and
 $|\Delta v| < 2{,}500$~\kms. Within these groups, most doublets---for
 example, [\ion{O}{3}]~$\lambda$4959\,/\,$\lambda$5007 and
 [\ion{N}{2}]~$\lambda$6548\,/\,$\lambda$6584---carry a fixed amplitude
@@ -1315,7 +1313,7 @@ where $\Delta\chi^2 = \chi^2_\mathrm{narrow} - \chi^2_\mathrm{broad}$
 and $\Delta N_\mathrm{dof}$ counts the additional free parameters
 introduced by the broad-Balmer group, evaluated only over pixels within
 $\pm N_\sigma$ of the non-helium broad Balmer lines. Second, the fitted
-velocity dispersion of the broad \ha\ component must exceed
+velocity dispersion of the broad \ha{] component must exceed
 $\sigma_\mathrm{broad}(\ha) > 250$~\kms, excluding spurious broad fits
 driven by noise or continuum residuals. Third, the broad component must
 be wider than the narrow component,
@@ -1336,7 +1334,7 @@ three-group narrow+broad model already has enough kinematic freedom to
 absorb residual complexity through its broad Balmer component, and
 relaxing it further would risk over-fitting. For the narrow-only
 model, we free each narrow line's velocity shift within a
-$\pm100$~\kms\ window around its primary best-fit value, while line
+$\pm100$~\kms{] window around its primary best-fit value, while line
 widths remain tied within each kinematic group; this accommodates
 galaxies with forbidden-line outflows or small wavelength-calibration
 residuals, where individual lines can settle at slightly different
@@ -1409,8 +1407,8 @@ equation~(\ref{eq:flux_phys}),
   \label{eq:fluxlimit}
 \end{equation}
 where $I_{F_c}$ is the inverse variance of $F_c$, and for dropped
-lines we substitute a default width for $\sigma$ (75~\kms\ for narrow
-lines, 1200~\kms\ for broad Balmer lines) so that a limit can still be
+lines we substitute a default width for $\sigma$ (75~\kms{} for narrow
+lines, 1200~\kms{} for broad Balmer lines) so that a limit can still be
 reported. We compute $\Phi_\mathrm{lim}$ for essentially every line
 with a valid continuum measurement, independent of whether the line
 itself is significantly detected, so that users can define their own
@@ -1655,7 +1653,7 @@ whether the stellar velocity dispersion is a free parameter.
 
 In \fastphot{} mode we do not fit a velocity dispersion: we
 convolve all templates with ${\vdisp}^\mathrm{kern}_\mathrm{nom}$ and
-report $\vdisp = 150$~\kms\ with \texttt{VDISP\_IVAR}~$= 0$.
+report $\vdisp = 150$~\kms{} with \texttt{VDISP\_IVAR}~$= 0$.
 
 A handful of options adapt \fastspecfit{} to non-default inputs. The
 \texttt{--targetids} and \texttt{--input-redshifts} options fit a
@@ -1690,7 +1688,7 @@ We illustrate the behavior of \fastspecfit{} across the full range of DESI
 extragalactic targets with three representative fits spanning nearly two decades
 in redshift: a low-redshift BGS galaxy with prominent AGN broad-line emission
 (\S\ref{ssec:example_bgs}); an intermediate-redshift ELG at $z \approx 0.8$,
-where several emission lines besides the \oii\ doublet fall within the DESI
+where several emission lines besides the \oii{} doublet fall within the DESI
 spectral window (\S\ref{ssec:example_elg}); and a high-redshift QSO
 (\S\ref{ssec:example_qso}). Together these examples highlight both the dynamic
 range of the code and its known limitations---most notably that the SPS
@@ -1737,18 +1735,19 @@ strong WISE detections anchor the infrared SED.
 %\caption{Write me.\label{fig:example_elg}}
 %\end{figure*}
 
-Figure~\ref{fig:example_elg} shows an ELG at $z \approx 0.8$, where the DESI
-spectral window covers rest-frame $\sim$2000--5500~\AA\ and brings into view
-several emission lines beyond the \oii{} doublet: [\ion{Ne}{3}]~$\lambda3869$,
-\hb, and \oiii. The faint, blue star-forming continuum tests the code's ability
-to recover accurate line fluxes and a physically meaningful stellar mass in the
+Figure~\ref{fig:example_elg} shows an ELG at $z \approx 0.8$, where
+the DESI spectral window covers rest-frame $\sim$2000--5500~\AA{} and
+brings into view several emission lines beyond the \oiidoublet{}
+doublet: [\ion{Ne}{3}]~$\lambda3869$, \hb, and \oiii. The faint, blue
+star-forming continuum tests the code's ability to recover accurate
+line fluxes and a physically meaningful stellar mass in the
 low-continuum regime typical of ELGs.
 
 \begin{itemize}
   \item The narrow-only kinematic model applies (no significant broad Balmer
     emission); note the single kinematic group tying the forbidden and Balmer
     lines
-  \item The resolved \oii\ doublet flux ratio encodes the electron density;
+  \item The resolved \oii{} doublet flux ratio encodes the electron density;
     highlight the free amplitude ratio for this density-sensitive pair
     (\S\ref{sssec:kinematic})
   \item The smooth continuum correction absorbs flux-calibration residuals
@@ -1811,25 +1810,25 @@ imposed on targeting bits or other redshift-warning bits, ensuring that
 \fastspecfit{} results are available for the widest possible range of objects
 across every DESI target class.
 
-\todo{Should cite the Koposov MWS VAC for stellar targets. What fraction of targets do we select via these criteria? In main/bright/dark?}
-
 \subsection{Updated QSO Redshifts}
 \label{ssec:zqso}
 
-For a small but astrophysically important fraction of quasar targets, the
-\texttt{Redrock} spectral classification pipeline assigns an incorrect redshift.
-We correct these using the \texttt{QuasarNet} and MgII afterburner catalogs
-distributed alongside each \texttt{Redrock} output file. For primary QSO
-targets, we replace the \texttt{Redrock} redshift when two conditions are met:
-\texttt{QuasarNet} independently classifies the object as a QSO, and the maximum
-line confidence across six diagnostic transitions (Ly$\alpha$, C\,\textsc{iv},
-C\,\textsc{iii}], Mg\,\textsc{ii}, \hb, and \ha) exceeds 0.99 for DR2 (0.95 for
-DR1 and the EDR). A broader criterion is applied to variable WISE QSO secondary
-targets; full details are documented in the online VAC documentation. The
-original \texttt{Redrock} redshift and \texttt{ZWARN} bitmask are preserved in
-the output columns \texttt{Z\_RR} and \texttt{ZWARN\_RR}. In total, corrected
-redshifts are applied to approximately 9,100 targets in the EDR, 74,000 in DR1,
-and 169,000 in DR2.
+For a small but astrophysically important fraction of quasar targets,
+the \texttt{Redrock} spectral classification pipeline assigns an
+incorrect redshift.  We correct these using the \texttt{QuasarNet} and
+\ion{Mg}{2} afterburner catalogs distributed alongside each
+\texttt{Redrock} output file. For primary QSO targets, we replace the
+\texttt{Redrock} redshift when two conditions are met:
+\texttt{QuasarNet} independently classifies the object as a QSO, and
+the maximum line confidence across six diagnostic transitions
+(Ly$\alpha$, \ion{C}{4}, \ion{C}{3}, \ion{Mg}{2}, \hb, and \ha)
+exceeds 0.99 for DR2 (0.95 for DR1 and the EDR). A broader criterion
+is applied to variable WISE QSO secondary targets; full details are
+documented in the online VAC documentation. The original
+\texttt{Redrock} redshift and \texttt{ZWARN} bitmask are preserved in
+the output columns \texttt{Z\_RR} and \texttt{ZWARN\_RR}. In total,
+corrected redshifts are applied to approximately 9,100 targets in the
+EDR, 74,000 in DR1, and 169,000 in DR2.
 
 Table~\ref{table:sample} summarizes the number of targets satisfying these
 criteria in each DESI data release, organized by survey and observing program.
@@ -1977,7 +1976,7 @@ findings.}
 In Figure~\ref{fig:mstar-external} we compare \fastspecfit{} stellar
 masses against independent estimates from CIGALE \citep{siudek24a} and
 ... \todo{Describe agreement; highlight systematic offsets from
-  non-parametric vs.\ parametric SFH choices.}
+  non-parametric vs. parametric SFH choices.}
 
 \begin{figure*}
 \includegraphics[width=6.5in]{compare-cosmos2020.pdf}
@@ -2132,17 +2131,18 @@ between classes; note any redshift evolution within each class.}
   \citet{jin21a}. \label{fig:bpt}}
 \end{figure*}
 
-Figure~\ref{fig:bpt} shows the \citet{baldwin81a} BPT diagram---[\ion{O}{3}]~$\lambda5007$/\hb\
-versus [\ion{N}{2}]~$\lambda6584$/\ha---for BGS targets at $z \lesssim 0.4$
-with well-detected lines in all four diagnostics. The demarcation curves of
-\citet{kewley01a} and \citet{kauffmann03c} separate the star-forming sequence,
-composite systems, and AGN hosts; the density distribution of the DR2 BGS
-sample across these regions encodes the mix of nuclear activity in the
-low-redshift galaxy population. \fastspecfit{}'s joint spectrophotometric fit
-enables construction of this diagram for \todo{X}~million BGS galaxies in a
+Figure~\ref{fig:bpt} shows the \citet{baldwin81a} BPT
+diagram---\oiiilam/\hb{} versus \niilam/\ha---for BGS targets at $z
+\lesssim 0.4$ with well-detected lines in all four diagnostics. The
+demarcation curves of \citet{kewley01a} and \citet{kauffmann03c}
+separate the star-forming sequence, composite systems, and AGN hosts;
+the density distribution of the DR2 BGS sample across these regions
+encodes the mix of nuclear activity in the low-redshift galaxy
+population. \fastspecfit{}'s joint spectrophotometric fit enables
+construction of this diagram for \todo{X}~million BGS galaxies in a
 single, homogeneous analysis---a nearly tenfold increase over the SDSS
 spectroscopic sample \todo{(cite)}. \todo{Quantify AGN, composite, and
-star-forming fractions; note redshift or mass dependence.}
+  star-forming fractions; note redshift or mass dependence.}
 
 %Where $P_1 = 0.63,\log[\ion{N}{2}]/\ha + 0.51,\log[\ion{S}{2}]/\ha +0.59,\log[\ion{O}{3}]/\hb$
 and
@@ -2207,16 +2207,16 @@ The code is flexible! E.g., line-list, parameter constraints.
 \JM{Need to thank Ben Johson.}
 
 JM gratefully acknowledges funding support for this work from the
-U.S.\ Department of Energy, Office of Science, Office of High Energy
+U.S. Department of Energy, Office of Science, Office of High Energy
 Physics under Award Number DE-SC0020086.
 
 This research is supported by the Director, Office of Science, Office of
-High Energy Physics of the U.S.\ Department of Energy under Contract
-No.\ DE-AC02-05CH11231, and by the National Energy Research Scientific
+High Energy Physics of the U.S. Department of Energy under Contract
+No. DE-AC02-05CH11231, and by the National Energy Research Scientific
 Computing Center, a DOE Office of Science User Facility under the same
-contract; additional support for DESI is provided by the U.S.\ National
+contract; additional support for DESI is provided by the U.S. National
 Science Foundation, Division of Astronomical Sciences under Contract
-No.\ AST-0950945 to the NSF's National Optical-Infrared Astronomy Research
+No. AST-0950945 to the NSF's National Optical-Infrared Astronomy Research
 Laboratory; the Science and Technologies Facilities Council of the United
 Kingdom; the Gordon and Betty Moore Foundation; the Heising-Simons
 Foundation; the French Alternative Energies and Atomic Energy Commission
@@ -2413,7 +2413,7 @@ catalogs in due course.
   \item Key differences from DR2 VAC: template versions, known issues
     resolved
   \item Comparison figures: stellar masses and emission-line fluxes for
-    EDR/DR1 vs.\ DR2
+    EDR/DR1 vs. DR2
 \end{itemize}
 
 \end{appendix}
