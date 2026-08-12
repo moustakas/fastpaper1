@@ -34,10 +34,10 @@
 \texttt{COEFF[5]}                      & $\mathcal{F}_0\,M_\odot^{-1}$\tablenotemark{a} & Non-negative SFH template coefficients for the five lookback-time bins. \\
 \texttt{VDISP} / \texttt{VDISP\_IVAR} & \kms                 & Stellar velocity dispersion and its inverse variance. \\
 \texttt{TAUV} / \texttt{TAUV\_IVAR}   & \nodata              & $V$-band dust optical depth ($\tau_V$) and its inverse variance. \\
-\texttt{AGE} / \texttt{AGE\_IVAR}     & Gyr                  & Light-weighted stellar age and its inverse variance. \\
-\texttt{ZZSUN} / \texttt{ZZSUN\_IVAR} & \nodata              & Logarithmic stellar metallicity relative to solar and its inverse variance. \\
-\texttt{LOGMSTAR} / \texttt{LOGMSTAR\_IVAR} & $\log(M_\odot)$ & Stellar mass ($h=1$, Chabrier IMF; eq.~\ref{eq:zfactor}) and its inverse variance. \\
-\texttt{SFR} / \texttt{SFR\_IVAR}     & $M_\odot$\,yr$^{-1}$ & Instantaneous SFR (from youngest SFH bin) and its inverse variance. \\
+\texttt{AGE} / \texttt{AGE\_IVAR}     & Gyr                  & Coefficient-weighted mean stellar age (eq.~\ref{eq:age}) and its inverse variance. \\
+\texttt{ZZSUN} / \texttt{ZZSUN\_IVAR} & \nodata              & Logarithmic stellar metallicity relative to solar and its inverse variance (fixed at solar for the current templates; \S\ref{ssec:templates}). \\
+\texttt{LOGMSTAR} / \texttt{LOGMSTAR\_IVAR} & $\log(M_\odot)$ & Stellar mass ($h=1$, Chabrier IMF; eq.~\ref{eq:mstar}) and its inverse variance. \\
+\texttt{SFR} / \texttt{SFR\_IVAR}     & $M_\odot$\,yr$^{-1}$ & SFR averaged over the most recent 100~Myr (eq.~\ref{eq:sfr}) and its inverse variance. \\
 \multicolumn{3}{l}{\textit{Spectral indices}} \\
 \texttt{DN4000} / \texttt{DN4000\_IVAR}  & \nodata            & $D_n(4000)$ \citep{balogh99a} from the emission-line subtracted spectrum and its inverse variance. \\
 \texttt{DN4000\_OBS}                   & \nodata              & $D_n(4000)$ measured from the observed spectrum (without emission-line subtraction). \\

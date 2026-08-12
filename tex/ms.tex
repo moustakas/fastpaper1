@@ -1019,9 +1019,9 @@ finite-differencing across all template coefficients.
 With $\tauv$ and $\mathbf{c}$ now in hand, and $z$ and $\vdisp$ fixed
 from the earlier stages, every element of $\theta_C$ is determined,
 giving the best-fitting stellar continuum model
-$C(\lambda;\theta_C)$. \todo{$\theta_c$ here and in Section 3.4 should
-  possibly list stellar mass explicitly rather than just the template
-  coefficients. Maybe?}
+$C(\lambda;\theta_C)$. From this model we derive several physical
+properties of interest---stellar mass, star-formation rate, and
+stellar age---as described in \S\ref{ssec:quantities}.
 
 \subsubsection{Smooth Continuum Correction}
 \label{sssec:smooth}
@@ -1428,69 +1428,222 @@ estimated via our per-object Monte Carlo procedure.
 \subsection{Spectrophotometric and Physical Properties}
 \label{ssec:quantities}
 
-Define Dn4000.
+Beyond the best-fitting stellar continuum model
+$C(\lambda;\theta_C)$ itself (\S\ref{sssec:fitting}), \fastspecfit{}
+derives a broad suite of physical and spectrophotometric quantities
+and reports them in the output catalog
+(\S\ref{sec:appendix_datamodel}). These fall into four groups:
+stellar-population parameters---stellar mass, SFR, and age---computed
+directly from the SFH template coefficients $\mathbf{c}$; K-corrections
+and rest-frame absolute magnitudes, computed by comparing synthesized
+model photometry in the observed and rest frames; monochromatic
+luminosities and continuum flux densities at fixed rest-frame
+wavelengths, measured directly from $C(\lambda)$; and the $D_n(4000)$
+spectral break, a purely empirical index that we measure independently
+from both the data and the model. We describe each of these in turn.
 
-We derive several physical quantities from the best-fitting continuum
-model and report them in the output catalog
-(\S\ref{sec:appendix_datamodel}). We compute the stellar mass as the
-sum of the NNLS template coefficients $\mathbf{c}$, which we weight by
-the FSPS surviving-mass fractions that account for the mass stellar
-evolution returns to the ISM via winds and supernovae. We caution that
-non-parametric SFH models can yield stellar masses that are
-systematically higher---by $\sim$0.2--0.3~dex on average---than
-parametric estimates, because a flexible SFH can accommodate more mass
-in old, low-luminosity stellar populations \citep{leja19a,leja20a}. We
-estimate the instantaneous star-formation rate (SFR) from the
-coefficient of the youngest age bin (0--100~Myr), dividing by the
-width of that bin to obtain the mean SFR averaged over the most recent
-30~Myr of star-formation history. Although \fastspecfit{} measures
-both the \ha{} luminosity and the rest-frame UV continuum---each of
-which serves as an independent SFR diagnostic---we do not currently
-convert either quantity to a SFR within the code.
+Recall from \S\ref{sssec:fitting}
+that each template coefficient $c_n$ carries units of \msun{} of stars
+\emph{formed} in age bin $n$ (equation~\ref{eq:fnorm}), rescaled by
+the mass normalization $\mathcal{M}_0$ introduced in
+equation~(\ref{eq:zfactor}). Converting these coefficients into a
+present-day stellar mass requires correcting for the mass each
+population has since returned to the ISM via stellar winds and
+supernovae; we take these surviving-mass fractions
+$f_{\star,n}\in(0,1]$ directly from FSPS and compute
+\begin{equation}
+  \Mstar = \mathcal{M}_0\sum_n c_n\,f_{\star,n}.
+  \label{eq:mstar}
+\end{equation}
+We caution that non-parametric SFH models can yield stellar masses
+that are systematically higher---by $\sim$0.2--0.3~dex on
+average---than parametric estimates, because a flexible SFH can
+accommodate more mass in old, low-luminosity stellar populations
+\citep{leja19a,leja20a}. As noted in \S\ref{ssec:templates}, our
+current SPS template grid is fixed at solar metallicity, so none of
+the quantities derived here---or their reported uncertainties---carry
+any information about metallicity.
 
-We compute K-corrections by comparing synthesized observer-frame and rest-frame
-photometry from the best-fitting continuum model $C(\lambda)$
-\citep{hogg02a,blanton07a}, and we derive rest-frame absolute magnitudes in each
-Legacy Survey band via the standard distance-modulus relation. We additionally
-report monochromatic luminosities at 1450, 1500, 1700, 2800, 3000, and 5100~\AA,
-which we interpolate from $C(\lambda)$ and which are especially useful for
-UV-selected samples and AGN host-galaxy studies.
+We estimate the star-formation rate (SFR) by summing the mass formed
+within the most recent 100~Myr, weighting each age bin by the fraction
+of its width that falls within that window (for our current age
+binning, \S\ref{ssec:templates}, this reduces to the two youngest
+bins, 0--30~Myr and 30--100~Myr, each fully included), and dividing by
+100~Myr,
+\begin{equation}
+  \mathrm{SFR} = \frac{\mathcal{M}_0}{100\,\mathrm{Myr}}\sum_n c_n\,w_n,
+  \label{eq:sfr}
+\end{equation}
+where $w_n\in[0,1]$ is the fraction of age bin $n$ within 100~Myr of
+observation. Although \fastspecfit{} measures both the \ha{}
+luminosity and the rest-frame UV continuum---each of which serves as
+an independent SFR diagnostic---we do not currently convert either
+quantity to a SFR within the code.
+
+Finally, we compute a mean stellar age as the coefficient-weighted
+average of the age-bin midpoints $t_n$,
+\begin{equation}
+  \langle t_\star\rangle = \frac{\sum_n c_n\,t_n}{\sum_n c_n}.
+  \label{eq:age}
+\end{equation}
+Because the coefficients $c_n$ represent formed stellar mass rather
+than surviving mass or luminosity, this is neither a strictly
+light-weighted nor a strictly (surviving-)mass-weighted age, but falls
+between the two.
+
+We compute K-corrections and rest-frame absolute magnitudes by
+comparing synthesized photometry from the best-fitting continuum model
+$C(\lambda)$ in the observed and rest frames. The output rest-frame
+bandpasses and their band-shifts are loaded at startup from the
+bundled configuration file \texttt{data/legacysurvey-dr9.yaml}, and
+span DECam $grz$ (band-shifted to $z=1$), Johnson/Cousins $UBV$ and
+2MASS $J$ (band-shifted to $z=0$), and SDSS $ugriz$ and WISE $W1$
+(band-shifted to $z=0.1$, following \citealt{blanton07a}); the
+corresponding output columns are documented in full in
+Table~\ref{table:datamodel} (Appendix~\ref{sec:appendix_datamodel}),
+e.g., the rest-frame SDSS $g$-band magnitude band-shifted to $z=0.1$
+is recorded as \texttt{ABSMAG01\_SDSS\_G}. For each band we identify
+the observed-frame Legacy Survey or WISE bandpass whose rest-frame
+effective wavelength most closely matches the target band, restricted
+to bandpasses detected at $\mathrm{S/N}>2$; this minimizes the
+(typically small) K-correction required. The absolute magnitude then
+follows the standard relation \citep{hogg02a},
+\begin{equation}
+  M = m_\mathrm{obs} - \mathrm{DM}(z) - K,
+  \label{eq:kcorr}
+\end{equation}
+where $m_\mathrm{obs}$ is the observed-frame photometry,
+$\mathrm{DM}(z)$ is the distance modulus, and
+$K = 2.5\log_{10}(f_\mathrm{rest}^\mathrm{synth}/f_\mathrm{obs}^\mathrm{synth})$
+is the K-correction, with $f_\mathrm{rest}^\mathrm{synth}$ and
+$f_\mathrm{obs}^\mathrm{synth}$ the rest- and observed-frame fluxes
+synthesized from $C(\lambda)$ in the target and nearest-matching
+bandpasses, respectively. When no bandpass satisfies the S/N
+threshold, we instead report the absolute magnitude synthesized purely
+from the model, and set its inverse variance to zero.
+
+To construct $f_\mathrm{rest}^\mathrm{synth}$ in a band-shifted system
+\citep{blanton07a}, we blueshift the filter response itself rather
+than the model, replacing the native response $R_Q(\lambda)$ of
+bandpass $Q$ with
+\begin{equation}
+  R_Q^{(q)}(\lambda) \equiv R_Q\bigl((1+q)\,\lambda\bigr),
+  \label{eq:bandshift}
+\end{equation}
+so that convolving $R_Q^{(q)}$ with the rest-frame SED reproduces what
+$R_Q$ would measure on the same galaxy at redshift $q$; $q=0$ recovers
+the native, unshifted bandpass. Table~\ref{table:absmag-bands} lists
+the band-shift $q$ adopted for each of our output bandpasses, together
+with their native filter curves and effective wavelengths.
+
+\input{tables/table-absmag-bands}
+
+We additionally measure rest-frame monochromatic luminosities and
+observed-frame continuum flux densities directly from $C(\lambda)$,
+using a robust (sigma-clipped) linear fit to the continuum within
+$\pm100$~\AA{} of each reference wavelength---in some cases
+(Ly$\alpha$, \hb, \ha) excluding the inner $\pm50$~\AA{} to avoid bias
+from strong, broad emission-line wings. We report luminosities at
+1450, 1700, 3000, and 5100~\AA{} in solar units ($\lambda L_\lambda$),
+and at 1500 and 2800~\AA{} in $\mathrm{erg\,s^{-1}\,Hz^{-1}}$
+($L_\nu$), the latter chosen to facilitate UV-continuum SFR estimates
+(e.g., \citealt{kennicutt98a}). We similarly report the observed-frame
+continuum flux density at the rest-frame centers of Ly$\alpha$, \oii,
+\hb, \oiiilam, and \ha, which provide simple, spectral-model-independent
+continuum-level diagnostics at the locations of these key nebular
+emission lines.
+
+Finally, we measure the narrow definition of the 4000~\AA{} break,
+$D_n(4000)$, the ratio of the mean flux density in the
+4000--4100~\AA{} and 3850--3950~\AA{} rest-frame windows
+\citep{balogh99a}, a robust, model-independent tracer of
+light-weighted stellar age that is largely insensitive to reddening.
+We report three flavors of this index: \texttt{DN4000\_OBS}, measured
+directly from the observed spectrum, without any correction for
+emission-line contamination; \texttt{DN4000\_MODEL}, measured from the
+best-fitting stellar continuum model alone (line- and noise-free, but
+dependent on the SPS templates); and our fiducial \texttt{DN4000},
+measured from the observed spectrum after subtracting the
+best-fitting emission-line model, combining the empirical fidelity of
+the data with a correction for line contamination within the break
+windows.
 
 \subsection{Parameter Uncertainties}
 \label{ssec:uncertainties}
 
-We estimate parameter uncertainties by repeating the continuum fit on
-$N_\mathrm{monte} = 50$ independent Gaussian realizations of the
-observed spectra and photometry,
+Because \fastspecfit{}'s forward model chains together several
+nonlinear stages---an initial grid search for \vdisp{}
+(\S\ref{sssec:vdisp}), the VARPRO solve for \tauv{} and $\mathbf{c}$
+(\S\ref{sssec:fitting}), and the nonlinear emission-line kinematics
+(\S\ref{sssec:kinematic})---propagating uncertainties analytically
+through every downstream quantity (stellar mass, SFR, K-corrections,
+equivalent widths, etc.) is impractical. We instead adopt a Monte
+Carlo approach: by perturbing the input data and refitting, each
+nonlinear stage of the pipeline propagates its own uncertainty
+naturally, without our having to derive a bespoke error-propagation
+formula for every derived quantity.
+
+For each object we generate $N_\mathrm{monte}=50$ independent
+realizations of the observed spectrum and photometry by adding
+Gaussian noise consistent with the pipeline's inverse-variance
+estimates,
 \begin{equation}
-  d_i^{(m)} \;\sim\; \mathcal{N}\!\bigl(d_i,\,I_i^{-1}\bigr),
-  \qquad m = 1,\ldots,N_\mathrm{monte},
+  d_i^{(m)} \sim \mathcal{N}\bigl(d_i,\,I_i^{-1}\bigr),
+  \label{eq:mc_draw}
 \end{equation}
-drawn with a fixed random seed and reused for both the continuum and
-emission-line fits. The inverse variance of each fitted quantity
-$\theta$ is then
+for realizations $m=1,\ldots,N_\mathrm{monte}$ (and similarly for the
+photometry). These draws are generated once, from a reproducible
+per-object seed recorded in the \texttt{SEED} output column---itself
+derived deterministically from a single global run seed---and are
+reused, unchanged, across every subsequent fitting stage for that
+object: the same $N_\mathrm{monte}$ realizations flow through the
+velocity-dispersion, continuum, and emission-line fits described
+below. The inverse variance of any fitted or derived quantity $\theta$
+then follows from the scatter across realizations,
 \begin{equation}
   \sigma_\theta^{-2}
   = \bigl[\mathrm{Var}(\theta^{(1)},\ldots,\theta^{(N_\mathrm{monte})})\bigr]^{-1}.
   \label{eq:mc_unc}
 \end{equation}
-We report Monte Carlo uncertainties for \tauv, \vdisp\ (when fitted),
-$D_n(4000)$, rest-frame luminosities, and observed-frame continuum flux
-densities.
+
+On the continuum side, the Monte Carlo realizations enter in two
+places. First, while \vdisp{} is being determined (\S\ref{sssec:vdisp}),
+we refit \tauv, \vdisp, and $\mathbf{c}$ jointly on each realization to
+obtain \texttt{VDISP\_IVAR}. Second, with \vdisp{} fixed at its adopted
+value, we repeat the full VARPRO solve---the outer \tauv{} minimization
+and inner NNLS solve for $\mathbf{c}$---on each realization, yielding
+$N_\mathrm{monte}$ independent estimates $\tauv^{(m)}$ and
+$\mathbf{c}^{(m)}$ and directly giving \texttt{TAUV\_IVAR}. Because
+every stellar-population and photometric quantity in
+\S\ref{ssec:quantities} is a fixed function of $\mathbf{c}$
+(equations~\ref{eq:mstar}--\ref{eq:bandshift}), we simply re-evaluate
+those relations on each $\mathbf{c}^{(m)}$ and propagate the resulting
+scatter to \texttt{LOGMSTAR\_IVAR}, \texttt{SFR\_IVAR},
+\texttt{AGE\_IVAR}, \texttt{DN4000\_MODEL\_IVAR}, the
+\texttt{ABSMAG*\_SYNTH\_IVAR} and rest-frame luminosity/continuum-flux
+inverse variances---no additional nonlinear refitting is required.
+
+The emission-line Monte Carlo is deliberately cheaper. Rather than
+repeating the full kinematic model-selection procedure
+(\S\ref{sssec:kinematic})---which chooses between narrow-only and
+narrow+broad models and optionally relaxes velocity-width
+bounds---for every realization, we fix the kinematic model and bounds
+at their fiducial, data-preferred values and refit only the line
+parameters, warm-started at the fiducial best-fit solution with
+loosened convergence tolerances. This is a good approximation because
+each realization is a small perturbation of the data rather than an
+independent object, so the preferred kinematic model rarely changes
+between realizations. We build each realization's continuum-subtracted
+spectrum from the corresponding continuum-fitting realization, $d^{(m)}
+- C^{(m)}(\lambda) - S(\lambda)$, holding the smooth continuum
+correction $S(\lambda)$ (\S\ref{sssec:smooth}) fixed at its fiducial
+value across all realizations rather than recomputing it per draw.
+This procedure yields Monte Carlo uncertainties for every fitted line
+parameter---amplitude, flux, equivalent width, velocity shift and
+width, non-parametric moments---and for the doublet ratios.
 
 \subsection{Additional Fitting Modes}
 \label{sec:modes}
-
-\todo{Need to also document the \texttt{ignore-photometry} mode, the
-  ability to use external photometric catalogs and input (e.g., VI)
-  redshifts. Can also run on the per-exposure, per-tile, or
-  per-healpix coadds.}
-
-%By default---and throughout this paper---\fastspecfit{} applies this
-%correction to every target. The \texttt{--ignore-photometry} option
-%disables it, but only as a side effect of disabling the photometric
-%fit entirely, leaving the fiber spectrum on its native, uncorrected
-%flux scale; we do not use this option in the DR2 production runs.
 
 \fastspecfit{} operates in two modes. \fastphot{} fits broadband spectral
 energy distributions (SEDs) to Legacy Survey photometry with no
@@ -1504,9 +1657,29 @@ In \fastphot{} mode we do not fit a velocity dispersion: we
 convolve all templates with ${\vdisp}^\mathrm{kern}_\mathrm{nom}$ and
 report $\vdisp = 150$~\kms\ with \texttt{VDISP\_IVAR}~$= 0$.
 
-\todo{Mention \texttt{stackfit}}.
+A handful of options adapt \fastspecfit{} to non-default inputs. The
+\texttt{--targetids} and \texttt{--input-redshifts} options fit a
+specified subset of targets at externally supplied redshifts (e.g.,
+from visual inspection) instead of the pipeline's Redrock or
+QuasarNet value. \texttt{--ignore-photometry} drops the broadband
+photometry from the fit; because the aperture correction
+(\S\ref{sssec:apercorr}) requires comparing the model to the observed
+photometry, this also disables it, leaving the spectrum on its
+native, uncalibrated flux scale---we do not use this option in the
+DR2 production runs. And \texttt{--fphotofile} substitutes an
+alternate photometric-catalog configuration file for the bundled
+\texttt{data/legacysurvey-dr9.yaml} (\S\ref{ssec:quantities}), letting
+\fastspecfit{} fit photometry from surveys other than the Legacy
+Surveys. The DESI coaddition type---per-exposure, per-night,
+cumulative (multi-night), or per-HEALPix---is detected automatically
+from the input Redrock file and requires no separate configuration.
 
-\todo{Mention the \texttt{ignore-photometry} option}.
+Finally, a third entry point, \texttt{stackfit}, fits arbitrary
+user-supplied stacked spectra (e.g., binned by stellar mass and
+redshift) rather than individual DESI targets; since such stacks lack
+associated broadband photometry, \texttt{stackfit} runs with
+\texttt{--ignore-photometry} enabled by default and fits the spectrum
+on its own internal flux scale.
 
 %% ============================================================
 \section{Illustrative Examples}
