@@ -7,9 +7,9 @@ fastspecfit.fastspecfit.fastspec_one -- no completed fastspec/fastphot
 catalog is required), and builds a publication figure: Legacy Survey grz
 cutout, broadband SED, full observed spectrum with the best-fit
 continuum/smooth-continuum/emission-line model, and a bottom row of zoom
-panels on a standard set of strong-line groups ([OII], Hbeta+[OIII],
-Halpha+[NII], [SII]) -- whichever of those fall in the observed window at
-this target's redshift. Written to tex/figures/.
+panels on a standard set of line groups chosen from the target's redshift
+(see default_groups_for_redshift) -- whichever of those fall in the
+observed window are shown. Written to tex/figures/.
 
 Panel content and per-camera colors intentionally match fastspecfit.qa's
 production QA figure (fastspecfit.qa.qa_fastspec); several of its private
@@ -44,16 +44,82 @@ REPODIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_OUTFILE = os.path.join(REPODIR, 'tex', 'figures', 'example-qa.pdf')
 DEFAULT_FPHOTODIR = os.path.join(REPODIR, 'data')
 
-# Standard zoom-panel groups, left to right, keyed by the 'patch' letter in
-# fastspecfit's data/emlines.ecsv (the same file code/patch-emlines-qa.py's
-# --patches argument indexes into). Groups not present in the observed
-# window at this target's redshift are simply skipped.
-DEFAULT_GROUPS = [
-    ('i', '[OII]'),
-    ('p', r'H$\beta$+[OIII]'),
-    ('t', r'H$\alpha$+[NII]'),
-    ('u', '[SII]'),
+# Standard zoom-panel groups, left to right: each is (line_names, label),
+# where line_names are values from the 'name' column of fastspecfit's
+# data/emlines.ecsv (not tied to that file's own 'patch' grouping -- we
+# center each panel's window on exactly the requested line(s), e.g. the mean
+# wavelength for a doublet, regardless of what else LineMasker happens to
+# fit in the same wavelength patch). Any '<name>_broad' counterpart that
+# exists in the fit is added automatically (see _expand_with_broad), so e.g.
+# 'halpha' alone is enough to pull in a detected broad Halpha component too.
+# Which four-panel set is used depends on the target's redshift (see
+# default_groups_for_redshift), so a bare invocation always produces four
+# physically sensible panels without having to remember and pass --groups by
+# hand. Groups with none of their lines in the observed window are skipped.
+GROUPS_LOWZ = [    # z < 0.5 (e.g. the BGS example)
+    (('oii_3726', 'oii_3729'), '[OII]'),
+    (('hbeta', 'oiii_4959', 'oiii_5007'), r'H$\beta$+[OIII]'),
+    (('halpha', 'nii_6548', 'nii_6584'), r'H$\alpha$+[NII]'),
+    (('sii_6716', 'sii_6731'), '[SII]'),
 ]
+GROUPS_MIDZ = [    # 0.5 <= z < 1.5 (e.g. the ELG example)
+    (('oii_3726', 'oii_3729'), '[OII]'),
+    (('hgamma',), r'H$\gamma$'),
+    (('hbeta',), r'H$\beta$'),
+    (('oiii_4959', 'oiii_5007'), '[OIII]'),
+]
+GROUPS_HIGHZ = [   # z >= 1.5 (e.g. a QSO) -- these UV lines are physically
+                   # blended, so each group here matches a full LineMasker
+                   # patch (data/emlines.ecsv 'patch' column) rather than a
+                   # single line: Lya+NV (patch a), CIV (patch d),
+                   # CIII]+SiIII]+AlIII (patch f), MgII doublet (patch g)
+    (('lyalpha', 'nv_1240'), r'Ly$\alpha$+NV'),
+    (('civ_1549',), 'CIV'),
+    (('ciii_1908', 'siliii_1892', 'aliii_1857'), 'CIII]+SiIII]+AlIII'),
+    (('mgii_2796', 'mgii_2803'), 'MgII'),
+]
+DEFAULT_GROUPS = GROUPS_LOWZ   # fallback if make_figure() is called with groups=None directly
+
+
+def default_groups_for_redshift(redshift):
+    """Pick the standard four-panel zoom-panel line set for this target's
+    redshift, so the observed-frame line choice tracks which lines actually
+    land in the DESI window without the caller having to specify --groups.
+    """
+    if redshift < 0.5:
+        return GROUPS_LOWZ
+    if redshift < 1.5:
+        return GROUPS_MIDZ
+    return GROUPS_HIGHZ
+
+
+def default_sed_xmin_for_redshift(redshift):
+    """Lower bound (observed-frame micron) for the SED panel's x-axis.
+
+    fastspecfit.qa's own SED panel doesn't adapt this to redshift, but a
+    fixed 0.1um lower bound leaves increasingly more dead space blueward of
+    the Lyman break as targets move to higher redshift, so we widen it in
+    step with the same z thresholds used for the zoom-panel line sets (see
+    default_groups_for_redshift).
+    """
+    if redshift < 0.5:
+        return 0.1
+    if redshift < 1.5:
+        return 0.15
+    return 0.2
+
+
+def _expand_with_broad(names, available_names):
+    """Add any '<name>_broad' counterpart that exists in the fit, so a group
+    named by its narrow line (e.g. 'halpha') still shows a detected broad
+    component without listing it explicitly.
+    """
+    expanded = list(names)
+    for name in names:
+        broad_name = f'{name}_broad'
+        if broad_name in available_names and broad_name not in expanded:
+            expanded.append(broad_name)
+    return expanded
 
 
 def main():
@@ -66,10 +132,13 @@ def main():
                         help='TARGETID to process. Only needed if --redrockfile '
                              'contains more than one target.')
     parser.add_argument('--groups', nargs='+', default=None,
-                        help="Patch letters (from data/emlines.ecsv's 'patch' column) "
-                             f"to feature as zoom panels, one each, left to right. "
-                             f"Default: {[g[0] for g in DEFAULT_GROUPS]} "
-                             '([OII], Hbeta+[OIII], Halpha+[NII], [SII]).')
+                        help="Comma-separated emlines.ecsv line names (the 'name' column) "
+                             "to feature as zoom panels, one group each, left to right, "
+                             "e.g. 'oii_3726,oii_3729 hgamma hbeta oiii_4959,oiii_5007'. "
+                             "Each panel's label is auto-derived from its first line's "
+                             "nicename. Default depends on the target's redshift (see "
+                             'default_groups_for_redshift): the z<0.5, 0.5<=z<1.5, and '
+                             'z>=1.5 sets defined by GROUPS_LOWZ/GROUPS_MIDZ/GROUPS_HIGHZ.')
     parser.add_argument('--outfile', default=DEFAULT_OUTFILE,
                         help='Output path for the figure.')
     parser.add_argument('--fphotodir', default=None,
@@ -119,10 +188,10 @@ def main():
     print(f'  logmstar={specphot["LOGMSTAR"]:.2f}, tauv={specphot["TAUV"]:.2f}, '
           f'vdisp={specphot["VDISP"]:.0f} km/s')
 
-    groups = None
     if args.groups is not None:
-        lookup = {letter: label for letter, label in DEFAULT_GROUPS}
-        groups = [(letter, lookup.get(letter, letter)) for letter in args.groups]
+        groups = [(tuple(token.split(',')), None) for token in args.groups]
+    else:
+        groups = default_groups_for_redshift(specdata['redshift'])
 
     make_figure(specdata, objmeta, specphot, fastspec, Spec.coadd_type, groups, args.outfile)
 
@@ -188,9 +257,10 @@ def make_figure(specdata, objmeta, specphot, fastspec, coadd_type, groups, outfi
         CTools, EMFit, specdata, fastspec, specphot, templates, fitstack=False,
         no_smooth_continuum=False, emline_snrmin=0.0, redshift=redshift)
 
+    phot_wavelims = (default_sed_xmin_for_redshift(redshift), 35.)
     allfilters = phot.filters[objmeta['PHOTSYS']]
     sedwave, sedmodel, sedphot, phot_tbl = _build_sed_model(
-        CTools, templates, specphot, objmeta, phot, redshift, (0.1, 35.), allfilters)
+        CTools, templates, specphot, objmeta, phot, redshift, phot_wavelims, allfilters)
 
     outdir = os.path.dirname(outfile)
     if outdir:
@@ -207,9 +277,20 @@ def make_figure(specdata, objmeta, specphot, fastspec, coadd_type, groups, outfi
 
     # which of the standard line groups actually fall in this target's
     # observed window -- decided up front so the figure width/layout below
-    # is sized to what will actually be drawn
-    available_patches = set(linetable['patch'])
-    active_groups = [(letter, label) for letter, label in groups if letter in available_patches]
+    # is sized to what will actually be drawn. Each group's line list is
+    # expanded with any detected broad counterpart, and a missing label is
+    # auto-derived from the first present line's nicename (used for
+    # user-supplied --groups, which don't carry a hand-written label).
+    all_names = set(linetable['name'])
+    active_groups = []
+    for names, label in groups:
+        present = [n for n in _expand_with_broad(names, all_names) if n in all_names]
+        if not present:
+            continue
+        if label is None:
+            firstrow = linetable[linetable['name'] == present[0]]
+            label = firstrow['nicename'][0].replace('-', ' ')
+        active_groups.append((present, label))
     ngroup = len(active_groups)
 
     # ------------------------------------------------------------------
@@ -247,17 +328,6 @@ def make_figure(specdata, objmeta, specphot, fastspec, coadd_type, groups, outfi
 
     abmag_good = phot_tbl['abmag_ivar'] > 0
     abmag_lim = phot_tbl['abmag_limit'] > 0
-    if np.any(abmag_good):
-        yerr = np.squeeze([phot_tbl['abmag_brighterr'], phot_tbl['abmag_fainterr']])
-        sedax.errorbar(phot_tbl['lambda_eff'][abmag_good]/1e4, phot_tbl['abmag'][abmag_good],
-                       yerr=yerr[:, abmag_good], fmt='o', markersize=14, markeredgewidth=1,
-                       markeredgecolor='k', markerfacecolor='darkorange', elinewidth=1.5,
-                       ecolor='darkorange', capsize=3, zorder=4)
-    if np.any(abmag_lim):
-        sedax.errorbar(phot_tbl['lambda_eff'][abmag_lim]/1e4, phot_tbl['abmag_limit'][abmag_lim],
-                       lolims=True, yerr=0.75, fmt='o', markersize=14, markeredgewidth=1,
-                       markeredgecolor='k', markerfacecolor='none', elinewidth=1.5,
-                       ecolor='darkorange', capsize=3, alpha=0.7, zorder=4)
 
     # y-range with headroom, faint (large mag) at bottom -- mirrors
     # qa_fastspec's sed_ymin/sed_ymax construction, including its safety
@@ -276,11 +346,30 @@ def make_figure(specdata, objmeta, specphot, fastspec, coadd_type, groups, outfi
     if sed_ymin > 30:
         sed_ymin = 30.
 
-    phot_wavelims = (0.1, 35.)
     sedax.set_xscale('log')
     sedax.set_xlim(*phot_wavelims)
+    # set_ylim (sed_ymin > sed_ymax, so this flips the axis to put faint/large
+    # mags at the bottom) *before* the lolims=True errorbar call below --
+    # matplotlib decides which way the upper-limit caret points by checking
+    # yaxis_inverted() at call time, so plotting the limits before the axis
+    # is actually inverted draws them pointing the wrong way.
     sedax.set_ylim(sed_ymin, sed_ymax)
     sedax.set_ylabel('AB mag')
+
+    if np.any(abmag_good):
+        yerr = np.squeeze([phot_tbl['abmag_brighterr'], phot_tbl['abmag_fainterr']])
+        sedax.errorbar(phot_tbl['lambda_eff'][abmag_good]/1e4, phot_tbl['abmag'][abmag_good],
+                       yerr=yerr[:, abmag_good], fmt='o', markersize=14, markeredgewidth=1,
+                       markeredgecolor='k', markerfacecolor='darkorange', elinewidth=1.5,
+                       ecolor='darkorange', capsize=3, zorder=4)
+    if np.any(abmag_lim):
+        # markersize bumped up relative to the detections above -- the
+        # lolims caret glyph reads visually smaller than a filled circle at
+        # the same nominal markersize
+        sedax.errorbar(phot_tbl['lambda_eff'][abmag_lim]/1e4, phot_tbl['abmag_limit'][abmag_lim],
+                       lolims=True, yerr=0.75, fmt='o', markersize=20, markeredgewidth=1.5,
+                       markeredgecolor='k', markerfacecolor='none', elinewidth=1.5,
+                       ecolor='darkorange', capsize=3, alpha=0.7, zorder=4)
     sedax.xaxis.set_major_formatter(major_formatter)
     obsticks = np.array([0.1, 0.2, 0.5, 1.0, 1.5, 3.0, 5.0, 10.0, 20.0])
     obsticks = obsticks[(obsticks >= phot_wavelims[0]) & (obsticks <= phot_wavelims[1])]
@@ -418,8 +507,8 @@ def make_figure(specdata, objmeta, specphot, fastspec, coadd_type, groups, outfi
                                      specdata['res'], specdata['camerapix'])
 
     zoomaxes = []
-    for igrp, (letter, label) in enumerate(active_groups):
-        rows = linetable[linetable['patch'] == letter]
+    for igrp, (names, label) in enumerate(active_groups):
+        rows = linetable[np.isin(linetable['name'], names)]
         minwave = np.min(rows['restwave'].value)
         maxwave = np.max(rows['restwave'].value)
         deltawave = 0.5 * (maxwave - minwave)
@@ -479,6 +568,7 @@ def make_figure(specdata, objmeta, specphot, fastspec, coadd_type, groups, outfi
             ax.set_ylim(line_ymin, line_ymax)
         ax.text(0.05, 0.94, label, transform=ax.transAxes, ha='left', va='top',
                fontsize=14, fontweight='bold')
+        ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
         ax.tick_params(axis='x', labelrotation=30)
         zoomaxes.append(ax)
 

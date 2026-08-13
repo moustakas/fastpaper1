@@ -80,20 +80,20 @@
 \affiliation{INSTITUTION, ADDRESS}
 
 \begin{abstract}
-Optical spectrophotometry opens a wide window into the physical
-conditions, dynamical state, and formation history of galaxies and
-quasars. \fastspecfit{} is open-source Python software that extracts
-this information by jointly modeling each DESI spectrum and its
-broadband photometry using physically motivated stellar continuum and
-emission-line templates. Measured quantities include light-weighted
-stellar ages, velocity dispersions, stellar masses, star-formation
-rates, K-corrections, rest-frame absolute magnitudes and colors, and
-integrated fluxes and equivalent widths for nearly 50 emission lines
-spanning the rest-frame UV through near-infrared. We describe the
-algorithms, validate the measurements using repeat observations and
-comparisons to complementary codes, and present the \fastspecfit{}
-value-added catalog for the DESI Data Release 2, comprising \todo{N}
-million extragalactic targets.
+\todo{Placeholder abstract.} Optical spectrophotometry opens a wide
+window into the physical conditions, dynamical state, and formation
+history of galaxies and quasars. \fastspecfit{} is open-source Python
+software that extracts this information by jointly modeling each DESI
+spectrum and its broadband photometry using physically motivated
+stellar continuum and emission-line templates. Measured quantities
+include light-weighted stellar ages, velocity dispersions, stellar
+masses, star-formation rates, K-corrections, rest-frame absolute
+magnitudes and colors, and integrated fluxes and equivalent widths for
+nearly 50 emission lines spanning the rest-frame UV through
+near-infrared. We describe the algorithms, validate the measurements
+using repeat observations and comparisons to complementary codes, and
+present the \fastspecfit{} value-added catalog for the DESI Data
+Release 2, comprising \todo{N} million extragalactic targets.
 \end{abstract}
 
 \keywords{Galaxies --- Surveys --- Catalogs --- Spectrophotometry ---
@@ -116,7 +116,7 @@ spectra from the survey validation (SV) campaign (2020 December--2021
 May), was released in 2023 June. Data Release~1
 \citep[DR1;][]{desi-collaboration26a}, released in 2025 March,
 uniformly reprocessed the SV data and added the first 13 months of the
-main survey, for a total of 20.4~million unique spectra. Data
+main-survey sample, for a total of 20.4~million unique spectra. Data
 Release~2 (DR2), the subject of this paper, extends the main-survey
 data through 2024 April, its first three years, includes a staggering
 37 million unique redshifts, and is scheduled for public release in
@@ -156,7 +156,7 @@ photometry (and, in some cases, spectroscopy) with physically
 motivated stellar population synthesis (SPS) models to infer
 star-formation histories, stellar masses, and dust properties; and
 codes like \texttt{PyQSOFit} \citep{guo18a} are tailored to fitting
-the emission-line spectra of quasars.
+the UV/optical spectra of quasars.
 
 Each of these codes makes different trade-offs among flexibility,
 physical realism, and computational speed, but none were designed to
@@ -1699,33 +1699,73 @@ quantities for QSOs and broad-line AGN with appropriate caution.
 \label{ssec:example_bgs}
 
 \begin{figure*}
-\includegraphics[width=6.5in]{figures/fastspec-example-39633405565996021.png}
-\caption{Write me.\label{fig:example_bgs}}
+\includegraphics[width=6.5in]{figures/example-bgs.pdf}
+\caption{\fastspecfit{} output for a low-redshift BGS galaxy at $z=0.1201$
+(TARGETID~39627813136892057; main survey, bright program, healpix~31152).
+Top: broadband spectral energy distribution, with the best-fit stellar
+continuum model (gray curve), synthesized photometry (open diamonds), and
+observed Legacy Surveys $grz$ and WISE $W1$--$W4$ photometry with $1\sigma$
+error bars (filled orange circles); the top axis gives the rest-frame
+wavelength, and the gray bar below the photometry marks the observed DESI
+wavelength range and the $2.43\times$ aperture-correction factor. The inset
+in the lower right shows the Legacy Survey $grz$ image with the
+$1\farcs5$-diameter DESI fiber (solid) and a $10\arcsec$ reference aperture
+(dashed) overlaid. Middle: full observed-frame DESI spectrum (light colors,
+one per camera) with the best-fit stellar continuum (black),
+continuum-plus-smooth-continuum correction (dashed gray), and total
+spectrophotometric model including emission lines (bold, per-camera colors);
+light gray labels mark every in-range emission line included in the fit.
+Bottom: zooms on four representative line complexes---\oiidoublet{},
+\hb+\oiii{}, \ha+\nii{}, and \sii{}~$\lambda\lambda6716,31$---showing the
+continuum- and smooth-continuum-subtracted data, individual best-fit
+Gaussian components (thin), and the total emission-line model
+(bold).\label{fig:example_bgs}}
 \end{figure*}
 
-Figure~\ref{fig:example_bgs} shows the \fastspecfit{} output for a low-redshift
-BGS galaxy at $z \approx \todo{X}$ observed with the DESI fiber centered on
-the nucleus. The top-left panel shows the Legacy Survey $grz$ color image with
-the $1\farcs5$-diameter fiber footprint overlaid; the remaining panels display
-the full observed DESI spectrum across all three cameras, the best-fit
-spectrophotometric model, and the broadband SED with synthesized model
-photometry from the optical through the mid-infrared. This object provides a
-clean end-to-end illustration of the complete fitting sequence described in
-\S\ref{sec:modeling}: the high signal-to-noise stellar continuum reveals
-prominent absorption features, the emission-line spectrum shows both narrow
-forbidden lines and broad Balmer emission indicative of a type~1 AGN, and
-strong WISE detections anchor the infrared SED.
+Figure~\ref{fig:example_bgs} shows the \fastspecfit{} output for a
+low-redshift BGS galaxy at $z=0.1201$ observed with the DESI fiber centered on
+the nucleus. The top panel shows the broadband spectral energy distribution,
+with the Legacy Survey $grz$ image inset in the lower right showing the
+$1\farcs5$-diameter fiber footprint; the middle panel displays the full
+observed DESI spectrum across all three cameras together with the best-fit
+spectrophotometric model; and the bottom row zooms in on four representative
+emission-line complexes. This object provides a clean end-to-end illustration
+of the complete fitting sequence described in \S\ref{sec:modeling}: the
+high signal-to-noise stellar continuum ($S/N_b=6.4$, $S/N_r=13.8$,
+$S/N_z=19.3$) reveals prominent absorption features, the emission-line
+spectrum shows both narrow forbidden lines and broad Balmer emission
+indicative of a type~1 AGN, and strong WISE detections anchor the infrared
+SED.
 
-\begin{itemize}
-  \item Walk through each stage in sequence: line masker, velocity-dispersion
-    fit, aperture correction, joint spectrophotometric continuum fit, smooth
-    continuum correction, narrow+broad emission-line fit and model selection
-  \item Highlight the broad \ha{} and \hb{} components and the
-    $\Delta\chi^2$ criterion that selects the broad model
-    (\S\ref{sssec:kinematic})
-  \item Note how the aperture correction places the fiber spectrum on the
-    total-flux scale of the broadband photometry
-\end{itemize}
+We walk through each stage of the fitting sequence in turn. The line masker
+(\S\ref{ssec:patches}) identifies and excludes the emission-line-affected
+pixels before the stellar continuum is fit; the resulting velocity
+dispersion, $\vdisp=105$~\kms{} (\S\ref{sssec:vdisp}), and the joint
+spectrophotometric continuum fit (\S\ref{sssec:fitting}) together return
+$\logmstar=10.19\pm0.02$, $\tauv=1.60\pm0.04$, a light-weighted age of
+$4.6\pm0.3$~Gyr, and $\mathrm{SFR}=39\pm2$~\msun{}~yr$^{-1}$. The median
+aperture correction, $2.43\times$ (the gray bar beneath the SED in
+Figure~\ref{fig:example_bgs}), places the DESI fiber spectrum on the
+total-flux scale of the broadband photometry (\S\ref{sssec:apercorr}), and
+the smooth continuum correction (\S\ref{sssec:smooth}) then absorbs the
+small residual flux-calibration offsets we measure across the three cameras.
+
+The emission-line fit (\S\ref{ssec:emlines}) reveals this object's most
+distinctive feature: a broad Balmer component with
+$\sigma_\mathrm{broad}(\ha)=880$~\kms{}, well above both the $250$~\kms{}
+minimum-width threshold and the narrow component's
+$\sigma_\mathrm{narrow}(\ha)=87\pm71$~\kms{}. Detected at $S/N=6.6$ in broad
+\ha{} (and only $S/N=1.1$ in broad \hb, still sufficient since only one of
+the two brightest broad Balmer lines needs to satisfy the $S/N>2.5$
+threshold), the broad component drives $\Delta\chi^2_\mathrm{Balmer}=2751$
+against $\Delta N_\mathrm{dof,\,Balmer}=5$ (Equation~\ref{eq:broadchi2}), and
+\fastspecfit{} adopts the narrow+broad kinematic model
+(\S\ref{sssec:kinematic}). The bottom row of Figure~\ref{fig:example_bgs}
+shows the resulting broad wings underlying the \ha+\nii{} and \hb+\oiii{}
+complexes alongside the resolved \oiidoublet{} and \sii{}~$\lambda\lambda6716,31$
+doublets. The correspondingly high $D_n(4000)=1.27$ (\S\ref{ssec:quantities})
+is consistent with the moderately dust-attenuated ($\tauv=1.60$),
+intermediate-age stellar population recovered by the continuum fit.
 
 \subsection{Intermediate-Redshift Emission-Line Galaxy}
 \label{ssec:example_elg}
