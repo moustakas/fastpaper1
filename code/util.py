@@ -759,7 +759,7 @@ def make_class_cmap(color, lighten=0.3):
     return LinearSegmentedColormap.from_list('', ['white', light_end])
 
 
-def plot_style(talk=True, font_scale=1.0, palette=None):
+def plot_style(talk=True, font_scale=1.0, palette=None, style='whitegrid'):
     """Set seaborn plot style and return (sns, color_palette).
 
     Parameters
@@ -772,6 +772,10 @@ def plot_style(talk=True, font_scale=1.0, palette=None):
         Color palette passed to seaborn.set_palette().  None keeps the
         seaborn default.  Pass 'colorblind' for the Okabe-Ito palette,
         which is safe for deuteranopia, protanopia, and tritanopia.
+    style : str
+        Seaborn axes style. Default 'whitegrid' (this module's historical
+        default); pass 'ticks' to match fastspecfit.qa.qa_fastspec's own
+        style (gridlines off, plain tick axes).
 
     Returns
     -------
@@ -781,7 +785,7 @@ def plot_style(talk=True, font_scale=1.0, palette=None):
     """
     import seaborn as sns
     sns.set(context='talk' if talk else 'paper',
-            style='whitegrid', font_scale=font_scale)
+            style=style, font_scale=font_scale)
     if palette is not None:
         sns.set_palette(palette)
     return sns, sns.color_palette()

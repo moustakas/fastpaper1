@@ -211,12 +211,12 @@ requiring special-case handling.
 
 Although this paper presents the first comprehensive description of
 \fastspecfit{}'s algorithms, measurements from the earlier EDR and DR1
-value-added catalogs (Appendix~\ref{sec:appendix_vacs}) have already
-enabled a remarkably broad range of extragalactic science by both DESI
-collaboration members and the broader scientific community. We briefly
-highlight a small, illustrative sample of that work
-here. Emission-line fluxes, equivalent widths, and stellar masses from
-\fastspecfit{} have been used to identify and characterize
+value-added catalogs (VACs; see Appendix~\ref{sec:appendix_vacs}) have
+already enabled a remarkably broad range of extragalactic science by
+both DESI collaboration members and the broader scientific
+community. We briefly highlight a small, illustrative sample of that
+work here. Emission-line fluxes, equivalent widths, and stellar masses
+from \fastspecfit{} have been used to identify and characterize
 changing-look AGN \citep{guo25a} and to triple the census of dwarf AGN
 candidates in the local universe \citep{pucha25a}; to measure
 direct-method ($T_e$-based) chemical abundances for nearly 50,000
@@ -249,13 +249,13 @@ detail, including the spectrophotometric and physical quantities the
 code derives (\S\ref{sec:modeling}), and illustrate the complete
 fitting sequence applied end-to-end to three representative targets
 spanning the range of DESI extragalactic classes
-(\S\ref{sec:casestudy}).  We then present the \fastspecfit{}
-value-added catalog for DESI DR2, comprising 37 million extragalactic
-targets, along with updated catalogs for the Early Data Release and
-Data Release 1, document the code's computational performance, and
-validate the measurements against independent codes
-(\S\ref{sec:vac}). We conclude with a summary and an outlook toward
-future improvements (\S\ref{sec:summary}).
+(\S\ref{sec:casestudy}).  We then present the \fastspecfit{} VAC for
+DESI DR2, comprising 37 million extragalactic targets, along with
+updated catalogs for the Early Data Release and Data Release 1,
+document the code's computational performance, and validate the
+measurements against independent codes (\S\ref{sec:vac}). We conclude
+with a summary and an outlook toward future improvements
+(\S\ref{sec:summary}).
 
 Throughout this paper we adopt a flat $\Lambda$CDM cosmology with
 $\Omega_m = 0.315$, consistent with \citet{planck-collaboration20a},
@@ -363,9 +363,9 @@ upper limit.
 
 This section briefly summarizes the DESI survey and program structure,
 the extragalactic target classes, and the redshift-determination
-pipeline needed to interpret the \fastspecfit{} value-added catalogs;
-for a complete description see \citet{desi-collaboration24e,
-  desi-collaboration24d, desi-collaboration26a}.
+pipeline needed to interpret the \fastspecfit{} VACs; for a complete
+description see \citet{desi-collaboration24e, desi-collaboration24d,
+  desi-collaboration26a}.
 
 DESI observations are organized by survey and program
 \citep{schlafly23a, myers23a}. The primary five-year program is the
@@ -410,7 +410,7 @@ redshifts; a \ion{Mg}{2}~$\lambda\lambda$2796,2803 doublet fitter
 \citep{chaussidon23a}; and the \texttt{QuasarNET} neural-network QSO
 classifier \citep{busca18a, green25a}. The latter two after-burners
 are essential for correctly classifying and measuring accurate
-redshifts for QSOs (see \S\ref{ssec:zqso}).
+redshifts for QSOs (see \S\ref{ssec:catalog}).
 
 %% ============================================================
 \section{Spectrophotometric Modeling}
@@ -422,7 +422,7 @@ This section describes the technical, algorithmic structure of
 larger \fastspecfit{} software package. Readers interested in worked
 examples of \fastspec{} applied to individual DESI targets may safely
 skip to \S\ref{sec:casestudy}, while those interested only in the
-resulting DR2 value-added catalog may skip to \S\ref{sec:vac}.
+resulting DR2 VAC may skip to \S\ref{sec:vac}.
 
 Let $F(\lambda;\theta)$ be the observed-frame UV-through-IR spectral
 energy distribution (SED) of a galaxy, where $\theta$ denotes the
@@ -1787,19 +1787,41 @@ use to targets where the host-galaxy continuum dominates.
     emission-line fit are reliable and physically meaningful---only the
     continuum-derived quantities should be treated with caution
   \item Note any QSO-specific after-burner redshift correction applied to
-    this object (\S\ref{ssec:zqso})
+    this object (\S\ref{ssec:catalog})
 \end{itemize}
 
 
 %% ============================================================
-\section{Value-Added Catalogs}
+\section{DR2 Value-Added Catalog}
 \label{sec:vac}
 %% ============================================================
 
-\todo{Need a section overview/summary.}
+In this section we present the \fastspecfit{} VAC for the 
 
-\subsection{Sample Selection}
-\label{ssec:sample}
+DESI spectra are processed in spectroscopic productions, or
+specprods: fixed sets of input spectra and calibration files reduced
+with a tagged version of the DESI pipeline, named alphabetically after
+mountains or mountain ranges. A single data release can include more
+than one specprod, and a given specprod can in principle be processed
+into more than one \fastspecfit{} VAC. The primary specprod for DR2 is
+Loa; the catalog we describe in this section is Loa~v2.0, and we refer
+to it throughout as the DR2 VAC. This section describes how we produce
+that catalog by running \fastspecfit{} on every DESI extragalactic
+target: the sample-selection criteria, our correction of a subset of
+\texttt{Redrock} QSO redshifts, and the catalog's production and file
+organization (\S\ref{ssec:catalog}), recommended quality cuts
+(\S\ref{ssec:cuts}), the code's computational performance at DR2 scale
+(\S\ref{ssec:performance}), and our validation of \fastspecfit{}
+measurements against independent codes and catalogs
+(\S\ref{ssec:validation}).
+
+\subsection{Sample Selection and Catalog Production}
+\label{ssec:catalog}
+
+We build the DR2 VAC by applying a uniform sample-selection criterion
+to every DESI extragalactic target, correcting a subset of
+\texttt{Redrock} QSO redshifts, and fitting the result with
+\fastspecfit{}.
 
 We model all extragalactic DESI targets that satisfy three selection criteria: a
 spectroscopic redshift $z > 10^{-3}$, a non-sky target class
@@ -1809,9 +1831,6 @@ spectra in which all extracted inverse-variance values are zero). No cuts are
 imposed on targeting bits or other redshift-warning bits, ensuring that
 \fastspecfit{} results are available for the widest possible range of objects
 across every DESI target class.
-
-\subsection{Updated QSO Redshifts}
-\label{ssec:zqso}
 
 For a small but astrophysically important fraction of quasar targets,
 the \texttt{Redrock} spectral classification pipeline assigns an
@@ -1828,72 +1847,110 @@ documented in the online VAC documentation. The original
 \texttt{Redrock} redshift and \texttt{ZWARN} bitmask are preserved in
 the output columns \texttt{Z\_RR} and \texttt{ZWARN\_RR}. In total,
 corrected redshifts are applied to approximately 9,100 targets in the
-EDR, 74,000 in DR1, and 169,000 in DR2.
+EDR, 74,000 in DR1, and 165,000 in DR2.
 
-Table~\ref{table:sample} summarizes the number of targets satisfying these
-criteria in each DESI data release, organized by survey and observing program.
-
-\subsection{DR2 Catalog and Data Format}
-\label{ssec:dr2}
-
-We produced the DR2 value-added catalog (Loa~v1.0) using \fastspecfit{}
-version~3.1.4 with the \texttt{ftemplates-chabrier-2.0.0.fits} SPS template
+We produce the DR2 VAC (Loa~v2.0) using \fastspecfit{}
+version~3.6.1 with the \texttt{ftemplates-chabrier-2.2.0.fits} SPS template
 library (\S\ref{sec:appendix_sps}) and \texttt{desitarget}~v2.8.0 for target
-selection and masking, running on the NERSC Perlmutter supercomputer. The EDR
-VAC (Fuji~v3.2, \fastspecfit{}~v2.5.0) comprises approximately 1.4~million
-targets drawn entirely from the DESI commissioning and survey-validation
-campaigns and was publicly released in January~2024. The DR1 VAC
-(Iron~v3.0, \fastspecfit{}~v3.1.5) adds the first tranche of main-survey data
-and totals approximately 18~million targets; it was publicly released in
-June~2025. The DR2 VAC encompasses the complete five-year main survey and totals
+selection and masking, running on the NERSC Perlmutter supercomputer. The
+catalog encompasses the complete five-year main survey and totals
 approximately 38~million targets, of which the main survey---split between
 roughly 13~million BGS targets observed under bright conditions and 23~million
 LRG, ELG, and QSO targets observed under dark conditions---contributes
-36.5~million. We describe the EDR and DR1 catalogs in more detail, including
-key differences in template versions and algorithmic choices relative to DR2, in
-\S\ref{sec:appendix_vacs}.
+36.5~million. Table~\ref{table:sample} summarizes the complete breakdown by
+survey and observing program; the corresponding EDR and DR1 breakdowns appear
+in Table~\ref{table:sample-edr-dr1} (Appendix~\ref{sec:appendix_vacs}), where
+we also describe key differences in template versions and algorithmic
+choices relative to DR2.
 
 \input{tables/table-sample}
 
 We run \fastspecfit{} on the HEALPix-coadded DESI spectra and organize the
 output catalogs identically to how the underlying spectra, redshift catalogs,
-and other data products are organized within DESI data releases. Each VAC
-contains two types of output: individual per-HEALPix files and merged catalogs.
-We locate the per-HEALPix files, relative to the top-level VAC directory
-\texttt{VACDIR}, at
-
-\medskip
-\noindent\texttt{VACDIR/healpix/SURVEY/PROGRAM/HPIXGROUP/HEALPIX/}\\
-\texttt{\quad \{fastspec,fastphot\}-SURVEY-PROGRAM-HEALPIX.fits\{.gz\}}
-\medskip
-
-\noindent where \texttt{SURVEY}, \texttt{PROGRAM}, \texttt{HPIXGROUP}, and
-\texttt{HEALPIX} follow the same conventions as the DESI data products. We
-gzip-compress the \texttt{fastspec} HEALPix catalogs because they include a
-\texttt{MODELS} extension containing the best-fitting model spectra (see
-\S\ref{sec:appendix_datamodel}); we do not compress the \texttt{fastphot}
-catalogs because they carry no \texttt{MODELS} extension.
-
-Most users will find it more convenient to work with the merged catalogs, which
-we assemble by combining all per-HEALPix files for a given \texttt{SURVEY} and
-\texttt{PROGRAM} into a single file:
+and other data products are organized within DESI data releases. Most users
+will find it most convenient to work with the merged catalogs, which combine
+all per-HEALPix files for a given \texttt{SURVEY} and \texttt{PROGRAM} into a
+single file:
 
 \medskip
 \noindent\texttt{VACDIR/catalogs/\{fastspec,fastphot\}-SURVEY-PROGRAM.fits}
 \medskip
 
-\noindent We omit the \texttt{MODELS} extension from the merged
-\texttt{fastspec} catalogs to keep individual file sizes manageable. For large
-survey-program combinations---specifically \texttt{main-bright} and
-\texttt{main-dark}---we further subdivide the merged catalogs by
-\texttt{nside}~=~1 HEALPixel into 12 files following the naming pattern
-\texttt{\{fastspec,fastphot\}-SURVEY-PROGRAM-nside1-hpNN.fits}, where
-\texttt{NN} runs from \texttt{00} to \texttt{11}. We describe the complete
-output data model for each FITS extension in \S\ref{sec:appendix_datamodel},
-and we make all catalogs publicly accessible via
-\url{https://data.desi.lbl.gov}.
+\noindent where \texttt{VACDIR} is the top-level VAC directory. We make all
+catalogs publicly accessible via \url{https://data.desi.lbl.gov}.
+Appendix~\ref{sec:appendix_datamodel} describes the per-HEALPix file
+organization, the \texttt{nside}~=~1 subdivision used for the largest
+survey--program combinations, and the complete output data model.
 
-Figure~\ref{fig:compare-mstar-external} does stuff.
+\subsection{Recommended Quality Cuts}
+\label{ssec:cuts}
+
+We recommend science-specific quality cuts rather than a single
+blanket threshold, since the appropriate criterion depends on which
+measurements an analysis uses. For continuum-derived quantities
+(stellar mass, SFR, K-corrections), we recommend cutting on the
+reduced $\chi^2$ of the continuum fit, \texttt{RCHI2\_CONT}~$<$
+\todo{recommended threshold}. For individual emission lines, we
+recommend selecting on line-amplitude signal-to-noise rather than
+integrated-flux signal-to-noise---\todo{explain why amplitude S/N is
+the more robust statistic (e.g., for broad or low-surface-brightness
+lines)}---with a suggested threshold of \todo{X}$\sigma$;
+\S\ref{sssec:kinematic}'s \texttt{DELTA\_LINECHI2} and
+\texttt{DELTA\_LINENDOF} similarly quantify the significance of a
+broad-line detection and can be used to build a custom broad-line
+sample.
+
+\todo{Is it worth adding a figure showing the correlation between
+  amplitude and flux S/N?}
+
+\subsection{Computational Performance}
+\label{ssec:performance}
+
+We run \fastspecfit{} on the NERSC Perlmutter supercomputer, whose
+regular CPU nodes each provide two AMD EPYC 7763 (Milan) processors
+with 64 cores each (128 physical cores, 256 logical threads per node
+with SMT2). Fitting the full DR2 sample---38,245,183 objects in
+52,325 HEALPix files---the code processes a typical DESI spectrum in
+a median 4.8~s (mean 6.0~s) of single-core time, exploiting a hybrid
+parallelism model: we use MPI to distribute independent HEALPix files
+across ranks, and Python multiprocessing to parallelize the per-object
+fits across all cores available to each rank. Per-object runtime
+varies systematically with target class and observing
+program---a mean 4.0~s/object/core for main-survey dark-time targets
+(LRGs, ELGs, QSOs) versus 8.1~s/object/core for main-survey
+bright-time targets (BGS, which typically require fitting more
+emission lines)---and with the size of the HEALPix file being
+processed, since \fastspecfit{} fits each file as a single in-memory
+unit on one rank. Processing the complete DR2 catalog requires
+approximately 850~node-hours on Perlmutter.
+
+Because \fastspec{} fits tens of millions of spectra, we optimize the
+per-object inner loops aggressively. We precompute and cache reused
+arrays throughout---template FFTs for velocity-dispersion convolution
+(\S\ref{sssec:vdisp}) and per-object redshift/IGM prefactors
+(\S\ref{sssec:fitting}) chief among them---to avoid redundant
+computation across the Monte Carlo realizations
+(\S\ref{ssec:uncertainties}) and, for \vdisp, across the
+$\chi^2$-scan grid. We implement the numerically intensive
+kernels---dust attenuation, IGM transmission \citep{inoue14a},
+resolution-matrix convolution, and the emission-line forward model
+and its Jacobian---using Numba \citep[v\,\todo{X.Y};][]{lam15a}
+just-in-time (JIT) compilation to native machine code. We represent
+the emission-line Jacobian as an implicit matrix product (a
+\texttt{scipy.sparse.linalg.LinearOperator}) rather than a dense
+array, exploiting the fact that each truncated Gaussian line profile
+($\pm5\sigma$) touches only a small, contiguous range of pixels; this
+keeps both the memory footprint and the per-iteration cost of the
+nonlinear least-squares solve far below what a dense Jacobian would
+require. Because every JIT-compiled kernel uses Numba's persistent
+on-disk compilation cache, we pay the one-time compilation cost once
+per machine rather than once per process---a meaningful savings given
+that our production run alone launches tens of thousands of
+independent MPI ranks. \todo{Benchmark: X ms/spectrum, Y$\times$
+  faster than NumPy.}
+
+\subsection{Validation}
+\label{ssec:validation}
 
 \begin{figure*}
 \includegraphics[width=6.5in]{compare-mstar-external.pdf}
@@ -1916,99 +1973,57 @@ Figure~\ref{fig:compare-mstar-external} does stuff.
   dashed line is the 1:1 relation.\label{fig:compare-mstar-external}}
 \end{figure*}
 
-
-Figure~\ref{fig:compare-sfr-external} does stuff.
+We validate the \fastspecfit{} measurements by comparing them against
+independent codes and catalogs applied to overlapping subsets of the
+DR2 sample: SED-fitting-based stellar masses and SFRs from three
+external catalogs and from the COSMOS2020 photometric catalog,
+stellar velocity dispersions from \texttt{pPXF}, and emission-line
+fluxes from \texttt{pPXF}, the DESI \texttt{emlinefit} afterburner,
+and GSWLC. For each comparison we select targets with reliable
+measurements in both catalogs and quantify systematic offsets and
+scatter as a function of signal-to-noise ratio, redshift, and target
+class. \todo{Add summary of overall agreement and key findings.}
 
 \begin{figure*}
 \includegraphics[width=6.5in]{compare-sfr-external.pdf}
 \caption{Write me\label{fig:compare-sfr-external}}
 \end{figure*}
 
-\subsection{Recommended Quality Cuts}
-\label{ssec:cuts}
+Figure~\ref{fig:compare-mstar-external} compares \fastspecfit{}
+stellar masses against three independent CIGALE-based SED-fitting
+catalogs. \todo{Describe agreement; highlight systematic offsets from
+non-parametric vs. parametric SFH choices.} Figure~\ref{fig:compare-sfr-external}
+makes the analogous comparison for star-formation rates. \todo{Describe
+agreement.}
 
-\todo{Pipeline cuts on delta-chi2, etc. Recommended S/N cuts on
-  amplitude, not flux. Depends on the science! Consider showing the
-  correlation between amplitude and flux S/N.}
-
-
-\subsection{Computational Performance}
-\label{ssec:performance}
-
-We run \fastspecfit{} on the NERSC Perlmutter supercomputer, whose regular CPU
-nodes each provide two AMD EPYC 7763 (Milan) processors with 64 cores each.
-The code fits a typical DESI spectrum in approximately \todo{X}~seconds on a
-single core, exploiting a hybrid parallelism model to process the full DR2
-sample efficiently: we use MPI to distribute independent groups of HEALPix
-pixels across nodes, and Python multiprocessing to parallelize the
-per-spectrum fits across all available cores within each node. Processing the
-complete DR2 catalog of approximately 38~million spectra required approximately
-\todo{X}~node-hours on Perlmutter. \todo{Add benchmark breakdown: seconds per
-spectrum by target class, total wall-clock time, etc.}
-
-\todo{Pulled in from \S\ref{ssec:continuum}; maybe it goes here?}
-Because \fastspec{} fits hundreds of thousands of spectra, we cache
-reused arrays aggressively throughout---precomputed template FFTs
-(\S\ref{sssec:vdisp}) and per-object redshift/IGM prefactors
-(\S\ref{sssec:fitting}) chief among them---to minimize redundant
-computation. Similarly, we implement the emission-line forward model
-and its Jacobian (\S\ref{sssec:emline_model}) using Numba JIT
-compilation \citep[v\,\todo{X.Y};][]{lam15a}, which compiles the
-pixel-level evaluation loops to native machine code at first
-invocation. \todo{Benchmark: X ms/spectrum, Y$\times$ faster than
-  NumPy.}
-
-\subsection{Validation}
-\label{ssec:validation}
-
-\todo{Compare K-corrections?}
-
-%\texttt{kcorrect} \citep{blanton07a}
-%PROVABGS \citep{hahn24a}
-
-We validate the \fastspecfit{} measurements by comparing them against
-independent codes applied to overlapping subsets of the DR2 sample. For each
-comparison we select targets with reliable measurements in both catalogs and
-quantify systematic offsets and scatter as a function of signal-to-noise ratio,
-redshift, and target class. \todo{Add summary of overall agreement and key
-findings.}
-
-In Figure~\ref{fig:mstar-external} we compare \fastspecfit{} stellar
-masses against independent estimates from CIGALE \citep{siudek24a} and
-... \todo{Describe agreement; highlight systematic offsets from
-  non-parametric vs. parametric SFH choices.}
-
-\begin{figure*}
-\includegraphics[width=6.5in]{compare-cosmos2020.pdf}
-\caption{Comparison of \fastspecfit{} stellar masses ($h=1$, Chabrier
-  IMF) with the COSMOS2020 photometric catalog \citep{weaver22a},
-  matched by sky position to DESI SV3 targets.  \textit{Top:}
-  COSMOS2020 $\logmstar$ versus \fastspecfit{} $\logmstar$; the
-  logarithmically-scaled two-dimensional number density is shown as a
-  color map with contours enclosing 50\%, 75\%, 95\%, and 99.5\% of
-  the joint distribution, and the solid line is the 1:1 relation.  The
-  panel lists the matched sample size $N$, the median offset
-  $\Delta_{\rm med}$ (COSMOS2020 minus \fastspecfit{}) in dex, and the
-  NMAD scatter.  \textit{Bottom:} Residual $\Delta\logmstar$ as a
-  function of redshift; the solid curve is the running median and the
-  dashed curves enclose the interquartile
-  range.\label{fig:cosmos2020}}
-\end{figure*}
-
-In Figure~\ref{fig:cosmos2020} we compare \fastspecfit{} stellar
-masses against the stellar masses from COSMOS-2020, with a photoz
-quality cut.
+%Figure~\ref{fig:cosmos2020} compares \fastspecfit{} stellar masses
+%against photometric stellar masses from the COSMOS2020 catalog
+%\citep{weaver22a} for DESI SV3 targets in the COSMOS field, restricted
+%to a photometric-redshift quality cut of \todo{specify cut}.
+%\todo{Describe agreement; highlight systematic offsets from
+%non-parametric vs. parametric SFH choices.}
+%
+%\begin{figure*}
+%\includegraphics[width=6.5in]{compare-cosmos2020.pdf}
+%\caption{Comparison of \fastspecfit{} stellar masses ($h=1$, Chabrier
+%  IMF) with the COSMOS2020 photometric catalog \citep{weaver22a},
+%  matched by sky position to DESI SV3 targets.  \textit{Top:}
+%  COSMOS2020 $\logmstar$ versus \fastspecfit{} $\logmstar$; the
+%  logarithmically-scaled two-dimensional number density is shown as a
+%  color map with contours enclosing 50\%, 75\%, 95\%, and 99.5\% of
+%  the joint distribution, and the solid line is the 1:1 relation.  The
+%  panel lists the matched sample size $N$, the median offset
+%  $\Delta_{\rm med}$ (COSMOS2020 minus \fastspecfit{}) in dex, and the
+%  NMAD scatter.  \textit{Bottom:} Residual $\Delta\logmstar$ as a
+%  function of redshift; the solid curve is the running median and the
+%  dashed curves enclose the interquartile
+%  range.\label{fig:cosmos2020}}
+%\end{figure*}
 
 Figure~\ref{fig:vdisp} compares \fastspecfit{} $\vdisp$ measurements
 against those from \texttt{pPXF} \citep{cappellari23a} for a matched
 sample of BGS galaxies with high signal-to-noise stellar
 continua. \todo{Quantify agreement: rms, bias.}
-
-We compare emission-line fluxes against \texttt{pPXF}
-\citep{cappellari23a}, the DESI \texttt{emlinefit} afterburner
-\citep{raichoor23a}, and the GSWLC catalog of \citet{salim16a} for
-targets in the SDSS footprint. \todo{Describe agreement and key
-  diagnostics compared (H$\alpha$, [\ion{O}{2}]).}
 
 \begin{figure*}
 \includegraphics[width=6.5in]{compare-vdisp.pdf}
@@ -2017,26 +2032,33 @@ targets in the SDSS footprint. \todo{Describe agreement and key
   sample.\label{fig:vdisp}}
 \end{figure*}
 
+We compare emission-line fluxes against \texttt{pPXF}
+\citep{cappellari23a}, the DESI \texttt{emlinefit} afterburner
+\citep{raichoor23a}, and the GSWLC catalog of \citet{salim16a} for
+targets in the SDSS footprint. \todo{Describe agreement and key
+  diagnostics compared (H$\alpha$, [\ion{O}{2}]); no figure currently
+  implemented for this comparison in code/build-figures.py---confirm
+  whether one should be built.}
+
 %% ============================================================
 \section{Discussion}
 \label{sec:discussion}
 %% ============================================================
 
-\todo{Several of these figures should move to an ``extras'' document.}
+The \fastspecfit{} DR2 catalog provides simultaneous measurements of
+stellar continuum, emission-line, and broadband SED properties for
+approximately 38~million extragalactic targets spanning four decades
+in stellar mass and nearly two decades in redshift. In
+\S\ref{ssec:reach} we illustrate the scientific reach of these
+measurements with two representative figures: the distribution of
+stellar mass with redshift across the three primary galaxy target
+classes, and the optical emission-line diagnostics that
+\fastspecfit{} uses to identify and characterize AGN. We then discuss
+planned improvements to the code and future VACs
+(\S\ref{ssec:improvements}).
 
-The \fastspecfit{} DR2 catalog provides simultaneous measurements of stellar
-continuum, emission-line, and broadband SED properties for approximately
-38~million extragalactic targets spanning four decades in stellar mass and
-nearly two decades in redshift. In this section we illustrate the scientific
-reach of these measurements with five representative figures: the distribution
-of stellar mass with redshift across the three primary galaxy target classes
-(\S\ref{ssec:mz}); the star-forming main sequence and the EW(\oii)--$D_n(4000)$
-diagram (\S\ref{ssec:sfms}); and the optical emission-line and broad-line
-diagnostics that \fastspecfit{} uses to identify and characterize AGN
-(\S\ref{ssec:agn}).
-
-\subsection{Galaxy Stellar Populations}
-\label{ssec:mz}
+\subsection{Galaxy Demographics and Diagnostic Power}
+\label{ssec:reach}
 
 \begin{figure*}
 \includegraphics[width=6.5in]{figures/mstar-redshift.pdf}
@@ -2051,85 +2073,18 @@ diagnostics that \fastspecfit{} uses to identify and characterize AGN
   \label{fig:mstar_z}}
 \end{figure*}
 
-Figure~\ref{fig:mstar_z} shows the stellar mass--redshift distribution for
-BGS, LRG, and ELG targets in the DR2 main survey. The three target classes
-trace complementary regions of this plane: BGS spans the widest mass range at
-$z \lesssim 0.6$, capturing galaxies from well below the knee of the stellar
-mass function to the most massive systems in the local universe; LRGs select
-the most massive, passively evolving galaxies over $0.4 \lesssim z \lesssim
-1.1$; and ELGs preferentially identify low-to-intermediate mass star-forming
-systems at $0.6 \lesssim z \lesssim 1.6$. Together these three samples provide
-near-continuous coverage of the galaxy population from $z \approx 0$ to $z
-\approx 1.6$, making the DR2 catalog a uniquely comprehensive resource for
-studies of galaxy evolution over the past $\sim$10~Gyr.
-
-\subsection{Star Formation}
-\label{ssec:sfms}
-
-\begin{figure*}
-\includegraphics[width=6.5in]{figures/sfr-mstar-bgs.pdf}
-\caption{Dust-corrected \ha{} star-formation rate versus stellar mass
-  for SV3 BGS galaxies at $0.05 < z < 0.4$ with $S/N > 3$ on both
-  \ha{} and \hb. The SFR is derived from the aperture-corrected,
-  Balmer-decrement-corrected \ha{} luminosity following
-  \citet{hao11a}, assuming a Chabrier IMF and the \citet{cardelli89a}
-  extinction law ($R_V = 3.1$). The sample includes star-forming
-  galaxies and AGN host galaxies. The dashed line shows the
-  star-forming main sequence from \citet{renzini15a}, converted to $h
-  = 1$. \label{fig:sfr_mstar}}
-\end{figure*}
-
-Figure~\ref{fig:sfr_mstar} shows the \ha{}-based star-formation rate as a
-function of stellar mass for BGS targets at $z \lesssim 0.4$, where \ha{}
-falls within the DESI spectral window. We convert \ha{} luminosities to
-SFRs following \citet{kennicutt98a}, correcting for dust attenuation using the
-Balmer decrement (\ha/\hb) and adopting a Chabrier IMF. The
-star-forming main sequence emerges clearly as a tight ridge, with a scatter of
-\todo{X}~dex and a normalization consistent with published measurements at
-comparable redshifts \todo{(cite)}. The population of passive galaxies below
-the sequence and AGN hosts scattered above it are also clearly visible, together
-illustrating \fastspecfit{}'s ability to characterize the full diversity of
-galaxy activity from a uniform, simultaneous fit to spectra and photometry.
-
-\begin{figure*}
-%\includegraphics[width=6.5in]{figures/ew-dn4000.pdf}
-\caption{Write me.\label{fig:ew_dn4000}}
-\end{figure*}
-
-Figure~\ref{fig:ew_dn4000} shows EW(\oii) as a function of $D_n(4000)$ for
-all three galaxy target classes. The two quantities are complementary tracers
-of the same underlying physical progression: $D_n(4000)$ encodes the
-luminosity-weighted mean stellar age, rising steeply as a galaxy transitions
-from active star formation to quiescence, while EW(\oii) traces the
-instantaneous ionizing photon budget relative to the continuum. Star-forming
-galaxies occupy the low-$D_n(4000)$, high-EW corner; quiescent systems cluster
-at high $D_n(4000)$ and low EW; and the three target classes carve out distinct
-but overlapping loci that directly reflect their photometric selection
-functions. LRGs dominate the quiescent sequence, ELGs concentrate along the
-star-forming locus, and BGS galaxies span the full range, including the
-transition region of recently quenched systems. \todo{Quantify separation
-between classes; note any redshift evolution within each class.}
-
-\subsection{Active Galactic Nuclei}
-\label{ssec:agn}
-
-\begin{figure*}
-\includegraphics[width=6.5in]{figures/bpt-agn.pdf}
-\caption{AGN diagnostics for BGS galaxies in the DESI SV3 bright
-  program. Both panels show the same sample of $N = {N}$ galaxies with
-  signal-to-noise ratio $>3$ detected in all six diagnostic emission
-  lines ([\ion{N}{2}] $\lambda6584$, \ha{}, [\ion{S}{2}]
-  $\lambda\lambda6716,6731$, [\ion{O}{3}] $\lambda5007$, and
-  \hb). The background color map and contours show the number
-  density of objects. (Left) Classical BPT diagram
-  \citep{baldwin81a}. The dashed curve shows the empirical
-  star-forming/AGN demarcation of \citet{kauffmann03b}; galaxies above
-  this line are AGN candidates. (Right) The $P_1$--$P_3$ projection of
-  \citet{ji20a}, which separates star-forming galaxies (low $P_1$)
-  from AGN (high $P_1$). The top axis shows the AGN fraction
-  $f_\mathrm{AGN}$ mapped from $P_1$ following
-  \citet{jin21a}. \label{fig:bpt}}
-\end{figure*}
+Figure~\ref{fig:mstar_z} shows the stellar mass--redshift distribution
+for BGS, LRG, and ELG targets in the DR2 main survey. The three target
+classes trace complementary regions of this plane: BGS spans the
+widest mass range at $z \lesssim 0.6$, capturing galaxies from well
+below the knee of the stellar mass function to the most massive
+systems in the local universe; LRGs select the most massive, passively
+evolving galaxies over $0.4 \lesssim z \lesssim 1.1$; and ELGs
+preferentially identify low-to-intermediate mass star-forming systems
+at $0.6 \lesssim z \lesssim 1.6$. Together these three samples provide
+near-continuous coverage of the galaxy population from $z \approx 0$
+to $z \approx 1.6$, making the DR2 catalog a uniquely comprehensive
+resource for studies of galaxy evolution over the past $\sim$10~Gyr.
 
 Figure~\ref{fig:bpt} shows the \citet{baldwin81a} BPT
 diagram---\oiiilam/\hb{} versus \niilam/\ha---for BGS targets at $z
@@ -2151,27 +2106,50 @@ and
 Be sure to cite \citet{ji20a} and \citet{jin21a}.
 
 \begin{figure*}
-\includegraphics[width=6.5in]{figures/broadhalpha-fraction-bgs.pdf}
-\caption{Fraction of SV3 BGS targets in $0.05 < z < 0.4$ with a broad
-  \ha{} component detected at $S/N > 3$ as a function of stellar
-  mass. Error bars indicate Wilson 68\% binomial confidence
-  intervals. The rising fraction toward higher stellar mass reflects
-  the increasing prevalence of broad-line (Type~1) AGN activity in
-  more massive galaxies. \label{fig:broad_fraction}}
+\includegraphics[width=6.5in]{figures/bpt-agn.pdf}
+\caption{AGN diagnostics for BGS galaxies in the DESI SV3 bright
+  program. Both panels show the same sample of $N = {N}$ galaxies with
+  signal-to-noise ratio $>3$ detected in all six diagnostic emission
+  lines ([\ion{N}{2}] $\lambda6584$, \ha{}, [\ion{S}{2}]
+  $\lambda\lambda6716,6731$, [\ion{O}{3}] $\lambda5007$, and
+  \hb). The background color map and contours show the number
+  density of objects. (Left) Classical BPT diagram
+  \citep{baldwin81a}. The dashed curve shows the empirical
+  star-forming/AGN demarcation of \citet{kauffmann03b}; galaxies above
+  this line are AGN candidates. (Right) The $P_1$--$P_3$ projection of
+  \citet{ji20a}, which separates star-forming galaxies (low $P_1$)
+  from AGN (high $P_1$). The top axis shows the AGN fraction
+  $f_\mathrm{AGN}$ mapped from $P_1$ following
+  \citet{jin21a}. \label{fig:bpt}}
 \end{figure*}
 
-Figure~\ref{fig:broad_fraction} shows the fraction of BGS galaxies whose
-\ha{} profile requires a significant broad component, as determined by the
-selection criterion described in \S\ref{sssec:kinematic}, as a function of
-stellar mass. The broad-line fraction rises steeply toward high stellar mass,
-reaching \todo{X}\% at $\logmstar \gtrsim 11$, consistent with the well-known
-increase in AGN incidence and black-hole mass toward more massive galaxies
-\todo{(cite)}. Because \fastspecfit{} fits the narrow+broad model to every
-spectrum uniformly---without any prior AGN selection---this fraction provides a
-nearly complete census of type~1 AGN in the low-redshift universe accessible
-to DESI, free of the heterogeneous targeting and spectral quality cuts that
-affect targeted AGN surveys. \todo{Compare with published type~1 AGN fractions
-from SDSS and other surveys.}
+\subsection{Planned Improvements}
+\label{ssec:improvements}
+
+Several improvements to \fastspecfit{} are planned for future data
+releases. On the modeling side, we plan to replace the current
+solar-metallicity-only SPS templates (\S\ref{ssec:templates}) with
+semi-empirical, non-negative matrix factorization (NMF) templates
+trained directly on DESI spectra and spanning a range of stellar
+metallicities; to adopt asymmetric emission-line profiles for lines
+such as [\ion{O}{3}]~$\lambda5007$ that are known to exhibit
+blue-wing outflow signatures; to forward-model Galactic foreground
+reddening rather than correcting for it up front; and to improve the
+aperture corrections that place fiber spectra on the total-flux scale
+of the broadband photometry. We also plan to resolve a known
+inconsistency between the emission lines fitted as part of the full
+continuum model and those measured directly from the DESI spectrum,
+including their line ratios \todo{cite Ashod's paper as a possible way
+forward}.
+
+On the fitting side, we plan to improve the treatment of QSOs and
+broad-line AGN, including a dedicated \texttt{fastqso} fitting mode,
+and to develop a new Bayesian fitting mode as an alternative to the
+current maximum-likelihood approach (\S\ref{ssec:uncertainties}).
+Finally, to keep pace with the growing scale of DESI and other
+surveys, we plan to add GPU acceleration to the most computationally
+intensive kernels (\S\ref{ssec:performance}) and to extend
+\fastspecfit{} to the complete SDSS spectroscopic dataset.
 
 
 %% ============================================================
@@ -2179,32 +2157,62 @@ from SDSS and other surveys.}
 \label{sec:summary}
 %% ============================================================
 
-\begin{itemize}
-  \item Brief recap of \fastspecfit{} capabilities and design philosophy
-  \item DR2 VAC highlights
-  \item Planned future improvements:
-  \begin{itemize}
-    \item NMF-based semi-empirical templates trained on DESI data
-    \item Improved aperture corrections
-    \item Improved fitting of QSOs and broad-line AGN
-    \item GPU acceleration
-    \item Asymmetric line profiles (e.g., [\ion{O}{3}])
-    \item Forward-model Galactic reddening attenuation
-    \item Multiple stellar metallicities
-    \item fastqso fitting mode
-    \item The emission lines in the full continuum modeling and within
-      the DESI spectrum are inconsistent, as are the line-ratios (cite
-      Ashod's paper as a possible way forward).
-    \item Fitting all of SDSS.
-    \item New Bayesian-fitting mode.
-  \end{itemize}
-\end{itemize}
+\fastspecfit{} is a fast, flexible, and physically motivated code for
+modeling DESI stellar continuum and emission-line spectra jointly with
+broadband photometry. By convolving stellar-population and
+emission-line templates with each fiber's native resolution matrix
+(\S\S\ref{ssec:continuum}-\ref{ssec:emlines}) rather than resampling
+the data, \fastspecfit{} preserves DESI's uncorrelated pixel
+statistics while fitting a typical spectrum in a fraction of a second
+on a single CPU core. Its non-parametric star-formation history,
+energy-conserving dust model, and independently fitted narrow and
+broad emission-line kinematics let the data---rather than a
+pre-assumed galaxy type---determine the best-fitting model, so the
+same machinery applies uniformly across the full diversity of DESI
+extragalactic targets, from quiescent LRGs to star-forming ELGs to
+broad-line QSOs (\S\ref{sec:casestudy}). Its speed and hybrid
+MPI/multiprocessing design make it practical to estimate parameter
+uncertainties from repeated Monte Carlo fits (\S\ref{ssec:uncertainties})
+and to scale from a single laptop process to thousands of
+supercomputer cores (\S\ref{ssec:performance}).
+
+We use \fastspecfit{} to produce the DR2 VAC (Loa~v2.0), the primary
+subject of this paper: approximately 38~million extragalactic targets
+spanning the DESI commissioning, survey-validation, special-program,
+and five-year main-survey campaigns (\S\ref{ssec:catalog}), including
+corrected redshifts for roughly 165,000 QSOs. Processing the complete
+catalog requires approximately 850~node-hours on the NERSC Perlmutter
+supercomputer (\S\ref{ssec:performance}). We validate the resulting
+stellar masses, star-formation rates, velocity dispersions, and
+emission-line fluxes against independent codes and catalogs
+(\S\ref{ssec:validation}), and we illustrate the catalog's scientific
+reach with the stellar mass--redshift distribution of the three
+primary galaxy target classes and with optical emission-line
+diagnostics of nuclear activity (\S\ref{ssec:reach}). Companion
+catalogs for the Early Data Release and Data Release~1, produced with
+earlier template and \fastspecfit{} versions, are described in
+Appendix~\ref{sec:appendix_vacs}.
+
+Several improvements are planned for future \fastspecfit{} releases,
+spanning the template library, the emission-line and dust models, new
+fitting modes for QSOs and broad-line AGN, GPU acceleration, and an
+extension to the complete SDSS spectroscopic dataset
+(\S\ref{ssec:improvements}). The code and its measurements are already
+enabling a broad range of extragalactic science using the public EDR
+and DR1 VACs (\S\ref{sec:intro}), and a growing number of studies are
+already drawing on the DR2 catalog described here, including
+direct-method chemical abundance measurements for star-forming
+galaxies \citep{scholte26a} and a search for the most metal-poor
+star-forming galaxies yet found (J.~Moustakas et~al., in preparation);
+we expect this number to grow substantially once the DR2 VAC is
+publicly released in 2027.
 
 The code is flexible! E.g., line-list, parameter constraints.
 
 %% ============================================================
 \begin{acknowledgements}
-\JM{Need to thank Ben Johson.}
+\JM{Need to thank Ben Johson. Should probably also add the Legacy
+  Surveys acknowledgment.}
 
 JM gratefully acknowledges funding support for this work from the
 U.S. Department of Energy, Office of Science, Office of High Energy
@@ -2246,12 +2254,29 @@ Tohono O'odham Nation.
 \section{DR2 VAC Data Model}
 \label{sec:appendix_datamodel}
 
-The \fastspecfit{} output is stored in a compressed FITS file
-named \texttt{fastspec-\textit{SURVEY}-\textit{PROGRAM}-\textit{HEALPIX}.fits.gz},
-where \textit{SURVEY} (e.g., \texttt{main}), \textit{PROGRAM}
-(e.g., \texttt{bright} or \texttt{dark}), and \textit{HEALPIX} identify
-the observing program and sky region. Each file contains five
-extensions:
+We locate the per-HEALPix files, relative to the top-level VAC directory
+\texttt{VACDIR}, at
+
+\medskip
+\noindent\texttt{VACDIR/healpix/SURVEY/PROGRAM/HPIXGROUP/HEALPIX/}\\
+\texttt{\quad \{fastspec,fastphot\}-SURVEY-PROGRAM-HEALPIX.fits\{.gz\}}
+\medskip
+
+\noindent where \texttt{SURVEY}, \texttt{PROGRAM}, \texttt{HPIXGROUP}, and
+\texttt{HEALPIX} follow the same conventions as the DESI data products. We
+gzip-compress the \texttt{fastspec} HEALPix catalogs because they include a
+\texttt{MODELS} extension containing the best-fitting model spectra (see
+below); we do not compress the \texttt{fastphot} catalogs because they carry
+no \texttt{MODELS} extension. We omit the \texttt{MODELS} extension from the
+merged \texttt{fastspec} catalogs described in \S\ref{ssec:catalog} to keep
+individual file sizes manageable. For large survey--program
+combinations---specifically \texttt{main-bright} and \texttt{main-dark}---we
+further subdivide the merged catalogs by \texttt{nside}~=~1 HEALPixel into 12
+files following the naming pattern
+\texttt{\{fastspec,fastphot\}-SURVEY-PROGRAM-nside1-hpNN.fits}, where
+\texttt{NN} runs from \texttt{00} to \texttt{11}.
+
+Each per-HEALPix \texttt{fastspec} file contains five extensions:
 \begin{itemize}
   \item \texttt{HDU0} (\texttt{PRIMARY}): empty image with processing
     metadata keywords, including the software version, Monte Carlo
@@ -2405,16 +2430,27 @@ due to a clipping error in the internal flux uncertainty routine. We
 fix both issues in \fastspecfit{}~v3.2.0, and we will release updated
 catalogs in due course.
 
-\begin{itemize}
-  \item Fuji (EDR): $\sim$1.4M targets, \fastspecfit{} v2.5.0, released
-    December 2023
-  \item Iron (DR1): $\sim$18M targets, \fastspecfit{} v2.5.0/2.5.1,
-    released January 2024
-  \item Key differences from DR2 VAC: template versions, known issues
-    resolved
-  \item Comparison figures: stellar masses and emission-line fluxes for
-    EDR/DR1 vs. DR2
-\end{itemize}
+The EDR VAC (Fuji~v3.2) comprises approximately 1.4~million targets
+processed with \fastspecfit{}~v2.5.0 and was publicly released in
+January~2024. The DR1 VAC (Iron~v3.0) adds the first tranche of
+main-survey data, processed with \fastspecfit{}~v3.1.5, and totals
+approximately 18~million targets; it was publicly released in
+June~2025. Table~\ref{table:sample-edr-dr1} summarizes the EDR and
+DR1 target counts organized by survey and observing program, for
+direct comparison with the DR2 breakdown in Table~\ref{table:sample}.
+
+\input{tables/table-sample-edr-dr1}
+
+Relative to DR2, the EDR and DR1 catalogs are produced with earlier
+versions of the SPS template library and do not incorporate the
+corrected QSO redshifts described in \S\ref{ssec:catalog} or the
+flux-uncertainty and line-fitting fixes introduced in
+\fastspecfit{}~v3.2.0. Users combining measurements across data
+releases should therefore expect small, systematic differences in
+stellar masses, star-formation rates, and emission-line properties,
+particularly for AGN and QSO targets. We defer a full quantitative
+comparison of stellar masses and emission-line measurements across
+releases to future work.
 
 \end{appendix}
 
