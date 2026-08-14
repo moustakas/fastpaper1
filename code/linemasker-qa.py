@@ -12,8 +12,8 @@ best-fit model, local linear continuum +/- noise) that fastspecfit's own
 per-camera spectrum on top, with a zoom panel below for each patch (default:
 all patches fit for this object -- in practice just the "strong"-line
 patches, since only those get an initial per-patch fit in the line masker's
-first pass; see ms.tex \S3.3, "Adaptive Emission-Line Masking"). Written to
-tex/figures/.
+first pass; see ms.tex Section 3.3, "Adaptive Emission-Line Masking").
+Written to tex/figures/.
 
 Requires a fastspecfit build with the `return_patchfit` option on
 LineMasker.build_linemask().
@@ -120,13 +120,13 @@ def make_figure(specdata, objmeta, coadd_type, out, patchids, outfile):
     combined best-fit curve.
     """
     sys.path.insert(0, os.path.join(REPODIR, 'code'))
-    from util import plot_style
+    from util import plot_style, target_label
     from matplotlib.patches import ConnectionPatch, Rectangle
 
     from fastspecfit.emlines import EMFitTools
     from fastspecfit.emline_fit import EMLine_MultiLines
     from fastspecfit.linemasker import LineMasker
-    from fastspecfit.qa import format_niceline, _target_label
+    from fastspecfit.qa import format_niceline
     from fastspecfit.singlecopy import sc_data
 
     pf = out['patchfit']
@@ -137,7 +137,9 @@ def make_figure(specdata, objmeta, coadd_type, out, patchids, outfile):
     # per-camera (b, r, z) data/model colors, matching fastspecfit.qa.qa_fastspec
     CAMERA_COLORS = ['#468fcc', '#4caf81', '#e07a75']       # col1: data
     CAMERA_COLORS_DARK = ['#003f91', '#007f5f', '#9b2226']  # col2: model
-    bbox = dict(boxstyle='round', facecolor='lightgray', alpha=0.3, edgecolor='none')
+    # mostly opaque -- the target label box sits right on top of the MgII
+    # callout in the top panel and needs to occlude it cleanly.
+    bbox = dict(boxstyle='round', facecolor='lightgray', alpha=0.6, edgecolor='none')
 
     coadd_wave = specdata['coadd_wave']
     coadd_flux = specdata['coadd_flux']
@@ -274,9 +276,11 @@ def make_figure(specdata, objmeta, coadd_type, out, patchids, outfile):
         specax.plot(coadd_wave[s0:e0], cmodel, color='k', ls='--', lw=0.6, zorder=4)
     specax.set_ylim(specax_ylim)
 
-    target = _target_label(objmeta, coadd_type)
-    specax.text(0.02, 0.95, '\n'.join(target), transform=specax.transAxes,
-               ha='left', va='top', fontsize=12, linespacing=1.5, bbox=bbox)
+    target = target_label(objmeta, coadd_type, specdata['redshift'])
+    # zorder=7: above the callout rectangles/connectors (zorder 5-6) added
+    # below, since the label box sits on top of the MgII callout.
+    specax.text(0.02, 0.95, target, transform=specax.transAxes,
+               ha='left', va='top', fontsize=12, linespacing=1.7, bbox=bbox, zorder=7)
 
     # tight callout box around each zoomed patch's actual spectral feature
     # (sized to the local data/model extent, not the full panel height)
@@ -321,8 +325,8 @@ def make_figure(specdata, objmeta, coadd_type, out, patchids, outfile):
 
         cmodel = slope * (coadd_wave[s:e] - pivotwave) + intercept
         ax.plot(coadd_wave[s:e], cmodel, color='k', ls='--', lw=1)
-        ax.plot(coadd_wave[s:e], cmodel + noise, color='0.6', lw=0.8)
-        ax.plot(coadd_wave[s:e], cmodel - noise, color='0.6', lw=0.8)
+        ax.plot(coadd_wave[s:e], cmodel + noise, color='k', ls=':', lw=0.8)
+        ax.plot(coadd_wave[s:e], cmodel - noise, color='k', ls=':', lw=0.8)
 
         ax.set_xlim(coadd_wave[s], coadd_wave[e - 1])
         ymax = 1.25 * np.max((np.max(coadd_flux[s:e]), np.max(pf['bestfit'][s0:e0]),

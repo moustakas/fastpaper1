@@ -206,7 +206,7 @@ def make_figure(specdata, objmeta, specphot, fastspec, coadd_type, groups, outfi
     label (headline numbers belong in the caption).
     """
     sys.path.insert(0, os.path.join(REPODIR, 'code'))
-    from util import plot_style
+    from util import plot_style, target_label
     from matplotlib.patches import Circle, ConnectionPatch
     from matplotlib.lines import Line2D
 
@@ -215,7 +215,7 @@ def make_figure(specdata, objmeta, specphot, fastspec, coadd_type, groups, outfi
     from fastspecfit.continuum import ContinuumTools
     from fastspecfit.emlines import EMFitTools
     from fastspecfit.emline_fit import EMLine_MultiLines
-    from fastspecfit.qa import (_target_label, _compute_line_stats, _build_sed_model,
+    from fastspecfit.qa import (_compute_line_stats, _build_sed_model,
                                 _build_spectral_models, _fetch_cutout)
     from fastspecfit.singlecopy import sc_data
 
@@ -270,7 +270,7 @@ def make_figure(specdata, objmeta, specphot, fastspec, coadd_type, groups, outfi
     pixscale = getattr(phot, 'viewer_pixscale', 0.262)
     img, _, _, _ = _fetch_cutout(objmeta, outdir, outfile, layer, pixscale)
 
-    target = _target_label(objmeta, coadd_type)
+    target = target_label(objmeta, coadd_type, redshift)
 
     fullwave = specmodels['fullwave']
     apercorr = specmodels['apercorr']
@@ -398,7 +398,7 @@ def make_figure(specdata, objmeta, specphot, fastspec, coadd_type, groups, outfi
     sedax.text((specwave_max - specwave_min)/2 + specwave_min*0.8, sed_ymin - 1.7,
               f'DESI x {apercorr:.2f}', ha='center', va='center', fontsize=16, color='k')
 
-    sedax.text(0.03, 0.96, '\n'.join(target), transform=sedax.transAxes, ha='left',
+    sedax.text(0.03, 0.96, target, transform=sedax.transAxes, ha='left',
               va='top', fontsize=14, linespacing=1.4, bbox=bbox, zorder=6)
 
     # ---- cutout inset, lower-right corner of the SED panel -- a plain

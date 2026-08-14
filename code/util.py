@@ -791,6 +791,46 @@ def plot_style(talk=True, font_scale=1.0, palette=None, style='whitegrid'):
     return sns, sns.color_palette()
 
 
+def target_label(objmeta, coadd_type, redshift):
+    """Compact, publication-style target-ID and redshift label.
+
+    Unlike fastspecfit.qa._target_label (which is tuned for the production
+    QA figure's legend), this is meant to be read at a glance in a paper
+    figure: survey/program/healpix (or tile/night/fiber), TARGETID, and
+    redshift, one per line.
+
+    Parameters
+    ----------
+    objmeta : astropy.table.Row
+        Object metadata; must contain SURVEY/PROGRAM/HEALPIX (coadd_type
+        'healpix', 'custom', or 'uniqpix') or TILEID/NIGHT/FIBER (coadd_type
+        'cumulative', 'pernight', or 'perexp'), plus TARGETID in all cases.
+    coadd_type : str
+        Coadd type, as returned by fastspecfit.io.DESISpectra.coadd_type.
+    redshift : float
+        Redshift, appended as a final "z=" line.
+
+    Returns
+    -------
+    str
+        Newline-joined label, ready to pass directly to ax.text().
+
+    """
+    if coadd_type in ('healpix', 'custom', 'uniqpix'):
+        id_line = f"{objmeta['SURVEY']}/{objmeta['PROGRAM']}, healpix {objmeta['HEALPIX']}"
+    elif coadd_type in ('cumulative', 'pernight', 'perexp'):
+        id_line = f"tile {objmeta['TILEID']}, night {objmeta['NIGHT']}, fiber {objmeta['FIBER']}"
+    else:
+        errmsg = f'Unrecognized coadd_type {coadd_type}!'
+        raise ValueError(errmsg)
+
+    return '\n'.join([
+        #id_line,
+        f"TARGETID {objmeta['TARGETID']}",
+        f"$z={redshift:.4f}$",
+    ])
+
+
 def read_fastphot(survey='main', program='dark', specprod=DEFAULT_SPECPROD,
                   columns=None, verbose=False):
     """Read the fastphot VAC for a given specprod, survey, and program.

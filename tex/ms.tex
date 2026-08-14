@@ -619,7 +619,7 @@ in detail in the next subsection (\S\ref{ssec:patches}).
 
 \todo{The table should add a comment about the ``UV/QSO''
   categorization and also explain the \texttt{isbroad} designation not
-  shown here (but used in the next section).}
+  shown here (but implicitly used in the next section).}
 
 \input{tables/table-emlines}
 
@@ -663,26 +663,29 @@ in the final fitting pass, described in \S\ref{sssec:kinematic}).
 
 \begin{figure*}
 \includegraphics[width=6.5in]{figures/linemasker.pdf}
-\caption{Illustration of the line-masking algorithm
-  (\S\ref{ssec:patches}) for an example BGS target at
-  $z=0.3292$. \emph{Top:} the full per-camera DESI spectrum (B, R, Z
-  in blue, green, and red, respectively). Overplotted on each fitted
-  patch, in the same dark camera colors, is that patch's best-fit
-  model---the Gaussian line profile(s) plus local linear continuum
-  pedestal. Black boxes and connector lines tie four representative
-  patches to the zoom panels below. \emph{Bottom:} the boxed patches,
-  left to right---a UV doublet (\mgiidoublet), a strong forbidden
-  doublet (\oiidoublet), a joint Balmer/forbidden group spanning
-  H$\gamma$ through \oiiilam, and the merged \ha+\nii+\sii{}
-  complex. In each zoom panel, camera-colored pixels mark the pixels
-  excluded by the final line mask, while light-gray pixels are the
-  surrounding continuum used for that patch's local linear fit; the
-  dark curve shows the combined best-fit line-plus-continuum model; the
-  dashed black line and surrounding gray band show the local linear
-  continuum and its $\pm1\sigma$ noise envelope; and the labeled S/N
-  values report each line's amplitude significance in the line
-  masker's own approximate fit. \todo{Consider adding an image
-    cutout.} \label{fig:linemasker}}
+\caption{Illustration of the line-masking algorithm for an example BGS
+  target at $z=0.3292$ (\texttt{TARGETID=39627670102744387} from the
+  main survey bright-time program, appearing on HEALPix
+  17366). \todo{Consider adding an image cutout.} \textit{Top:} the
+  full per-camera DESI spectrum (B, R, Z in blue, green, and red,
+  respectively) together with the per-patch best-fitting local linear
+  continuum and Gaussian model line-profiles (darker blue, green, and
+  red in B, R, and Z, respectively) for all the candidate strong lines
+  in the observed spectral range. \textit{Bottom:} Zoomed-in panels
+  which more clearly show the per-patch fitting results. In each
+  panel, camera-colored pixels mark the pixels in the final line-mask
+  (and therefore excluded from the subsequent continuum-fit), while
+  light-gray pixels are the surrounding continuum used for that
+  patch's local linear fit. The darker curves show the combined
+  best-fit line-plus-continuum model, while the dashed black line and
+  surrounding dotted band show the local linear continuum and its
+  $\pm1\sigma$ noise envelope. Finally, the legends indicate the S/N
+  value inferred for each line and the patch label. For this
+  particular object, a significant broad \ha{} Balmer line was
+  correctly identified, resulting in patches ``m'' and ``p'' and
+  patches ``t'' and ``u'' merging into larger patches ``mp'' and
+  ``tu'', respectively, and more aggressive (conservative)
+  line-masking. \label{fig:linemasker}}
 \end{figure*}
 
 %Each patch groups lines whose wavelength windows overlap or nearly
