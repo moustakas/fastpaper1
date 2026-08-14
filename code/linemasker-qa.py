@@ -10,16 +10,21 @@ return_patchfit=True) to recover the exact per-patch fit arrays (data,
 best-fit model, local linear continuum +/- noise) that fastspecfit's own
 --debug_plots QA uses, and builds a two-row publication figure: the full
 per-camera spectrum on top, with a zoom panel below for each patch (default:
-all patches fit for this object). Written to tex/figures/.
+all patches fit for this object -- in practice just the "strong"-line
+patches, since only those get an initial per-patch fit in the line masker's
+first pass; see ms.tex \S3.3, "Adaptive Emission-Line Masking"). Written to
+tex/figures/.
 
 Requires a fastspecfit build with the `return_patchfit` option on
 LineMasker.build_linemask().
 
-Example (mini specprod built with fastspecfit's build-mini-specprod):
+Example (mini specprod built with fastspecfit's build-mini-specprod) -- this
+is the exact invocation used to generate the paper's Figure 2
+(tex/figures/linemasker.pdf):
 
-    python code/patch-emlines-qa.py \
-        --redrockfile data/redrock-main-bright-15344.fits \
-        --outfile tex/figures/example-emlines.pdf
+    python code/linemasker-qa.py \
+        --redrockfile data/redrock-main-bright-17366.fits \
+        --outfile tex/figures/linemasker.pdf
 
 --targetid is only needed if --redrockfile contains more than one target.
 
@@ -37,7 +42,7 @@ import argparse
 import numpy as np
 
 REPODIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_OUTFILE = os.path.join(REPODIR, 'tex', 'figures', 'example-emlines.pdf')
+DEFAULT_OUTFILE = os.path.join(REPODIR, 'tex', 'figures', 'linemasker.pdf')
 DEFAULT_FPHOTODIR = os.path.join(REPODIR, 'data')
 
 
@@ -54,7 +59,8 @@ def main():
                         help="Patch IDs (the 'patch' column of data/emlines.ecsv, "
                              'possibly merged, e.g. \'tu\') to feature, one zoom panel '
                              'each, left to right. Default: all patches fit for this '
-                             'object.')
+                             'object -- in practice just the "strong"-line patches, '
+                             "since only those get an initial per-patch fit.")
     parser.add_argument('--outfile', default=DEFAULT_OUTFILE,
                         help='Output path for the figure.')
     parser.add_argument('--fphotodir', default=None,
@@ -103,13 +109,15 @@ def main():
 
 
 def make_figure(specdata, objmeta, coadd_type, out, patchids, outfile):
-    """Full per-camera spectrum on top, with a zoom panel below for each
+    """Full per-camera spectrum on top (no mask information -- just the data
+    and the per-patch best-fit models), with a zoom panel below for each
     requested patch showing the data, the combined best-fit model
-    (continuum+lines), the local linear continuum +/- noise, and the
-    continuum pixels (unaffected by line emission) used for that local fit.
-    Per-line S/N labels are restored as text (mirroring linemasker.py's own
-    --debug_plots legends), but the individual Gaussian line profiles
-    themselves are not drawn -- only the combined best-fit curve.
+    (continuum+lines), the local linear continuum +/- noise, and which
+    pixels were masked (line-affected, colored) versus used for the local
+    continuum fit (gray). Per-line S/N labels are restored as text
+    (mirroring linemasker.py's own --debug_plots legends), but the
+    individual Gaussian line profiles themselves are not drawn -- only the
+    combined best-fit curve.
     """
     sys.path.insert(0, os.path.join(REPODIR, 'code'))
     from util import plot_style
@@ -234,16 +242,11 @@ def make_figure(specdata, objmeta, coadd_type, out, patchids, outfile):
                                 rect=(0.04, 0.045, 0.945, 0.935))
     gs = fig.add_gridspec(2, npanel, height_ratios=[1.1, 1])
 
-    # top panel: full spectrum, camera-colored where pixels remain available
-    # for continuum fitting, light gray where masked by a kept emission line
-    # (out['coadd_linepix'], the final S/N-thresholded mask).
+    # top panel: full spectrum, camera-colored throughout -- no attempt to
+    # encode which pixels are masked (that's left to the zoom panels below).
     specax = fig.add_subplot(gs[0, :])
-    specax.plot(coadd_wave, coadd_flux, color='0.82', lw=0.6, zorder=1)
-
-    full_linemask = np.zeros(len(coadd_wave), bool)
-    for linepix in out['coadd_linepix'].values():
-        full_linemask[linepix] = True
-    plot_segments(specax, coadd_wave, coadd_flux, camids, ~full_linemask,
+    allkeep = np.ones(len(coadd_wave), bool)
+    plot_segments(specax, coadd_wave, coadd_flux, camids, allkeep,
                  CAMERA_COLORS, lw=0.8, zorder=3)
     specax.margins(x=0)
     # lock in the range set by the spectrum itself, before overlaying the
@@ -257,11 +260,10 @@ def make_figure(specdata, objmeta, coadd_type, out, patchids, outfile):
     specax_ybottom = specax_ylim[0]
 
     # overlay every fitted patch's best-fit model (Gaussians + linear
-    # continuum pedestal) directly on top of its masked (gray) stretch, so
-    # masked regions show what was actually fit there instead of
-    # disappearing into gray -- not just the patches featured as zoom panels
-    # below. Strong lines can exceed the spectrum's own range and simply
-    # clip against it, rather than rescaling the whole panel.
+    # continuum pedestal) on top of the data -- not just the patches
+    # featured as zoom panels below. Strong lines can exceed the spectrum's
+    # own range and simply clip against it, rather than rescaling the whole
+    # panel.
     for endpts, slope, intercept, pivotwave in contfit.iterrows(
             'endpts', 'slope', 'intercept', 'pivotwave'):
         s0, e0 = endpts
@@ -306,7 +308,9 @@ def make_figure(specdata, objmeta, coadd_type, out, patchids, outfile):
         if contpix is not None:
             local = contpix[(contpix >= s) & (contpix < e)] - s
             contkeep[local] = True
-        plot_segments(ax, coadd_wave[s:e], coadd_flux[s:e], camids[s:e], contkeep,
+        # color the masked (line-affected) pixels; leave the continuum
+        # pixels used for the local linear fit in the base gray.
+        plot_segments(ax, coadd_wave[s:e], coadd_flux[s:e], camids[s:e], ~contkeep,
                      CAMERA_COLORS, lw=1.2, alpha=0.9, zorder=3)
 
         # bestfit is only defined over the original fit window [s0:e0) --

@@ -1,68 +1,79 @@
 \startlongtable
-\begin{deluxetable}{lc}
-%\tabletypesize{\footnotesize}
+\begin{deluxetable}{llccc}
 \tablecaption{Emission Lines\label{table:emlines}}
 \tablewidth{0pt}
 \tablehead{
-\colhead{} &
-\colhead{Rest Wavelength\tablenotemark{a}} \\
-\colhead{Line Name} &
-\colhead{(\AA)}
+\colhead{Emission} &
+\colhead{Line} &
+\colhead{Rest} &
+\colhead{Initial} &
+\colhead{} \\
+\colhead{Line} &
+\colhead{Prefix\tablenotemark{a}} &
+\colhead{Wavelength\tablenotemark{b}} &
+\colhead{Patch\tablenotemark{c}} &
+\colhead{``Strong''\tablenotemark{d}}
 }
 \startdata
 \cutinhead{UV/QSO Lines}
-Ly$\alpha$                        & 1215.670   \\
-{[\ion{N}{5}]}~$\lambda$1240      & 1240.14    \\
-{\ion{O}{1}}~$\lambda$1304        & 1304.35    \\
-{\ion{Si}{4}}~$\lambda$1396       & 1396.76    \\
-{\ion{C}{4}}~$\lambda$1549        & 1549.06    \\
-{\ion{He}{2}}~$\lambda$1640       & 1640.42    \\
-{\ion{Al}{3}}~$\lambda$1857       & 1857.40    \\
-{\ion{Si}{3}}]~$\lambda$1892      & 1892.030   \\
-{\ion{C}{3}}]~$\lambda$1908       & 1908.734   \\
-{\ion{Mg}{2}}~$\lambda$2796       & 2796.3511  \\
-{\ion{Mg}{2}}~$\lambda$2803       & 2803.5324  \\
-{\ion{He}{2}}~$\lambda$4686       & 4687.02    \\
+Ly$\alpha$                        & \texttt{LYALPHA}        & 1215.670   & a & \checkmark \\
+{[\ion{N}{5}]}~$\lambda$1240      & \texttt{NV\_1240}       & 1240.14    & a & \checkmark \\
+{\ion{O}{1}}~$\lambda$1304        & \texttt{OI\_1304}       & 1304.35    & b &            \\
+{\ion{Si}{4}}~$\lambda$1396       & \texttt{SILIV\_1396}    & 1396.76    & c &            \\
+{\ion{C}{4}}~$\lambda$1549        & \texttt{CIV\_1549}      & 1549.06    & d & \checkmark \\
+{\ion{He}{2}}~$\lambda$1640       & \texttt{HEII\_1640}     & 1640.42    & e &            \\
+{\ion{Al}{3}}~$\lambda$1857       & \texttt{ALIII\_1857}    & 1857.40    & f &            \\
+{\ion{Si}{3}}]~$\lambda$1892      & \texttt{SILIII\_1892}   & 1892.030   & f & \checkmark \\
+{\ion{C}{3}}]~$\lambda$1908       & \texttt{CIII\_1908}     & 1908.734   & f & \checkmark \\
+{\ion{Mg}{2}}~$\lambda$2796       & \texttt{MGII\_2796}     & 2796.3511  & g & \checkmark \\
+{\ion{Mg}{2}}~$\lambda$2803       & \texttt{MGII\_2803}     & 2803.5324  & g & \checkmark \\
+{\ion{He}{2}}~$\lambda$4686       & \texttt{HEII\_4686}     & 4687.02    & o &            \\
 \cutinhead{Narrow Balmer/Helium Lines}
-H6                                & 3890.1576  \\
-H$\epsilon$                       & 3971.195   \\
-H$\delta$                         & 4102.892   \\
-H$\gamma$                         & 4341.684   \\
-{\ion{He}{1}}~$\lambda$4471       & 4472.7290  \\
-H$\beta$                          & 4862.683   \\
-{\ion{He}{1}}~$\lambda$5876       & 5877.2690  \\
-H$\alpha$                         & 6564.613   \\
-\cutinhead{Broad Balmer/Helium Lines}
-H$6_{\rm b}$                      & 3890.1576  \\
-H$\epsilon_{\rm b}$               & 3971.195   \\
-H$\delta_{\rm b}$                 & 4102.892   \\
-H$\gamma_{\rm b}$                 & 4341.684   \\
-H$\beta_{\rm b}$                  & 4862.683   \\
-H$\alpha_{\rm b}$                 & 6564.613   \\
+H6                                & \texttt{H6}             & 3890.1576  & j &            \\
+H$\epsilon$                       & \texttt{HEPSILON}       & 3971.195   & k &            \\
+H$\delta$                         & \texttt{HDELTA}         & 4102.892   & l &            \\
+H$\gamma$                         & \texttt{HGAMMA}         & 4341.684   & m & \checkmark \\
+{\ion{He}{1}}~$\lambda$4471       & \texttt{HEI\_4471}      & 4472.7290  & n &            \\
+H$\beta$                          & \texttt{HBETA}          & 4862.683   & p & \checkmark \\
+{\ion{He}{1}}~$\lambda$5876       & \texttt{HEI\_5876}      & 5877.2690  & r &            \\
+H$\alpha$                         & \texttt{HALPHA}         & 6564.613   & t & \checkmark \\
+\cutinhead{Broad Balmer Lines}
+H$6_{\rm b}$                      & \texttt{H6\_BROAD}       & 3890.1576  & j &            \\
+H$\epsilon_{\rm b}$               & \texttt{HEPSILON\_BROAD} & 3971.195   & k &            \\
+H$\delta_{\rm b}$                 & \texttt{HDELTA\_BROAD}   & 4102.892   & l &            \\
+H$\gamma_{\rm b}$                 & \texttt{HGAMMA\_BROAD}   & 4341.684   & m & \checkmark \\
+H$\beta_{\rm b}$                  & \texttt{HBETA\_BROAD}    & 4862.683   & p & \checkmark \\
+H$\alpha_{\rm b}$                 & \texttt{HALPHA\_BROAD}   & 6564.613   & t & \checkmark \\
 \cutinhead{Narrow Forbidden Lines}
-{[\ion{Ne}{5}]}~$\lambda$3346     & 3346.7828  \\
-{[\ion{Ne}{5}]}~$\lambda$3426     & 3426.8637  \\
-{[\ion{O}{2}]}~$\lambda$3726      & 3727.0919  \\
-{[\ion{O}{2}]}~$\lambda$3729      & 3729.8750  \\
-{[\ion{Ne}{3}]}~$\lambda$3869     & 3869.8611  \\
-{[\ion{O}{3}]}~$\lambda$4363      & 4364.4351  \\
-{[\ion{O}{3}]}~$\lambda$4959      & 4960.2937  \\
-{[\ion{O}{3}]}~$\lambda$5007      & 5008.2383  \\
-{[\ion{N}{2}]}~$\lambda$5755      & 5756.1887  \\
-{[\ion{O}{1}]}~$\lambda$6300      & 6302.0435  \\
-{[\ion{S}{3}]}~$\lambda$6312      & 6313.8062  \\
-{[\ion{N}{2}]}~$\lambda$6548      & 6549.8578  \\
-{[\ion{N}{2}]}~$\lambda$6584      & 6585.2696  \\
-{[\ion{S}{2}]}~$\lambda$6716      & 6718.2913  \\
-{[\ion{S}{2}]}~$\lambda$6731      & 6732.6705  \\
-{[\ion{Ar}{3}]}~$\lambda$7135     & 7137.77    \\
-{[\ion{O}{2}]}~$\lambda$7320      & 7321.731   \\
-{[\ion{O}{2}]}~$\lambda$7330      & 7332.199   \\
-{[\ion{S}{3}]}~$\lambda$9069      & 9071.103   \\
-{[\ion{S}{3}]}~$\lambda$9532      & 9533.227   \\
+{[\ion{Ne}{5}]}~$\lambda$3346     & \texttt{NEV\_3346}      & 3346.7828  & h &            \\
+{[\ion{Ne}{5}]}~$\lambda$3426     & \texttt{NEV\_3426}      & 3426.8637  & h &            \\
+{[\ion{O}{2}]}~$\lambda$3726      & \texttt{OII\_3726}      & 3727.0919  & i & \checkmark \\
+{[\ion{O}{2}]}~$\lambda$3729      & \texttt{OII\_3729}      & 3729.8750  & i & \checkmark \\
+{[\ion{Ne}{3}]}~$\lambda$3869     & \texttt{NEIII\_3869}    & 3869.8611  & j &            \\
+{[\ion{O}{3}]}~$\lambda$4363      & \texttt{OIII\_4363}     & 4364.4351  & m &            \\
+{[\ion{O}{3}]}~$\lambda$4959      & \texttt{OIII\_4959}     & 4960.2937  & p & \checkmark \\
+{[\ion{O}{3}]}~$\lambda$5007      & \texttt{OIII\_5007}     & 5008.2383  & p & \checkmark \\
+{[\ion{N}{2}]}~$\lambda$5755      & \texttt{NII\_5755}      & 5756.1887  & q &            \\
+{[\ion{O}{1}]}~$\lambda$6300      & \texttt{OI\_6300}       & 6302.0435  & s &            \\
+{[\ion{S}{3}]}~$\lambda$6312      & \texttt{SIII\_6312}     & 6313.8062  & s &            \\
+{[\ion{N}{2}]}~$\lambda$6548      & \texttt{NII\_6548}      & 6549.8578  & t & \checkmark \\
+{[\ion{N}{2}]}~$\lambda$6584      & \texttt{NII\_6584}      & 6585.2696  & t & \checkmark \\
+{[\ion{S}{2}]}~$\lambda$6716      & \texttt{SII\_6716}      & 6718.2913  & u & \checkmark \\
+{[\ion{S}{2}]}~$\lambda$6731      & \texttt{SII\_6731}      & 6732.6705  & u & \checkmark \\
+{[\ion{Ar}{3}]}~$\lambda$7135     & \texttt{ARIII\_7135}    & 7137.77    & v &            \\
+{[\ion{O}{2}]}~$\lambda$7320      & \texttt{OII\_7320}      & 7321.731   & v &            \\
+{[\ion{O}{2}]}~$\lambda$7330      & \texttt{OII\_7330}      & 7332.199   & v &            \\
+{[\ion{S}{3}]}~$\lambda$9069      & \texttt{SIII\_9069}     & 9071.103   & w &            \\
+{[\ion{S}{3}]}~$\lambda$9532      & \texttt{SIII\_9532}     & 9533.227   & w &            \\
 \enddata
-\tablenotemark{a}{All wavelengths are in vacuum.}
-\tablecomments{Wavelengths come from the NIST Atomic Spectra
+
+\tablenotemark{a}{Data-model prefix for every output quantity we
+  measure for this line (\S\ref{sssec:lines}), e.g.,
+  \texttt{OIII\_5007\_FLUX}; see Appendix~\ref{sec:appendix_datamodel}
+  for the full column list.}
+\tablenotemark{b}{Vacuum wavelengths in \AA{} come from the NIST Atomic Spectra
 Database, the CHIANTI atomic database, or from \citet{vanden-berk01a};
 see \S\ref{ssec:emlinelist} for more details.}
+\tablenotemark{c}{Initial assignment of spectrally adjacent lines which are jointly fit by the line-masker (see \S\ref{ssec:patches}).}
+\tablenotemark{d}{\todo{Write me.}}
 \end{deluxetable}

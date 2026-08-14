@@ -14,7 +14,7 @@ observed window are shown. Written to tex/figures/.
 Panel content and per-camera colors intentionally match fastspecfit.qa's
 production QA figure (fastspecfit.qa.qa_fastspec); several of its private
 helpers are reused directly (cutout fetch, SED model, spectral models, line
-statistics) rather than reimplemented, exactly as code/patch-emlines-qa.py
+statistics) rather than reimplemented, exactly as code/linemasker-qa.py
 reuses fastspecfit.linemasker for the patch-fitting figure. Unlike the
 production QA figure, on-figure text is kept to a target-ID/coordinate/
 redshift label only; headline fit parameters belong in the caption/prose.
@@ -238,7 +238,7 @@ def make_figure(specdata, objmeta, specphot, fastspec, coadd_type, groups, outfi
             return f'{x:.0f}'
 
     # per-camera (b, r, z) data/model colors, matching fastspecfit.qa.qa_fastspec
-    # and code/patch-emlines-qa.py
+    # and code/linemasker-qa.py
     CAMERA_COLORS = ['#468fcc', '#4caf81', '#e07a75']       # data
     CAMERA_COLORS_DARK = ['#003f91', '#007f5f', '#9b2226']  # model
     bbox = dict(boxstyle='round', facecolor='lightgray', alpha=0.3, edgecolor='none')
