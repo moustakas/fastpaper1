@@ -795,12 +795,11 @@ coefficients, $\tauv$ is the $V$-band dust optical depth, and $\vdisp$
 is the stellar velocity dispersion. We emphasize, however, that the
 fitting infrastructure can be easily extended to include additional
 parameters (e.g., a two-component dust model or QSO model spectra),
-which we discuss, in part, in \S\S \ref{sec:modes} and
-\ref{sec:summary}.
+which we discuss, in part, in \S~\ref{ssec:improvements}.
 
-For each object, we determine $\theta_C$ in three stages: we first
+For each object, we determine $\theta_C$ in three stages. First, we
 measure $\vdisp$ from stellar absorption features
-(\S\ref{sssec:vdisp}); we then derive a scalar aperture correction
+(\S\ref{sssec:vdisp}); then we derive a scalar aperture correction
 that places the DESI fiber spectrum on the total-flux scale of the
 broadband photometry (\S\ref{sssec:apercorr}); and finally we jointly
 fit for dust attenuation $\tauv$ and the template coefficients
@@ -837,7 +836,7 @@ this condition is satisfied, then we perform the actual fit using all
 unmasked pixels between 3800--6000~\AA{} (in the rest-frame). In
 practice, this requirement means that we can only estimate \vdisp{}
 for galaxies up to $z\approx1$. Second, we determine fit significance
-by performing a fast $\chi^2$ grid scan of $N=6$ trial
+by performing a fast $\chi^2$ grid scan of six trial
 velocity-broadening widths spanning $[50,\,500]$~\kms{},
 simultaneously solving for \tauv{} and the template coefficients by
 linear least-squares at each grid point (see
@@ -846,7 +845,7 @@ $\Delta\chi^2 \geq 25$ (and with the minimum value away from either
 boundary) then we proceed with a direct measurement. In general,
 $\Delta\chi^2 < 25$ implies that the spectrum has inadequate
 signal-to-noise ratio in the stellar continuum (e.g., a faint ELG
-target) to require \vdisp{} as an additional free parameter.
+target) to accommodate \vdisp{} as an additional free parameter.
 
 Most DESI targets in DR2 fail one or both of the preceding conditions;
 however, we would still like to use an approximately correct value of
@@ -856,14 +855,14 @@ stellar-mass--velocity-dispersion relation,
   \log_{10}(\vdisp/\kms) = a + b\,(\logmstar - 11),
   \label{eq:sigma_mstar}
 \end{equation}
-with $(a,b) = (2.30,\,0.25)$ (\todo{ref?}) and using a fast,
-preliminary estimate of the stellar mass, \Mstar{}
-(\S\ref{sssec:fitting}). If our estimate of \Mstar{} fails---for
+with $(a,b) = (2.30,\,0.25)$ (\todo{need a ref}) using a fast,
+preliminary estimate of the stellar mass, \Mstar{} (see
+\S\ref{sssec:fitting}). If our estimate of \Mstar{} fails---for
 whatever reason---we instead adopt a fallback $\vdisp = 150$~\kms{}
 (\texttt{VDISP\_NOMINAL}), close to the characteristic ``knee'' of the
 velocity dispersion function \citep{bezanson11a, taylor22a}. In either
-fallback case we set \texttt{VDISP\_IVAR}~$=0$ to flag that \vdisp{}
-has not been independently measured.
+fallback case we set \texttt{VDISP\_IVAR}~$=0$ to indicate that
+\vdisp{} has not been independently measured.
 
 When a direct measurement is warranted, we determine \vdisp{} by
 finding the optimal Gaussian kernel dispersion,
@@ -920,12 +919,12 @@ factor
   \label{eq:apercorr}
 \end{equation}
 where $D_k$ is the total Tractor flux of the object in bandpass
-$k$---the same photometric data that enter the joint spectrophotometric
-fit (\S\ref{sssec:fitting}). We adopt the scalar correction
-$\bar{\eta}=\mathrm{median}(\eta_g,\,\eta_r,\,\eta_z)$, which enters
-explicitly in the fit statistic (\S\ref{sssec:fitting}) rather than as
-a preprocessing step applied to the spectrum. \todo{Do we need
-  to say any more? Or point to a discussion of the limitations of this
+$k$. Finally, we compute the median scalar aperture correction,
+$\bar{\eta}=\mathrm{median}(\eta_g,\,\eta_r,\,\eta_z)$, and apply the
+resulting multiplicative factor (falling back to $\bar{\eta}=1.0$ if
+any part of the preceding analysis fails) during the full
+spectrophotometric fit (\S\ref{sssec:fitting}). \todo{Do we need to
+  say any more? Or point to a discussion of the limitations of this
   correction?}
 
 %large band-to-band scatter indicates strong color gradients within the
@@ -947,8 +946,8 @@ a preprocessing step applied to the spectrum. \todo{Do we need
 \subsubsection{Fitting the Stellar Continuum}
 \label{sssec:fitting}
 
-To fit the stellar continuum we use a fully forward-modeling approach:
-we carry each rest-frame SPS template (\S\ref{ssec:templates}) through
+To fit the stellar continuum we use a fully forward-modeling approach.
+We carry each rest-frame SPS template (\S\ref{ssec:templates}) through
 a sequence of physical and instrumental transformations---dust
 attenuation, redshifting, and instrumental broadening (or filter
 convolution)---into a prediction that can be compared directly to the
@@ -1075,10 +1074,11 @@ where $\bar\eta$ is the scalar aperture correction described in
 
 Because equation~(\ref{eq:designmatrix}) is linear in the multiple
 template coefficients $\mathbf{c}$ but nonlinear only in the single
-scalar $\tauv$, rather than search both simultaneously we exploit the
-separability via variable projection (VARPRO; \citealt{golub73a}): an
-outer Brent scalar minimization over $\tauv$ with an inner NNLS solve
-for $\mathbf{c}$ at each trial $\tauv$,
+scalar $\tauv$, rather than solve for both simultaneously we exploit
+the separability via variable projection (VARPRO; \citealt{golub73a}).
+With this approach, we perform an outer Brent scalar minimization over
+$\tauv$, with an inner NNLS solve for $\mathbf{c}$ at each trial
+$\tauv$,
 \begin{equation}
   \mathbf{c}^* = \arg\min_{\mathbf{c}\,\geq\,0}
   \bigl\|\boldsymbol{\Psi}\,\mathbf{c} - \mathbf{b}\bigr\|^2,
@@ -1086,14 +1086,14 @@ for $\mathbf{c}$ at each trial $\tauv$,
 \end{equation}
 where $\mathbf{b}$ is the corresponding weighted data vector, and the
 mask, inverse variances, and aperture correction enter as row weights
-on $\boldsymbol{\Psi}$ and $\mathbf{b}$---$\sqrt{m_i I_i}/\bar\eta$
-for spectral rows and $\sqrt{I_{D,k}}$ for photometric rows---so that
-minimizing $\|\boldsymbol{\Psi}\mathbf{c}-\mathbf{b}\|^2$ is
-equivalent to minimizing equation~(\ref{eq:chi2cont}) at fixed
-$\tauv$. Because the inner NNLS solve is exact at every trial $\tauv$,
-VARPRO converges an order-of-magnitude faster than direct optimization
-over the full parameter vector, which would otherwise require
-finite-differencing across all template coefficients.
+on $\boldsymbol{\Psi}$ and $\mathbf{b}$ alike---$\sqrt{m_i I_i}/\bar\eta$
+for spectral rows and $\sqrt{I_{D,k}}$ for photometric rows. Minimizing
+$\|\boldsymbol{\Psi}\mathbf{c}-\mathbf{b}\|^2$ is therefore equivalent
+to minimizing equation~(\ref{eq:chi2cont}) at fixed $\tauv$. Because
+the inner NNLS solve is exact at every trial $\tauv$, VARPRO converges
+an order-of-magnitude faster than direct optimization over the full
+parameter vector, which would otherwise require finite-differencing
+across all template coefficients.
 
 With $\tauv$ and $\mathbf{c}$ now in hand, and $z$ and $\vdisp$ fixed
 from the earlier stages, every element of $\theta_C$ is determined,
@@ -1105,20 +1105,46 @@ stellar age---as described in \S\ref{ssec:quantities}.
 \subsubsection{Smooth Continuum Correction}
 \label{sssec:smooth}
 
-\todo{Need a better intro/movitating sentence. Does this section need
-  a figure?} The parametric continuum model $C(\lambda)$ may leave
-low-level systematic residuals due to imperfect template matching or
-flux-calibration uncertainties. We estimate and remove these with a
-nonparametric smooth continuum computed per camera from the spectrum
-after subtracting the best-fit, line-free continuum model. Working per
+\todo{Does this section need a figure to illustrate the technique?}
+
+Despite its flexibility, our parametric continuum model $C(\lambda)$
+(\S\ref{sssec:fitting}) can leave small- or even large-scale
+systematic residuals in the continuum-subtracted spectrum. Depending
+on their wavelength-dependence and amplitude, leaving these residuals
+unaddressed can severely bias the emission-line modeling
+(\S\ref{sssec:emline_model}), especially for faint lines.
+
+The unmodeled residuals can be due to instrumental effects, template
+mismatch, or both. For example, the noisy boundary between the three
+DESI cameras (\S\ref{ssec:spectra}) is especially susceptible to
+residual additive (bias-, dark, or sky-subtraction) errors, or to
+multiplicative (flux-calibration) errors. Template mismatch,
+meanwhile, is most severe for QSOs and broad-line AGN
+(\S\ref{ssec:example_qso}). Their observed continuum typically blends
+genuine host-galaxy starlight with \ion{Fe}{2} emission in the
+rest-frame UV (roughly 1100--3000\,\AA; \citealt{vestergaard01a}) and
+a featureless, non-thermal power-law continuum from accretion onto the
+supermassive black hole \citep{vanden-berk01a}. Our SPS templates can
+represent the host-galaxy light but not the other two, nor cleanly
+separate them.
+
+Keeping these effects in mind, the current version of \fastspec{}
+treats all such residuals, irrespective of their origin, as a single,
+low-level additive correction to $C(\lambda)$. We estimate and remove
+these residuals with a nonparametric smooth continuum after
+subtracting the best-fitting, line-free continuum model. Working per
 camera, we slide a 75-pixel window in 125-pixel steps across the
 residual spectrum, applying a $2\sigma$ iterative clip in each window
-and computing the robust median and inter-quartile sigma; we discard
+and computing the robust median and standard deviation. We discard
 windows with fewer than 15 unmasked pixels. We then fit a weighted
-quadratic spline (\texttt{UnivariateSpline}, $k = 2$) to the window
-medians and add the resulting smooth baseline back to $C(\lambda)$
-before emission-line fitting, so that the line fitter operates on
-spectra with an accurate continuum level.
+quadratic spline (\texttt{scipy.interpolate.UnivariateSpline}, $k=2$;
+\citealt{virtanen20a}) to the window medians and add the resulting
+smooth baseline back to $C(\lambda)$ before emission-line fitting. For
+each camera we also record \texttt{SMOOTHCORR\_B},
+\texttt{SMOOTHCORR\_R}, and \texttt{SMOOTHCORR\_Z}, the median of the
+smooth correction (using all unmasked pixels) divided by the observed
+flux, expressed as a percentage---a simple, per-object diagnostic of
+the correction's overall amplitude relative to the source itself.
 
 \subsection{Emission-Line Model}
 \label{ssec:emlines}
