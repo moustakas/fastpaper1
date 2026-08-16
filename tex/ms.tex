@@ -32,6 +32,8 @@
 \newcommand{\oiii}{[\ion{O}{3}]}
 \newcommand{\nii}{[\ion{N}{2}]}
 \newcommand{\sii}{[\ion{S}{2}]}
+\newcommand{\hei}{\ion{He}{1}}
+\newcommand{\heii}{\ion{He}{2}}
 \newcommand{\ha}{H\ensuremath{\alpha}}
 \newcommand{\hb}{H\ensuremath{\beta}}
 
@@ -549,10 +551,10 @@ including and one excluding nebular emission (continuum and lines)
 from the FSPS built-in nebular photoionization grid \citep{byler17a}.
 
 We index the resulting rest-frame templates $S_n(\lambda)$, $n =
-1,\ldots,N$ (with $N=5$), by star-formation history (SFH) age bin and
-nebular-emission variant, and normalize each to the flux density
-produced at 10~pc by one solar mass of stars formed at the tabulated
-lookback time,
+1,\ldots,n_\mathrm{template}$ (with $n_\mathrm{template}=5$), by
+star-formation history (SFH) age bin and nebular-emission variant, and
+normalize each to the flux density produced at 10~pc by one solar mass
+of stars formed at the tabulated lookback time,
 \begin{equation}
   S_n(\lambda) =
   \frac{L_\odot}{4\pi(10\,\mathrm{pc})^2}\,\frac{L_{\lambda,n}}{L_\odot},
@@ -567,14 +569,14 @@ In addition, we generate a single infrared dust emission template
 $S_\mathrm{dust}(\lambda)$ from \citet{draine07a}. This model is
 parameterized by the polycyclic aromatic hydrocarbon (PAH) mass
 fraction, $q_\mathrm{PAH}$, the minimum starlight intensity heating
-the diffuse ISM dust component $U_\mathrm{min}$, and the fraction
-$\gamma$ of dust mass exposed to a power-law distribution of starlight
-intensities (up to a fixed maximum $U_\mathrm{max}$) representing
-photodissociation regions. Because most DESI targets do not have
-adequately deep IR photometry to constrain a large number of dust
-emission parameters, we adopt fiducial values of $q_\mathrm{PAH} =
-3.5$, $U_\mathrm{min} = 1.0$, and $\gamma = 0.01$, and normalize our
-IR template to unit bolometric luminosity.
+the diffuse interstellar medium (ISM) dust component $U_\mathrm{min}$,
+and the fraction $\gamma$ of dust mass exposed to a power-law
+distribution of starlight intensities (up to a fixed maximum
+$U_\mathrm{max}$) representing photodissociation regions. Because most
+DESI targets do not have adequately deep IR photometry to constrain a
+large number of dust emission parameters, we adopt fiducial values of
+$q_\mathrm{PAH} = 3.5$, $U_\mathrm{min} = 1.0$, and $\gamma = 0.01$,
+and normalize our IR template to unit bolometric luminosity.
 
 There is no AGN-like emission (either continuum or emission lines) in
 these templates, a shortcoming which should be kept in mind throughout
@@ -706,7 +708,7 @@ which, if present, are most likely to yield useful kinematic
 constraints. In the narrow-only kinematic model, all the forbidden
 lines are tied together into a single kinematic group (shared velocity
 width and velocity center) anchored on \oiiilam, while all the narrow
-Balmer and \ion{He}{1} lines are anchored on \ha{} in a second
+Balmer and \hei{} lines are anchored on \ha{} in a second
 kinematic group (see \S\ref{sssec:kinematic} for more details). Then,
 we define a pixel window of $\pm2.5\,\sigma_\mathrm{line}$ centered on
 each line's expected observed-frame wavelength, where
@@ -925,7 +927,9 @@ resulting multiplicative factor (falling back to $\bar{\eta}=1.0$ if
 any part of the preceding analysis fails) during the full
 spectrophotometric fit (\S\ref{sssec:fitting}). \todo{Do we need to
   say any more? Or point to a discussion of the limitations of this
-  correction?}
+  correction? And there's a subtelty not mentioned: to derive the
+  aperture correction we use the SPS model variant with the FSPS
+  line-emission.}
 
 %large band-to-band scatter indicates strong color gradients within the
 %fiber aperture. We treat $\bar{\eta}$ as exact and do not propagate
@@ -1195,7 +1199,7 @@ peculiar ($\Delta v$) motion of the line-emitting gas,
     \left(1 + z + \frac{\Delta v}{c}\right),
   \label{eq:lstar}
 \end{equation}
-and $\sigma_\ell = \sigma/c$ is the line width in log-$\lambda$ units,
+and $\sigma_\ell = \sigma/c$ is the line width in ln-$\lambda$ units,
 where $\sigma$ (in \kms) is the physical (Doppler) line-width. With
 this parameterization, the total flux of each line (in \flux) is
 \begin{equation}
@@ -1212,13 +1216,13 @@ stellar continuum, however, which varies smoothly enough across a
 pixel that sampling the continuum model at pixel centers before
 applying $\mathbf{R}$ preserves its flux (\S\ref{sssec:fitting}), it
 is possible for an emission line to be narrower than a single
-0.8~\AA{} DESI pixel.\footnote{DESI pixels range in size between
-$\approx66$ and $\approx25$~\kms{} over the observed-frame spectral
-range, $3600-9800$~\AA.} Low-mass, low-metallicity star-forming
-galaxies, in particular, can exhibit strong nebular line-emission with
-intrinsic line-widths of tens of \kms{} or less---narrower than a
-pixel over most of the observed wavelength range
-(\citealt{scholte26a}, J.~Moustakas et~al., in preparation).
+0.8~\AA{} DESI pixel.\footnote{DESI pixels range in velocity width
+between $\approx66$ and $\approx25$~\kms{} over the observed-frame
+spectral range, 3600 to 9800~\AA.} Low-mass, low-metallicity
+star-forming galaxies, in particular, can exhibit strong nebular
+line-emission with intrinsic line-widths of tens of \kms{} or
+less---narrower than a pixel over most of the observed wavelength
+range (\citealt{scholte26a}; J.~Moustakas et~al., in preparation).
 
 The obvious forward-modeling analog, $\mathbf{m} \approx
 \mathbf{R}\,\boldsymbol{\phi}$, therefore fails: point-sampling
@@ -1232,37 +1236,37 @@ only for smooth inputs sampled at pixel centers, with no matching
 column normalization to protect sub-pixel structure
 \citep{guy23a}. Moreover, we emphasize that this bias is not just a
 modeling artifact; simulations show that even a simple
-(model-independent) integration of the observed pixels (BOXFLUX; see
-\S\ref{sssec:lines}) suffers the same loss for lines narrower than
-about one pixel (S.~Koposov 2026, private
+(model-independent) integration of the observed pixels
+($\Phi_\mathrm{box}$; see \S\ref{sssec:lines}) suffers the same loss
+for lines narrower than about one pixel (S.~Koposov 2026, private
 communication).\footnote{\url{https://github.com/desihub/fastspecfit/issues/183}}
-
-%Gaussian-pre-convolved discretization,
 
 To contend with this bias, we adopt the deconvolution strategy devised
 by S.~Koposov for \texttt{RVSpecFit} \citep{koposov19b, koposov26a}.
 Rather than sampling $\phi(\lambda)$ at pixel centers, we pre-convolve
-the model with a fixed Gaussian kernel of width $\sigma_G =
-0.5$\,\AA---narrow compared to the DESI resolution but wide enough to
-regularize the sub-pixel structure of the model---and propagate the
-result through a correspondingly deconvolved resolution matrix
+our emission-line model with a fixed Gaussian kernel of width
+$\sigma_G = 0.5$\,\AA---narrow compared to the DESI resolution but
+wide enough to regularize the sub-pixel structure of the model---and
+propagate the result through a correspondingly deconvolved resolution
+matrix
 \begin{equation}
   \mathbf{W} = \mathbf{R}\,\mathbf{M}^{-1},
   \label{eq:wmatrix}
 \end{equation}
 where $\mathbf{M}$ is the Gaussian design matrix, $\mathbf{M}_{ij} =
-G(\lambda_i - \lambda_j;\,0,\,\sigma_G)$. The predicted line model is then $\mathbf{m} \approx
-\mathbf{W}\,\mathbf{F}$, where $\mathbf{F}$ is the
-$\sigma_G$-pre-convolved profile evaluated at pixel centers. Because
-each $F_i$ is a weighted integral of $\phi(\lambda)$ rather than a
-point sample, it captures the correct line area regardless of the
-line's width or its phase (position) relative to the pixel grid.
+G(\lambda_i - \lambda_j;\,0,\,\sigma_G)$. The predicted line model is
+then $\mathbf{m} \approx \mathbf{W}\,\mathbf{F}$, where $\mathbf{F}$
+is the $\sigma_G$-pre-convolved profile evaluated at pixel
+centers. Because each $F_i$ is a weighted integral of $\phi(\lambda)$
+rather than a point sample, it captures the correct line area
+regardless of the line's width or its phase (position) relative to the
+pixel grid.
 
 Formally, $F_i = (\phi * G_{\sigma_G})(\lambda_i)$ is the convolution
 of the intrinsic profile given by equation~(\ref{eq:intrinsic}) with
 the unit-area Gaussian kernel, evaluated at pixel center
 $\lambda_i$. Because both $\phi$ and the kernel are exact Gaussians in
-log-$\lambda$ space, their convolution is itself Gaussian, with
+ln-$\lambda$ space, their convolution is itself Gaussian, with
 variances adding in quadrature to give an effective width
 \begin{equation}
   \sigma_\mathrm{eff} = \sqrt{\sigma_\ell^2 + \sigma_{G,\ell}^2},
@@ -1273,21 +1277,19 @@ addition, because the kernel has unit area, the convolution also
 conserves the total line flux, given by
 equation~(\ref{eq:flux_phys}). However, since the profile has
 broadened from $\sigma_\ell$ to $\sigma_\mathrm{eff}$, its peak
-amplitude must shrink by the same factor to keep that flux fixed.
-The pre-convolved profile of a single line at pixel center $\lambda_i$
+amplitude must shrink by the same factor to keep that flux fixed.  The
+pre-convolved profile of a single line at pixel center $\lambda_i$
 therefore becomes
 \begin{equation}
   F_i = A\,\frac{\sigma_\ell}{\sigma_\mathrm{eff}}
     \exp\!\left(-\frac{(\ln\lambda_i-\ln\lambda^*)^2}{2\sigma_\mathrm{eff}^2}\right),
   \label{eq:model}
 \end{equation}
-directly analogous to equation~(\ref{eq:intrinsic}).  The amplitude
-factor $\sigma_\ell/\sigma_\mathrm{eff} \leq 1$ accounts for the
-broadening introduced by the pre-convolution kernel. And because
-$\sigma_\mathrm{eff} \geq \sigma_{G,\ell}$, even a formally unresolved
-line ($\sigma_\ell \to 0$) is represented by a profile spanning
-several pixels, so its flux is correctly captured by the pixel grid
-rather than lost between samples. Collecting the
+directly analogous to equation~(\ref{eq:intrinsic}). In addition,
+because $\sigma_\mathrm{eff} \geq \sigma_{G,\ell}$, even a formally
+unresolved line ($\sigma_\ell \to 0$) is represented by a profile
+spanning several pixels, so its flux is correctly captured by the
+pixel grid rather than lost between samples. Collecting the
 pre-convolved profiles of all $n_\mathrm{line}$ lines into
 $\mathbf{F}$, the pixelized counterpart of
 equation~(\ref{eq:emline_sum}) finally becomes
@@ -1367,7 +1369,7 @@ intrinsic velocity width $\sigma$. All kinematic groups, bounds, and
 amplitude constraints are loaded at startup from the bundled
 configuration file \texttt{data/emline-constraints.yaml}, as
 summarized in Table~\ref{table:kinematic}. This parameter file also
-defines two important kinematic groups: an emission line model
+defines two important kinematic models: an emission line model
 consisting entirely of narrow lines (\emph{narrow-only}) and a model
 with both narrow and broad lines (\emph{narrow+broad}).
 
@@ -1379,26 +1381,25 @@ with both narrow and broad lines (\emph{narrow+broad}).
 
 The narrow-only model ties all forbidden lines to one group anchored
 to \oiiilam{} and a second group consisting of all \ion{H}{1} and
-\ion{He}{1} lines anchored to \ha. ``Anchored'' in this context means
-that all the lines share the same $\Delta v$ and $\sigma$.
+\hei{} lines anchored to \ha. ``Anchored'' in this context means that
+all the lines share the same $\Delta v$ and $\sigma$. Meanwhile, the
+narrow+broad model instead assigns the \oiiidoublet{} doublet to its
+own group, the remaining forbidden, Balmer, and helium lines to a
+second group anchored on narrow \ha, and the broad Balmer lines to a
+third group anchored on broad \ha.
 
-Meanwhile, the narrow+broad model consists of three groups: one group
-consisting of all...forbidden...instead collapses every narrow line
-into a single group anchored on narrow \ha, keeps \oiiidoublet{} as
-its own group, and adds a third group for broad Balmer emission
-anchored on broad \ha.
-
-Narrow-line bounds are $1 < \sigma < 750$~\kms{} and $|\Delta v| <
-500$~\kms; broad-line bounds are $1 < \sigma < 10{,}000$~\kms{} and
-$|\Delta v| < 2{,}500$~\kms. Within these groups, most doublets---for
-example, [\ion{O}{3}]~$\lambda$4959\,/\,$\lambda$5007 and
-[\ion{N}{2}]~$\lambda$6548\,/\,$\lambda$6584---carry a fixed amplitude
-ratio set by atomic physics, while a few density-sensitive doublets,
-such as [\ion{O}{2}]~$\lambda$3726\,/\,$\lambda$3729 and
-[\ion{S}{2}]~$\lambda$6716\,/\,$\lambda$6731, instead carry a free
-ratio that encodes the electron density. Table~\ref{table:kinematic}
-lists every group's full membership, anchor, bounds, and amplitude
-constraint for both profile models.
+\todo{Not a great paragraph. In fact, the whole rest of this section
+  is not great.} Narrow-line bounds are $1 < \sigma < 750$~\kms{} and
+$|\Delta v| < 500$~\kms; broad-line bounds are $1 < \sigma <
+10{,}000$~\kms{} and $|\Delta v| < 2{,}500$~\kms. Within these groups,
+most doublets---for example, \oiii~$\lambda$4959\,/\,$\lambda$5007 and
+\nii~$\lambda$6548\,/\,$\lambda$6584---carry a fixed amplitude ratio
+set by atomic physics, while a few density-sensitive doublets, such as
+\oii~$\lambda$3726\,/\,$\lambda$3729 and
+\sii~$\lambda$6716\,/\,$\lambda$6731, instead carry a free ratio that
+encodes the electron density. Table~\ref{table:kinematic} lists every
+group's full membership, anchor, bounds, and amplitude constraint for
+both profile models.
 
 Eight UV and broad-AGN permitted lines carry independently free
 kinematics in both fitting models, and two doublet pairs
@@ -1407,9 +1408,14 @@ kinematics in both fitting models, and two doublet pairs
     free amplitude ratio; Table~\ref{table:kinematic} lists these
     lines and bounds in full.
 
-\fastspecfit{} fits every spectrum with both the narrow-only and
-narrow+broad models simultaneously, then selects the preferred solution
-based on four conditions that must all be satisfied. First, the
+\fastspecfit{} always fits the narrow-only model first. It additionally
+fits the narrow+broad model only when broad-line fitting is enabled and
+at least one broad Balmer line falls within the observed spectral
+range---the same coverage check the line-masker performs in
+\S\ref{ssec:patches}; otherwise it adopts the narrow-only result
+directly. When both models are fit, \fastspecfit{} selects the
+preferred solution based on four conditions that must all be satisfied.
+First, the
 reduction in $\chi^2$ over the pixels spanning the broad Balmer lines
 must exceed the corresponding reduction in degrees of freedom,
 \begin{equation}
@@ -1420,7 +1426,7 @@ where $\Delta\chi^2 = \chi^2_\mathrm{narrow} - \chi^2_\mathrm{broad}$
 and $\Delta N_\mathrm{dof}$ counts the additional free parameters
 introduced by the broad-Balmer group, evaluated only over pixels within
 $\pm N_\sigma$ of the non-helium broad Balmer lines. Second, the fitted
-velocity dispersion of the broad \ha{] component must exceed
+velocity dispersion of the broad \ha{} component must exceed
 $\sigma_\mathrm{broad}(\ha) > 250$~\kms, excluding spurious broad fits
 driven by noise or continuum residuals. Third, the broad component must
 be wider than the narrow component,
@@ -1441,7 +1447,7 @@ three-group narrow+broad model already has enough kinematic freedom to
 absorb residual complexity through its broad Balmer component, and
 relaxing it further would risk over-fitting. For the narrow-only
 model, we free each narrow line's velocity shift within a
-$\pm100$~\kms{] window around its primary best-fit value, while line
+$\pm100$~\kms{} window around its primary best-fit value, while line
 widths remain tied within each kinematic group; this accommodates
 galaxies with forbidden-line outflows or small wavelength-calibration
 residuals, where individual lines can settle at slightly different
@@ -1457,145 +1463,148 @@ this comparison in the output columns \texttt{DELTA\_KINECHI2} and
 \subsubsection{Summary of Measured Emission-Line Properties}
 \label{sssec:lines}
 
-For every line in our list (\S\ref{ssec:emlinelist}), whether formally
-detected or not, we tabulate a standard set of derived quantities in
-the output catalog; Table~\ref{table:linesummary} summarizes their
-symbols, output-column names, and units.
+For every line in our list (Table~\ref{table:emlines}), whether
+formally detected or not, we tabulate a standard set of derived
+quantities in the output catalog; Table~\ref{table:linesummary}
+summarizes their symbols, output-column names, and units.
 
-Two amplitude-like quantities are worth distinguishing explicitly. The
-model amplitude $A$ is the raw, pre-convolution Gaussian parameter
-from equation~(\ref{eq:model}). The observed amplitude $A_\mathrm{obs}$
-is instead the peak flux density of the fully pixelized,
-resolution-matrix-convolved model $\mathbf{E}=\mathbf{W}\mathbf{F}$
-(equation~\ref{eq:emline_pixel}) as it actually appears on the DESI
-pixel grid. For lines narrower than a pixel, the pre-convolution
-regularization of \S\ref{sssec:emline_model} means $A$ can
-substantially exceed $A_\mathrm{obs}$; $A_\mathrm{obs}$, not $A$, is
-what one would actually measure by eye in the spectrum.
+We infer $A$, $\Delta v$, and $\sigma$ by optimizing the
+pre-convolution Gaussian parameters given by
+equation~(\ref{eq:model}). We also measure the observed amplitude of
+each line, $A_\mathrm{obs}$, the peak flux density of the fully
+pixelized, resolution-matrix-convolved model
+$\mathbf{E}=\mathbf{W}\mathbf{F}$ (equation~\ref{eq:emline_pixel}) as
+it actually appears on the DESI pixel grid. In general (but especially
+for lines narrower than one pixel), the pre-convolution regularization
+of \S\ref{sssec:emline_model} means $A$ can substantially exceed
+$A_\mathrm{obs}$; $A_\mathrm{obs}$, not $A$, is what one would measure
+by eye in the spectrum and is therefore one of the quantities we can
+use to determine the statistical significance of a line (see
+\S\ref{ssec:cuts}).
 
-We likewise report two independent flux estimators. The
-Gaussian-integrated flux $\Phi$ is computed analytically from the
-fitted $(A,\lambda^*,\sigma)$ via equation~(\ref{eq:flux_phys}),
-independent of the pixel grid or resolution matrix. The
-boxcar-integrated flux $\Phi_\mathrm{box}$ is instead summed directly
-from the continuum-subtracted spectrum,
+Next, we compute the Gaussian-integrated flux $\Phi$ analytically from
+the fitted parameters using equation~(\ref{eq:flux_phys}), again,
+independent of the pixel grid or resolution matrix. As a
+model-independent check on $\Phi$, we also derive the
+boxcar-integrated flux $\Phi_\mathrm{box}$ by directly summing the
+continuum-subtracted spectrum
 \begin{equation}
   \Phi_\mathrm{box} = \sum_{i\,\in\,\mathrm{patch}} r_i\,\Delta\lambda_i,
   \label{eq:boxflux}
 \end{equation}
 over the unmasked pixels within $\pm3\sigma$ of the line center
-(requiring at least 7 pixels, and falling back to a default width when
-a line was not fit). This is the
-same pixel-integrated estimator discussed in
-\S\ref{sssec:emline_model}, and it shares the same sub-pixel bias as a
-naive point-sampled model for lines narrower than a DESI pixel.
+(requiring at least seven pixels, and falling back to a default width
+if no measurement of $\sigma$ is available for that line). Naturally,
+$\Phi_\mathrm{box}$ is a biased estimate of the emission-line flux for
+blended or overlapping lines (e.g., \oiidoublet) and it also suffers
+from the subpixel bias for very narrow lines discussed in
+\S\ref{sssec:emline_model}.
 
-We estimate the local continuum flux density $F_c$ directly from the
-data rather than from the smooth continuum model $C(\lambda)$: we take
-the sigma-clipped mean of the observed spectrum, with the
-best-fitting emission-line model subtracted, over two sideband windows
-spanning 3--10$\sigma$ on either side of the line center (again
-requiring at least 7 pixels per side). This local, data-driven
-estimate is more robust to continuum-model mismatch at the line's
-exact wavelength than simply interpolating $C(\lambda)$ would be. The
-rest-frame equivalent width then follows as
+%directly from the data rather than from the smooth continuum model
+%$C(\lambda)$:
+
+For each line, we estimate the local continuum flux density $F_c$, by
+computing the iteratively sigma-clipped mean of the observed spectrum,
+with the best-fitting emission-line model subtracted, over two
+sideband windows spanning 3--10$\sigma$ on either side of the
+line-center (again requiring at least seven pixels per side). This
+local, data-driven estimate is more robust to continuum-model mismatch
+at the line's exact wavelength than simply interpolating $C(\lambda)$
+would be. The rest-frame equivalent width (EW) then follows from
 \begin{equation}
   \mathrm{EW} = \frac{\Phi}{F_c\,(1+z)}.
   \label{eq:ew}
 \end{equation}
 
-When a line's amplitude cannot be reliably measured---either because
-it was dropped from the fit or its local pixel window is too heavily
-masked---we still report a $1\sigma$ upper limit on its flux by
-substituting the continuum noise floor for the amplitude in
-equation~(\ref{eq:flux_phys}),
+We report the $1\sigma$ upper limit on the flux of every line with a
+valid continuum measurement by substituting the uncertainty in the
+local continuum for the amplitude in equation~(\ref{eq:flux_phys}),
 \begin{equation}
-  \Phi_\mathrm{lim} = \sqrt{2\pi}\,\sigma_\ell\,\lambda^*\,I_{F_c}^{-1/2},
+  \Phi_\mathrm{lim} = \sqrt{2\pi} \frac{\lambda^*}{\sqrt{I_{F_c}}}
+  \frac{\sigma}{c},
   \label{eq:fluxlimit}
 \end{equation}
-where $I_{F_c}$ is the inverse variance of $F_c$, and for dropped
-lines we substitute a default width for $\sigma$ (75~\kms{} for narrow
-lines, 1200~\kms{} for broad Balmer lines) so that a limit can still be
-reported. We compute $\Phi_\mathrm{lim}$ for essentially every line
-with a valid continuum measurement, independent of whether the line
-itself is significantly detected, so that users can define their own
-significance threshold---e.g., comparing $\Phi$ to $\Phi_\mathrm{lim}$,
-or $A_\mathrm{obs}\sqrt{I_{A_\mathrm{obs}}}$ to a chosen S/N
-cut---rather than relying on a single cut we impose. Finally, we
-record the pixel-level $\chi^2_\mathrm{line}$ of the fit and the
-number of unmasked pixels $n_\mathrm{pix}^\mathrm{line}$ contributing
-to it; \S\ref{ssec:uncertainties} describes how the companion
-inverse-variance columns flagged in Table~\ref{table:linesummary} are
-estimated via our per-object Monte Carlo procedure.
+where $I_{F_c}$ is the inverse variance of $F_c$ (discussed in
+\S\ref{ssec:uncertainties}). For lines that are dropped during
+fitting, we use a nominal $\sigma$ of 75~\kms{} for narrow lines and
+1200~\kms{} for broad lines, so that we can still report a limit for
+every line in the spectrum. We compute $\Phi_\mathrm{lim}$ as another
+possible metric for determining the statistical significance of a line
+(\S\ref{ssec:cuts}), and so users can more easily fold upper limits
+into their specific scientific analyses.
+
+Finally, we record the pixel-level $\chi^2_\mathrm{line}$ of the fit
+and the number of unmasked pixels $n_\mathrm{pix}^\mathrm{line}$
+contributing to it, both defined within $\pm3\sigma$ of the
+line-center. In \S\ref{ssec:uncertainties} we describe how we derive
+the companion inverse-variance columns listed in
+Table~\ref{table:linesummary} via a per-object Monte Carlo procedure.
 
 \input{tables/table-linesummary}
 
 \subsection{Spectrophotometric and Physical Properties}
 \label{ssec:quantities}
 
-Beyond the best-fitting stellar continuum model
-$C(\lambda;\theta_C)$ itself (\S\ref{sssec:fitting}), \fastspecfit{}
-derives a broad suite of physical and spectrophotometric quantities
-and reports them in the output catalog
-(\S\ref{sec:appendix_datamodel}). These fall into four groups:
-stellar-population parameters---stellar mass, SFR, and age---computed
-directly from the SFH template coefficients $\mathbf{c}$; K-corrections
-and rest-frame absolute magnitudes, computed by comparing synthesized
-model photometry in the observed and rest frames; monochromatic
-luminosities and continuum flux densities at fixed rest-frame
-wavelengths, measured directly from $C(\lambda)$; and the $D_n(4000)$
-spectral break, a purely empirical index that we measure independently
-from both the data and the model. We describe each of these in turn.
+%The properties we compute fall into four groups: stellar-population
+%parameters---stellar mass, SFR, and age---computed directly from the
+%SFH template coefficients $\mathbf{c}$; K-corrections and rest-frame
+%absolute magnitudes, computed by comparing synthesized model
+%photometry in the observed and rest frames; monochromatic luminosities
+%and continuum flux densities at fixed rest-frame wavelengths, measured
+%directly from $C(\lambda)$; and the $D_n(4000)$ spectral break.
 
-Recall from \S\ref{sssec:fitting} that each template coefficient $c_n$
-carries units of \msun{} of stars formed in age bin $n$
-(equation~\ref{eq:fnorm}), rescaled by the mass normalization
-$\mathcal{M}_0$ introduced in equation~(\ref{eq:zfactor}). Converting
-these coefficients into a present-day stellar mass requires correcting
-for the mass each population has since returned to the ISM via stellar
-winds and supernovae; we take these surviving-mass fractions
-$f_{\star,n}\in(0,1]$ directly from FSPS and compute
+%As noted in \S\ref{ssec:templates}, our current SPS template grid is
+%fixed at solar metallicity, so none of the quantities derived
+%here---or their reported uncertainties---carry any information about
+%metallicity.
+
+Because physical SPS templates underpin our best-fitting stellar
+continuum model $C(\lambda;\theta_C)$, we can compute several
+secondary, albeit scientifically high-impact physical and
+spectrophotometric quantities. First, recall from
+equation~(\ref{eq:fnorm}) that each template coefficient $c_n$ carries
+units of \msun{} of stars formed in age bin $n$, rescaled by the mass
+normalization $\mathcal{M}_0$ introduced in
+equation~(\ref{eq:zfactor}). The current stellar mass (in \msun),
+therefore, is simply
 \begin{equation}
-  \Mstar = \mathcal{M}_0\sum_n c_n\,f_{\star,n}.
+  \Mstar = \mathcal{M}_0\sum_{n=1}^{n_\mathrm{template}} c_n\,f_{\star,n},
   \label{eq:mstar}
 \end{equation}
-We caution that non-parametric SFH models can yield stellar masses
-that are systematically higher---by $\sim$0.2--0.3~dex on
-average---than parametric estimates, because a flexible SFH can
-accommodate more mass in old, low-luminosity stellar populations
-\citep{leja19a,leja20a}. As noted in \S\ref{ssec:templates}, our
-current SPS template grid is fixed at solar metallicity, so none of
-the quantities derived here---or their reported uncertainties---carry
-any information about metallicity.
 
-We estimate the star-formation rate (SFR) by summing the mass formed
-within the most recent 100~Myr, weighting each age bin by the fraction
-of its width that falls within that window (for our current age
-binning, \S\ref{ssec:templates}, this reduces to the two youngest
-bins, 0--30~Myr and 30--100~Myr, each fully included), and dividing by
-100~Myr,
+%(for our current age
+%binning, \S\ref{ssec:templates}, this reduces to the two youngest
+%bins, 0--30~Myr and 30--100~Myr, each fully included)
+
+\noindent where $f_{\star,n}\in(0,1]$ is the fraction of formed mass
+  returned to the ISM by stellar winds and supernovae (taken directly
+  from FSPS). The mean star-formation rate (SFR) over the last 100~Myr
+  also follows by summing the mass formed within our first two age
+  bins (0--30~Myr and 30--100~Myr; see \S\ref{ssec:templates}), and
+  dividing by 100~Myr,
 \begin{equation}
-  \mathrm{SFR} = \frac{\mathcal{M}_0}{100\,\mathrm{Myr}}\sum_n c_n\,w_n,
+  \mathrm{SFR} = \frac{\mathcal{M}_0}{100\,\mathrm{Myr}}\sum_{n=1}^{2} c_n,
   \label{eq:sfr}
 \end{equation}
-where $w_n\in[0,1]$ is the fraction of age bin $n$ within 100~Myr of
-observation. Although \fastspecfit{} measures both the \ha{}
-luminosity and the rest-frame UV continuum---each of which serves as
-an independent SFR diagnostic---we do not currently convert either
-quantity to a SFR within the code.
-
-Finally, we compute a mean stellar age as the coefficient-weighted
-average of the age-bin midpoints $t_n$,
+\noindent in units of \msun/yr. Additional estimates of the SFR of
+course can be inferred from a variety of other tracers, such as the
+\ha, \oii, or UV luminosity (where they have been reliably measured
+and with appropriate corrections for dust attenuation and other
+effects; \citealt{moustakas06b, kennicutt98a}), but \fastspec{} does
+not directly report those quantities. Finally, we compute the mean
+stellar age as the coefficient-weighted average of the age-bin
+midpoints $t_n$ (in Gyr),
 \begin{equation}
-  \langle t_\star\rangle = \frac{\sum_n c_n\,t_n}{\sum_n c_n}.
+  \langle t_\star\rangle = \frac{\sum_{n=1}^{n_\mathrm{template}}
+    c_n\,t_n}{\sum_{n=1}^{n_\mathrm{template}} c_n}.
   \label{eq:age}
 \end{equation}
 Because the coefficients $c_n$ represent formed stellar mass rather
-than surviving mass or luminosity, this is neither a strictly
-light-weighted nor a strictly (surviving-)mass-weighted age, but falls
-between the two.
+than surviving mass or luminosity, $\langle t_\star\rangle$ is neither
+a strictly light-weighted nor a strictly (surviving-)mass-weighted
+age, but falls between the two.
 
-We compute K-corrections and rest-frame absolute magnitudes by
+Next, we compute K-corrections and rest-frame absolute magnitudes by
 comparing synthesized photometry from the best-fitting continuum model
 $C(\lambda)$ in the observed and rest frames. The output rest-frame
 bandpasses and their band-shifts are loaded at startup from the
@@ -2090,19 +2099,21 @@ preserved in the output columns \texttt{Z\_RR} and
 approximately 9,100 targets in the EDR, 74,000 in DR1, and 165,000 in
 DR2.
 
-We produce the DR2 VAC (Loa~v2.0) using \fastspecfit{}
-version~3.6.1 with the \texttt{ftemplates-chabrier-2.2.0.fits} SPS template
-library (\S\ref{sec:appendix_sps}) and \texttt{desitarget}~v2.8.0 for target
-selection and masking, running on the NERSC Perlmutter supercomputer. The
-catalog encompasses the complete five-year main survey and totals
-approximately 38~million targets, of which the main survey---split between
-roughly 13~million BGS targets observed under bright conditions and 23~million
-LRG, ELG, and QSO targets observed under dark conditions---contributes
-36.5~million. Table~\ref{table:sample} summarizes the complete breakdown by
-survey and observing program; the corresponding EDR and DR1 breakdowns appear
-in Table~\ref{table:sample-edr-dr1} (Appendix~\ref{sec:appendix_vacs}), where
-we also describe key differences in template versions and algorithmic
-choices relative to DR2.
+We produce the DR2 VAC (Loa~v2.0) using \fastspecfit{} version~3.6.1
+with the \texttt{ftemplates-chabrier-2.2.0.fits} SPS template library
+(\S\ref{ssec:templates}) and \texttt{desitarget}~v2.8.0 for target
+selection and masking, running on the NERSC Perlmutter
+supercomputer. The catalog encompasses the complete five-year main
+survey and totals approximately 38~million targets, of which the main
+survey---split between roughly 13~million BGS targets observed under
+bright conditions and 23~million LRG, ELG, and QSO targets observed
+under dark conditions---contributes
+36.5~million. Table~\ref{table:sample} summarizes the complete
+breakdown by survey and observing program; the corresponding EDR and
+DR1 breakdowns appear in Table~\ref{table:sample-edr-dr1}
+(Appendix~\ref{sec:appendix_vacs}), where we also describe key
+differences in template versions and algorithmic choices relative to
+DR2.
 
 \input{tables/table-sample}
 
@@ -2143,7 +2154,8 @@ broad-line detection and can be used to build a custom broad-line
 sample.
 
 \todo{Is it worth adding a figure showing the correlation between
-  amplitude and flux S/N?}
+  amplitude and flux S/N? Should also discuss possibly comparing
+  $\Phi$ to $\Phi_\mathrm{lim}$ from \S\ref{sssec:lines}.}
 
 \subsection{Computational Performance}
 \label{ssec:performance}
@@ -2225,6 +2237,12 @@ and GSWLC. For each comparison we select targets with reliable
 measurements in both catalogs and quantify systematic offsets and
 scatter as a function of signal-to-noise ratio, redshift, and target
 class. \todo{Add summary of overall agreement and key findings.}
+
+We caution that non-parametric SFH models can yield stellar masses
+that are systematically higher---by $\sim$0.2--0.3~dex on
+average---than parametric estimates, because a flexible SFH can
+accommodate more mass in old, low-luminosity stellar populations
+\citep{leja19a,leja20a}.
 
 \begin{figure*}
 \includegraphics[width=6.5in]{compare-sfr-external.pdf}
