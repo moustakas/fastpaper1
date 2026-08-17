@@ -34,6 +34,7 @@
 \newcommand{\sii}{[\ion{S}{2}]}
 \newcommand{\hei}{\ion{He}{1}}
 \newcommand{\heii}{\ion{He}{2}}
+\newcommand{\lya}{Ly\ensuremath{\alpha}}
 \newcommand{\ha}{H\ensuremath{\alpha}}
 \newcommand{\hb}{H\ensuremath{\beta}}
 
@@ -1389,10 +1390,12 @@ second group anchored on narrow \ha, and the broad Balmer lines to a
 third group anchored on broad \ha.
 
 \todo{Not a great paragraph. In fact, the whole rest of this section
-  is not great.} Narrow-line bounds are $1 < \sigma < 750$~\kms{} and
-$|\Delta v| < 500$~\kms; broad-line bounds are $1 < \sigma <
-10{,}000$~\kms{} and $|\Delta v| < 2{,}500$~\kms. Within these groups,
-most doublets---for example, \oiii~$\lambda$4959\,/\,$\lambda$5007 and
+  is not great. We also need to better describe parameters like
+  \texttt{OII\_DOUBLET}.} Narrow-line bounds are $1 < \sigma <
+750$~\kms{} and $|\Delta v| < 500$~\kms; broad-line bounds are $1 <
+\sigma < 10{,}000$~\kms{} and $|\Delta v| < 2{,}500$~\kms. Within
+these groups, most doublets---for example,
+\oiii~$\lambda$4959\,/\,$\lambda$5007 and
 \nii~$\lambda$6548\,/\,$\lambda$6584---carry a fixed amplitude ratio
 set by atomic physics, while a few density-sensitive doublets, such as
 \oii~$\lambda$3726\,/\,$\lambda$3729 and
@@ -1565,10 +1568,10 @@ spectrophotometric quantities. First, recall from
 equation~(\ref{eq:fnorm}) that each template coefficient $c_n$ carries
 units of \msun{} of stars formed in age bin $n$, rescaled by the mass
 normalization $\mathcal{M}_0$ introduced in
-equation~(\ref{eq:zfactor}). The current stellar mass (in \msun),
-therefore, is simply
+equation~(\ref{eq:zfactor}). The current stellar mass (in
+$h^{-2}\,\msun$), therefore, is simply
 \begin{equation}
-  \Mstar = \mathcal{M}_0\sum_{n=1}^{n_\mathrm{template}} c_n\,f_{\star,n},
+  \Mstar = \frac{\mathcal{M}_0}{h^2}\sum_{n=1}^{n_\mathrm{template}} c_n\,f_{\star,n},
   \label{eq:mstar}
 \end{equation}
 
@@ -1583,10 +1586,10 @@ therefore, is simply
   bins (0--30~Myr and 30--100~Myr; see \S\ref{ssec:templates}), and
   dividing by 100~Myr,
 \begin{equation}
-  \mathrm{SFR} = \frac{\mathcal{M}_0}{100\,\mathrm{Myr}}\sum_{n=1}^{2} c_n,
+  \mathrm{SFR} = \frac{\mathcal{M}_0}{h^{2}(10^{8}~\mathrm{yr})}\sum_{n=1}^{2} c_n,
   \label{eq:sfr}
 \end{equation}
-\noindent in units of \msun/yr. Additional estimates of the SFR of
+\noindent in units of $h^{-2}\,\msun$/yr. Additional estimates of the SFR of
 course can be inferred from a variety of other tracers, such as the
 \ha, \oii, or UV luminosity (where they have been reliably measured
 and with appropriate corrections for dust attenuation and other
@@ -1605,119 +1608,124 @@ a strictly light-weighted nor a strictly (surviving-)mass-weighted
 age, but falls between the two.
 
 Next, we compute K-corrections and rest-frame absolute magnitudes by
-comparing synthesized photometry from the best-fitting continuum model
-$C(\lambda)$ in the observed and rest frames. The output rest-frame
-bandpasses and their band-shifts are loaded at startup from the
-bundled configuration file \texttt{data/legacysurvey-dr9.yaml}, and
-span DECam $grz$ (band-shifted to $z=1$), Johnson/Cousins $UBV$ and
-2MASS $J$ (band-shifted to $z=0$), and SDSS $ugriz$ and WISE $W1$
-(band-shifted to $z=0.1$, following \citealt{blanton07a}); the
-corresponding output columns are documented in full in
-Table~\ref{table:datamodel} (Appendix~\ref{sec:appendix_datamodel}),
-e.g., the rest-frame SDSS $g$-band magnitude band-shifted to $z=0.1$
-is recorded as \texttt{ABSMAG01\_SDSS\_G}. For each band we identify
-the observed-frame Legacy Survey or WISE bandpass whose rest-frame
-effective wavelength most closely matches the target band, restricted
-to bandpasses detected at $\mathrm{S/N}>2$; this minimizes the
-(typically small) K-correction required. The absolute magnitude then
-follows the standard relation \citep{hogg02a},
+synthesizing photometry from the best-fitting continuum model
+$C(\lambda)$ in the observed and rest frames, following the standard
+formalism of \citet{hogg02a} and \citet{blanton03a}. For each output
+bandpass we identify the observed-frame Legacy Surveys or WISE filter
+whose rest-frame effective wavelength lies closest to the target band,
+restricted to filters detected at $\mathrm{S/N}>2$. This
+nearest-bandpass matching minimizes the magnitude of the K-correction
+at the cost of an expected discontinuity in the derived K-corrections
+as a function of redshift wherever the nearest-matching observed
+filter switches from one bandpass to the next. \todo{Should we show
+  this effect later, in a figure?} When no bandpass satisfies the S/N
+threshold, we instead report the absolute magnitude synthesized purely
+from the model, with its inverse variance set to zero.
+
+The absolute magnitude follows the standard relation \citep{blanton07a},
 \begin{equation}
-  M = m_\mathrm{obs} - \mathrm{DM}(z) - K,
+  m_R = M_Q + \mathrm{DM}(z) + K_{QR}(z) - 5\log_{10} h,
   \label{eq:kcorr}
 \end{equation}
-where $m_\mathrm{obs}$ is the observed-frame photometry,
-$\mathrm{DM}(z)$ is the distance modulus, and
-$K = 2.5\log_{10}(f_\mathrm{rest}^\mathrm{synth}/f_\mathrm{obs}^\mathrm{synth})$
-is the K-correction, with $f_\mathrm{rest}^\mathrm{synth}$ and
-$f_\mathrm{obs}^\mathrm{synth}$ the rest- and observed-frame fluxes
-synthesized from $C(\lambda)$ in the target and nearest-matching
-bandpasses, respectively. When no bandpass satisfies the S/N
-threshold, we instead report the absolute magnitude synthesized purely
-from the model, and set its inverse variance to zero.
-
-To construct $f_\mathrm{rest}^\mathrm{synth}$ in a band-shifted system
-\citep{blanton07a}, we blueshift the filter response itself rather
-than the model, replacing the native response $R_Q(\lambda)$ of
-bandpass $Q$ with
+where $m_R$ is the observed-frame apparent magnitude in bandpass $R$
+(corrected for Galactic extinction), $M_Q$ is the absolute magnitude
+in the rest-frame target bandpass $Q$, $\mathrm{DM}(z)$ is the
+distance modulus, and $K_{QR}(z) =
+2.5\log_{10}(f_\mathrm{rest}^\mathrm{synth}/f_\mathrm{obs}^\mathrm{synth})$
+is the K-correction from bandpass $Q$ to its nearest-matching observed
+bandpass $R$. To build band-shifted rest-frame bandpasses
+\citep{blanton03a} we blueshift the filter response itself rather than
+the model,
 \begin{equation}
-  R_Q^{(q)}(\lambda) \equiv R_Q\bigl((1+q)\,\lambda\bigr),
+  R_Q^{z_0}(\lambda) \equiv R_Q\bigl((1+z_0)\,\lambda\bigr),
   \label{eq:bandshift}
 \end{equation}
-so that convolving $R_Q^{(q)}$ with the rest-frame SED reproduces what
-$R_Q$ would measure on the same galaxy at redshift $q$; $q=0$ recovers
-the native, unshifted bandpass. Table~\ref{table:absmag-bands} lists
-the band-shift $q$ adopted for each of our output bandpasses, together
-with their native filter curves and effective wavelengths.
+so that convolving $R_Q^{z_0}$ with the rest-frame SED reproduces what
+$R_Q$ would measure on the same galaxy at redshift
+$z_0$. Table~\ref{table:absmag-bands} reports the default set of
+rest-frame bandpasses and band-shifts computed by \fastspecfit{} via
+the bundled \texttt{data/legacysurvey-dr9.yaml} parameter file, as
+well as the \texttt{speclite} filter curve names and their respective
+rest-frame wavelengths.
 
 \input{tables/table-absmag-bands}
 
-We additionally measure rest-frame monochromatic luminosities and
-observed-frame continuum flux densities directly from $C(\lambda)$,
-using a robust (sigma-clipped) linear fit to the continuum within
-$\pm100$~\AA{} of each reference wavelength---in some cases
-(Ly$\alpha$, \hb, \ha) excluding the inner $\pm50$~\AA{} to avoid bias
-from strong, broad emission-line wings. We report luminosities at
-1450, 1700, 3000, and 5100~\AA{} in solar units ($\lambda L_\lambda$),
-and at 1500 and 2800~\AA{} in $\mathrm{erg\,s^{-1}\,Hz^{-1}}$
-($L_\nu$), the latter chosen to facilitate UV-continuum SFR estimates
-(e.g., \citealt{kennicutt98a}). We similarly report the observed-frame
-continuum flux density at the rest-frame centers of Ly$\alpha$, \oii,
-\hb, \oiiilam, and \ha, which provide simple, spectral-model-independent
-continuum-level diagnostics at the locations of these key nebular
-emission lines.
+In addition to rest-frame photometry, we also measure several
+rest-frame monochromatic luminosities and observed-frame continuum
+flux densities using the best-fitting continuum model,
+$C(\lambda)$. We report luminosities at 1450, 1700, 3000, and
+5100~\AA{} in solar units ($\lambda L_\lambda$), and at 1500 and
+2800~\AA{} in $\mathrm{erg\,s^{-1}\,Hz^{-1}}$ ($L_\nu$), the latter
+chosen to facilitate UV-continuum SFR estimates (e.g.,
+\citealt{kennicutt98a}). We similarly report the observed-frame
+continuum flux density (in \fluxdensity) at the rest-frame centers of
+\lya, \oii, \hb, \oiiilam, and \ha, which can be used to infer the
+total line-luminosity from the corresponding emission-line EW
+\citep[e.g.,][]{zhu09a}. In all cases, we measure these quantities
+directly from $C(\lambda)$, using a robust (sigma-clipped) linear fit
+to the continuum within $\pm100$~\AA{} of each reference wavelength.
 
-Finally, we measure the narrow definition of the 4000~\AA{} break,
-$D_n(4000)$, the ratio of the mean flux density in the
-4000--4100~\AA{} and 3850--3950~\AA{} rest-frame windows
-\citep{balogh99a}, a robust, model-independent tracer of
-light-weighted stellar age that is largely insensitive to reddening.
-We report three flavors of this index: \texttt{DN4000\_OBS}, measured
-directly from the observed spectrum, without any correction for
-emission-line contamination; \texttt{DN4000\_MODEL}, measured from the
-best-fitting stellar continuum model alone (line- and noise-free, but
-dependent on the SPS templates); and our fiducial \texttt{DN4000},
-measured from the observed spectrum after subtracting the
-best-fitting emission-line model, combining the empirical fidelity of
-the data with a correction for line contamination within the break
-windows.
+%in some cases (Ly$\alpha$, \hb, \ha) excluding the inner $\pm50$~\AA{}
+%to avoid bias from the strong, absorption-line line wings.
 
-\subsection{Parameter Uncertainties}
+Finally, we measure three different flavors of the 4000~\AA{} break,
+$D_n(4000)$ \citep{balogh99a}: \texttt{DN4000\_OBS}, computed directly
+from the observed spectrum, without any correction for emission-line
+contamination; \texttt{DN4000\_MODEL}, from the best-fitting stellar
+continuum model (excluding the smooth continuum correction;
+\S\ref{sssec:smooth}); and our fiducial \texttt{DN4000}, from the
+observed spectrum after subtracting the best-fitting emission-line
+model.
+
+%combining the empirical fidelity of the data with a correction for
+%line contamination within the break windows.
+
+\subsection{Parameter Uncertainties via Monte Carlo}
 \label{ssec:uncertainties}
 
 Because \fastspecfit{}'s forward model chains together several
 nonlinear stages---an initial grid search for \vdisp{}
 (\S\ref{sssec:vdisp}), the VARPRO solve for \tauv{} and $\mathbf{c}$
 (\S\ref{sssec:fitting}), and the nonlinear emission-line kinematics
-(\S\ref{sssec:kinematic})---propagating uncertainties analytically
-through every downstream quantity (stellar mass, SFR, K-corrections,
-equivalent widths, etc.) is impractical. We instead adopt a Monte
-Carlo approach: by perturbing the input data and refitting, each
-nonlinear stage of the pipeline propagates its own uncertainty
-naturally, without our having to derive a bespoke error-propagation
-formula for every derived quantity.
+(\S\ref{sssec:kinematic})---analytic error propagation through every
+downstream quantity (stellar mass, K-corrections, EWs, etc.) is
+impractical. Monte Carlo resampling instead offers a fast, general way
+to sample the multidimensional covariance among all fitted and derived
+parameters. By perturbing the input data and refitting, each nonlinear
+stage of the pipeline propagates its own uncertainty naturally,
+without having to derive a bespoke error-propagation formula for every
+derived quantity.
 
-For each object we generate $N_\mathrm{monte}=50$ independent
+By default, \fastspec{} generates $n_\mathrm{monte}=50$ independent
 realizations of the observed spectrum and photometry by adding
-Gaussian noise consistent with the pipeline's inverse-variance
-estimates,
+Gaussian noise consistent with the input inverse variance,
 \begin{equation}
   d_i^{(m)} \sim \mathcal{N}\bigl(d_i,\,I_i^{-1}\bigr),
   \label{eq:mc_draw}
 \end{equation}
-for realizations $m=1,\ldots,N_\mathrm{monte}$ (and similarly for the
-photometry). These draws are generated once, from a reproducible
-per-object seed recorded in the \texttt{SEED} output column---itself
-derived deterministically from a single global run seed---and are
-reused, unchanged, across every subsequent fitting stage for that
-object: the same $N_\mathrm{monte}$ realizations flow through the
-velocity-dispersion, continuum, and emission-line fits described
-below. The inverse variance of any fitted or derived quantity $\theta$
-then follows from the scatter across realizations,
+for realizations $m=1,\ldots,n_\mathrm{monte}$. In this notation,
+$d_i$ indexes both spectral pixels and photometric bandpasses. Before
+drawing these realizations we inflate the formal inverse variances
+with a minimum uncertainty floor, added in quadrature, to guard
+against underestimated pipeline errors: 1\% of the flux for the
+spectroscopy, and a fixed per-band magnitude floor---2\% for DECam
+$grz$ and 5\% for WISE $W1$--$W4$---for the photometry. These draws
+are generated once, from a reproducible per-object seed recorded in
+the \texttt{SEED} output column---itself derived deterministically
+from a single global run seed---and are reused unchanged across every
+subsequent fitting stage: the same $n_\mathrm{monte}$ realizations
+flow through the velocity-dispersion, continuum, and emission-line
+fits below. The inverse variance of any fitted or derived quantity
+$\theta$ then follows from the scatter across realizations,
 \begin{equation}
   \sigma_\theta^{-2}
-  = \bigl[\mathrm{Var}(\theta^{(1)},\ldots,\theta^{(N_\mathrm{monte})})\bigr]^{-1}.
+  = \bigl[\mathrm{Var}(\theta^{(1)},\ldots,\theta^{(n_\mathrm{monte})})\bigr]^{-1}.
   \label{eq:mc_unc}
 \end{equation}
+Throughout the pipeline, uncertainties are reported as inverse
+variances; parameters that are not measured for a given object, or
+that are held fixed at a nominal value, are assigned \texttt{IVAR}=0
+rather than a Monte Carlo estimate.
 
 On the continuum side, the Monte Carlo realizations enter in two
 places. First, while \vdisp{} is being determined (\S\ref{sssec:vdisp}),
@@ -1725,11 +1733,11 @@ we refit \tauv, \vdisp, and $\mathbf{c}$ jointly on each realization to
 obtain \texttt{VDISP\_IVAR}. Second, with \vdisp{} fixed at its adopted
 value, we repeat the full VARPRO solve---the outer \tauv{} minimization
 and inner NNLS solve for $\mathbf{c}$---on each realization, yielding
-$N_\mathrm{monte}$ independent estimates $\tauv^{(m)}$ and
+$n_\mathrm{monte}$ independent estimates $\tauv^{(m)}$ and
 $\mathbf{c}^{(m)}$ and directly giving \texttt{TAUV\_IVAR}. Because
 every stellar-population and photometric quantity in
 \S\ref{ssec:quantities} is a fixed function of $\mathbf{c}$
-(equations~\ref{eq:mstar}--\ref{eq:bandshift}), we simply re-evaluate
+(equations~\ref{eq:mstar}--\ref{eq:bandshift}), we re-evaluate
 those relations on each $\mathbf{c}^{(m)}$ and propagate the resulting
 scatter to \texttt{LOGMSTAR\_IVAR}, \texttt{SFR\_IVAR},
 \texttt{AGE\_IVAR}, \texttt{DN4000\_MODEL\_IVAR}, the
@@ -1741,7 +1749,7 @@ repeating the full kinematic model-selection procedure
 (\S\ref{sssec:kinematic})---which chooses between narrow-only and
 narrow+broad models and optionally relaxes velocity-width
 bounds---for every realization, we fix the kinematic model and bounds
-at their fiducial, data-preferred values and refit only the line
+at their fiducial values and refit only the line
 parameters, warm-started at the fiducial best-fit solution with
 loosened convergence tolerances. This is a good approximation because
 each realization is a small perturbation of the data rather than an

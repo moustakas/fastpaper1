@@ -1,28 +1,31 @@
-\begin{deluxetable}{llccl}
+\begin{deluxetable}{llcc}
 \tablecaption{Rest-Frame Bandpasses for Absolute Magnitudes and K-Corrections\label{table:absmag-bands}}
 \tablewidth{0pt}
 \tablehead{
 \colhead{Band} &
 \colhead{Filter Curve} &
-\colhead{$\lambda_\mathrm{eff}$ (\AA)} &
-\colhead{Band-shift $q$} &
-\colhead{Output Column\tablenotemark{a}}
+\colhead{$\lambda_\mathrm{eff}$\tablenotemark{a}} &
+\colhead{Band-shift $z_0$}
 }
 \startdata
-DECam $g$    & \texttt{decam2014-g} & 4890  & 1.0 & \texttt{ABSMAG10\_DECAM\_G} \\
-DECam $r$    & \texttt{decam2014-r} & 6470  & 1.0 & \texttt{ABSMAG10\_DECAM\_R} \\
-DECam $z$    & \texttt{decam2014-z} & 9196  & 1.0 & \texttt{ABSMAG10\_DECAM\_Z} \\
-Johnson $U$  & \texttt{bessell-U}   & 3618  & 0.0 & \texttt{ABSMAG00\_U} \\
-Johnson $B$  & \texttt{bessell-B}   & 4442  & 0.0 & \texttt{ABSMAG00\_B} \\
-Johnson $V$  & \texttt{bessell-V}   & 5536  & 0.0 & \texttt{ABSMAG00\_V} \\
-2MASS $J$    & \texttt{twomass-J}   & 12408 & 0.0 & \texttt{ABSMAG00\_TWOMASS\_J} \\
-SDSS $u$     & \texttt{sdss2010-u}  & 3614  & 0.1 & \texttt{ABSMAG01\_SDSS\_U} \\
-SDSS $g$     & \texttt{sdss2010-g}  & 4749  & 0.1 & \texttt{ABSMAG01\_SDSS\_G} \\
-SDSS $r$     & \texttt{sdss2010-r}  & 6206  & 0.1 & \texttt{ABSMAG01\_SDSS\_R} \\
-SDSS $i$     & \texttt{sdss2010-i}  & 7526  & 0.1 & \texttt{ABSMAG01\_SDSS\_I} \\
-SDSS $z$     & \texttt{sdss2010-z}  & 8947  & 0.1 & \texttt{ABSMAG01\_SDSS\_Z} \\
-WISE $W1$    & \texttt{wise2010-W1} & 34003 & 0.1 & \texttt{ABSMAG01\_W1} \\
+DECam $g$    & \texttt{decam2014-g} & 4890  & 1.0 \\
+DECam $r$    & \texttt{decam2014-r} & 6470  & 1.0 \\
+DECam $z$    & \texttt{decam2014-z} & 9196  & 1.0 \\
+Johnson $U$  & \texttt{bessell-U}   & 3618  & 0.0 \\
+Johnson $B$  & \texttt{bessell-B}   & 4442  & 0.0 \\
+Johnson $V$  & \texttt{bessell-V}   & 5536  & 0.0 \\
+2MASS $J$    & \texttt{twomass-J}   & 12408 & 0.0 \\
+SDSS $u$     & \texttt{sdss2010-u}  & 3614  & 0.1 \\
+SDSS $g$     & \texttt{sdss2010-g}  & 4749  & 0.1 \\
+SDSS $r$     & \texttt{sdss2010-r}  & 6206  & 0.1 \\
+SDSS $i$     & \texttt{sdss2010-i}  & 7526  & 0.1 \\
+SDSS $z$     & \texttt{sdss2010-z}  & 8947  & 0.1 \\
+WISE $W1$    & \texttt{wise2010-W1} & 34003 & 0.1 \\
 \enddata
-\tablecomments{Default rest-frame bandpasses, band-shifts $q$ (equation~\ref{eq:bandshift}), and \texttt{speclite} filter curves used to synthesize absolute magnitudes and K-corrections (\S\ref{ssec:quantities}), as configured in the bundled \texttt{data/legacysurvey-dr9.yaml} file. Effective wavelengths are computed for the unshifted filter curve.}
-\tablenotetext{a}{The corresponding K-correction is stored in the same-suffix \texttt{KCORR}\emph{qq}\texttt{\_}\emph{band} column (e.g., \texttt{KCORR01\_SDSS\_G} for \texttt{ABSMAG01\_SDSS\_G}); see Table~\ref{table:datamodel} for the full data model.}
+\tablecomments{Default rest-frame bandpasses, band-shifts $z_0$, and
+  \texttt{speclite} filter curves used to infer K-corrections and
+  absolute magnitudes (\S\ref{ssec:quantities}), as configured in the
+  bundled \texttt{data/legacysurvey-dr9.yaml} parameter file.}
+\tablenotetext{a}{Effective filter wavelengths in \AA{} are reported
+  for the unshifted filter curve.}
 \end{deluxetable}
