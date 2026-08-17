@@ -32,6 +32,7 @@
 \newcommand{\oiii}{[\ion{O}{3}]}
 \newcommand{\nii}{[\ion{N}{2}]}
 \newcommand{\sii}{[\ion{S}{2}]}
+\newcommand{\hii}{\ion{H}{2}}
 \newcommand{\hei}{\ion{He}{1}}
 \newcommand{\heii}{\ion{He}{2}}
 \newcommand{\lya}{Ly\ensuremath{\alpha}}
@@ -367,8 +368,8 @@ four WISE bands---$W1$ (3.4\,\micron), $W2$ (4.6\,\micron), $W3$
 (12\,\micron), and $W4$ (22\,\micron) \citep{wright10a}---based on the
 unWISE full-depth coadds produced by \citet{lang14a,
   meisner21a}. \fastspecfit{} fits this total photometry, in all seven
-$grz$+WISE bands, together with the DESI spectrum in a joint
-spectrophotometric fit (\S\ref{sec:modeling}); in any band where a
+$grz$ and WISE $W1$--$W4$ bands, together with the DESI spectrum in a
+joint spectrophotometric fit (\S\ref{sec:modeling}); in any band where a
 source is undetected, the reported $1\sigma$ flux uncertainty is used
 as an upper limit.
 
@@ -476,14 +477,29 @@ emission-line parameter sets.
 
 A key algorithmic choice we make in \fastspec{} is to fit $C$ and $E$
 sequentially rather than jointly, subtracting the best-fitting
-continuum model from the data before fitting the emission lines
-(\S\ref{ssec:emlines}). We adopt this two-stage design primarily for
-flexibility: because $C$ and $E$ draw on different spectral
+continuum model from the data before fitting the emission
+lines. Because $C$ and $E$ draw on different spectral
 information---the overall continuum shape and broadband photometry for
 $C$, (relatively) narrow ``residual'' features for $E$---decoupling
-them lets us fit the lines robustly even when the continuum model is a
-poor fit to the data due to, for example, residual calibration errors
-(\S\ref{sssec:smooth}).
+them lets us fit the lines robustly and flexibly even when the
+continuum model is a poor fit to the data due to, for example,
+residual calibration errors (\S\ref{sssec:smooth}).
+
+We prepare the spectroscopic and photometric data for fitting in two
+ways. First, we correct both for Galactic extinction, using the
+\citet{schlegel98a} dust map, recalibrated following
+\citet{schlafly11a}, and the \citet{fitzpatrick99a} extinction curve
+with $R_V\equiv A_V/E(B-V)=3.1$, evaluated at each spectral pixel's
+vacuum wavelength for the spectroscopy and at the effective wavelength
+of each of the seven $grz$ and WISE $W1$--$W4$ bandpasses for the
+photometry. Second,
+we inflate the formal inverse variances with a minimum uncertainty
+floor, added in quadrature, to guard against underestimated pipeline
+errors. We use a 1\% floor for the spectroscopy, and a fixed per-band
+magnitude floor---2\% for $grz$ (DECam, BASS, and MzLS) and 5\% for
+WISE $W1$--$W4$---for the photometry. These floored inverse variances
+are used throughout the pipeline, including the Monte Carlo resampling
+described in \S\ref{ssec:uncertainties}.
 
 In the remainder of this section we begin by describing the fitting
 pipeline's two primary model inputs, the SPS template library
@@ -515,7 +531,7 @@ same machinery (\S\ref{sec:modes}).
   in the youngest populations to red, featureless spectra in the
   oldest. The gray band marks the DESI optical spectral range
   (0.36--0.98~$\mu$m); the curves along the bottom of the panel show
-  the DECam $grz$ and WISE W1-W4 broadband filter throughputs that
+  the DECam $grz$ and WISE $W1$--$W4$ broadband filter throughputs that
   \fastspecfit{} includes in the simultaneous spectrophotometric
   fit. \label{fig:sps}}
 \end{figure*}
@@ -887,9 +903,9 @@ where $\sigma_\mathrm{C3K} = c/\mathcal{R}_{\mathrm{C3K}}=42$~\kms{}
 
 By default, \fastspec{} fits the spectrum ($0.36-0.98$\,\micron) of
 each extragalactic DESI target simultaneously with its corresponding
-seven-band ($grz$W1--W4) Legacy Surveys integrated photometry
-($0.47-22$\,\micron; \S\ref{ssec:photometry}). Fitting all the
-available spectrophotometry over the broadest possible wavelength
+seven-band ($grz$ and WISE $W1$--$W4$) Legacy Surveys integrated
+photometry ($0.47-22$\,\micron; \S\ref{ssec:photometry}). Fitting all
+the available spectrophotometry over the broadest possible wavelength
 baseline helps constrain physical properties like dust attenuation,
 and ties the derived stellar masses, star-formation rates, and
 rest-frame photometry to the total light of each source rather than to
@@ -1031,36 +1047,37 @@ excluding bins outright would introduce more redshift-dependent bias
 than it removes \citep{leja19a}.
 
 At this point, we have all the ingredients necessary to fit the
-stellar continuum. Let $d$, $I$, and $m$ be the observed DESI
-spectrum, inverse-variance spectrum, and binary emission-line mask
-from \S\ref{ssec:patches}, respectively, each an
-$n_\mathrm{pix}$-element array ($m_i=1$ for pixels retained in the fit
-and $0$ for masked pixels); and let $D$ and $I_D$ be the
-$n_\mathrm{band}=7$ ($grz$W1--W4) photometric fluxes and inverse
-variances, respectively. We construct the continuum model
-$C(\lambda;\theta_C)$ as the non-negative linear combination of the
-observed-frame templates $S_n^\mathrm{obs}(\lambda)$ from
-equation~(\ref{eq:zfactor}),
+stellar continuum. Let $d$ and $I$ be the Galactic
+extinction-corrected and floor-inflated DESI spectrum and
+inverse-variance spectrum, respectively, and $m$ be the binary
+emission-line mask from \S\ref{ssec:patches}. Each of these arrays
+contain $n_\mathrm{pix}$ elements, with $m_i=1$ for pixels retained in
+the fit and $0$ for masked pixels. Also let $D$ and $I_D$ be the
+Galactic extinction-corrected and floor-inflated $n_\mathrm{band}=7$
+($grz$ and WISE $W1$--$W4$) photometric fluxes and inverse variances,
+respectively.
+
+We construct the continuum model $C(\lambda;\theta_C)$ as the
+non-negative linear combination of the observed-frame templates
+$S_n^\mathrm{obs}(\lambda)$ from equation~(\ref{eq:zfactor}),
 \begin{equation}
   C(\lambda;\theta_C) = \sum_n c_n\,S_n^\mathrm{obs}(\lambda),
   \label{eq:ccont}
 \end{equation}
 holding \vdisp{} fixed at the value determined in \S\ref{sssec:vdisp}
 and solving only for $\tauv$ (which enters through $S_n^\mathrm{obs}$)
-and the coefficients $\mathbf{c}$.
-
-To compare this model against the spectroscopic and photometric data,
-we transform it in two ways: (1) we broaden each template by \vdisp{}
-(\S\ref{sssec:vdisp}), convolve it with the wavelength-dependent
-resolution matrix $\mathbf{R}$ (\S\ref{ssec:spectra}), and resample
-(using a flux-conserving trapezoidal-resampling algorithm) onto the
-same $n_\mathrm{pix}$-pixel wavelength grid as $d$, giving $C_i \equiv
-C(\lambda_i;\theta_C)$; and (2) convolve each template with the
-$n_\mathrm{band}$ filter response functions (\S\ref{ssec:photometry})
-to derive the synthetic photometry $C_k$. Collecting these fully
-transformed templates as the columns of a design matrix
-$\boldsymbol{\Psi}$, the continuum model at every pixel and bandpass
-becomes
+and the coefficients $\mathbf{c}$. To compare this model against the
+spectroscopic and photometric data, we transform it in two ways: (1)
+we broaden each template by \vdisp{} (\S\ref{sssec:vdisp}), convolve
+it with the wavelength-dependent resolution matrix $\mathbf{R}$
+(\S\ref{ssec:spectra}), and resample (using a flux-conserving
+trapezoidal-resampling algorithm) onto the same $n_\mathrm{pix}$-pixel
+wavelength grid as $d$, giving $C_i \equiv C(\lambda_i;\theta_C)$; and
+(2) convolve each template with the $n_\mathrm{band}$ filter response
+functions (\S\ref{ssec:photometry}) to derive the synthetic photometry
+$C_k$. Collecting these fully transformed templates as the columns of
+a design matrix $\boldsymbol{\Psi}$, the continuum model at every
+pixel and bandpass becomes
 \begin{equation}
   \mathbf{C} = \boldsymbol{\Psi}\,\mathbf{c},
   \label{eq:designmatrix}
@@ -1143,25 +1160,25 @@ residual spectrum, applying a $2\sigma$ iterative clip in each window
 and computing the robust median and standard deviation. We discard
 windows with fewer than 15 unmasked pixels. We then fit a weighted
 quadratic spline (\texttt{scipy.interpolate.UnivariateSpline}, $k=2$;
-\citealt{virtanen20a}) to the window medians and add the resulting
-smooth baseline back to $C(\lambda)$ before emission-line fitting. For
-each camera we also record \texttt{SMOOTHCORR\_B},
-\texttt{SMOOTHCORR\_R}, and \texttt{SMOOTHCORR\_Z}, the median of the
-smooth correction (using all unmasked pixels) divided by the observed
-flux, expressed as a percentage---a simple, per-object diagnostic of
-the correction's overall amplitude relative to the source itself.
+\citealt{virtanen20a}) to the window medians, giving the smooth
+continuum correction $C_\mathrm{smooth}(\lambda)$. For each camera we
+also record \texttt{SMOOTHCORR\_B}, \texttt{SMOOTHCORR\_R}, and
+\texttt{SMOOTHCORR\_Z}, the median of the smooth correction (using all
+unmasked pixels) divided by the observed flux, expressed as a
+percentage---a simple, per-object diagnostic of the correction's
+overall amplitude relative to the source itself.
 
 \subsection{Emission-Line Model}
 \label{ssec:emlines}
 
 After subtracting the best-fitting continuum model
-$C(\lambda;\theta_C)$ from the data $d_i$ (\S\ref{sssec:fitting}),
-including the smooth continuum correction (\S\ref{sssec:smooth}), we
-are left with a residual spectrum $r_i \equiv d_i - C_i$ (in
-\fluxdensity) containing one or more emission lines
-(\S\ref{ssec:emlinelist}). In the following three subsections we
-describe how we construct and fit the emission-line model,
-$E(\lambda;\theta_E)$ (\S\ref{sssec:emline_model}). The full
+$C(\lambda;\theta_C)$ (\S\ref{sssec:fitting}) and the smooth continuum
+correction $C_\mathrm{smooth}(\lambda)$ (\S\ref{sssec:smooth}) from
+the data $d_i$, we are left with a residual spectrum $r_i \equiv d_i -
+C_i - C_{\mathrm{smooth},i}$ (in \fluxdensity) containing one or more
+emission lines (\S\ref{ssec:emlinelist}). In the following three
+subsections we describe how we construct and fit the emission-line
+model, $E(\lambda;\theta_E)$ (\S\ref{sssec:emline_model}). The full
 emission-line parameter set $\theta_E$ consists of three
 parameters---an amplitude, velocity offset, and velocity width---for
 each of the $n_\mathrm{line}$ lines in our list. We then describe how
@@ -1543,6 +1560,8 @@ line-center. In \S\ref{ssec:uncertainties} we describe how we derive
 the companion inverse-variance columns listed in
 Table~\ref{table:linesummary} via a per-object Monte Carlo procedure.
 
+\todo{Need to also explain the doublet ratios like OII\_DOUBLET.}
+
 \input{tables/table-linesummary}
 
 \subsection{Spectrophotometric and Physical Properties}
@@ -1683,127 +1702,152 @@ model.
 \subsection{Parameter Uncertainties via Monte Carlo}
 \label{ssec:uncertainties}
 
-Because \fastspecfit{}'s forward model chains together several
-nonlinear stages---an initial grid search for \vdisp{}
-(\S\ref{sssec:vdisp}), the VARPRO solve for \tauv{} and $\mathbf{c}$
-(\S\ref{sssec:fitting}), and the nonlinear emission-line kinematics
-(\S\ref{sssec:kinematic})---analytic error propagation through every
-downstream quantity (stellar mass, K-corrections, EWs, etc.) is
-impractical. Monte Carlo resampling instead offers a fast, general way
-to sample the multidimensional covariance among all fitted and derived
-parameters. By perturbing the input data and refitting, each nonlinear
-stage of the pipeline propagates its own uncertainty naturally,
-without having to derive a bespoke error-propagation formula for every
-derived quantity.
+\fastspecfit{}'s forward model chains together several nonlinear
+stages: an initial grid search for \vdisp{} (\S\ref{sssec:vdisp}), the
+VARPRO solve for \tauv{} and $\mathbf{c}$ (\S\ref{sssec:fitting}), and
+the nonlinear emission-line kinematics (\S\ref{sssec:kinematic}).
+Analytic error propagation through every downstream quantity (stellar
+mass, K-corrections, EWs, etc.) is therefore impractical. Monte Carlo
+resampling instead offers a fast, general way to sample the
+multidimensional covariance among all fitted and derived parameters.
+By perturbing the input data and refitting, each nonlinear stage of
+the pipeline propagates its own uncertainty naturally, without having
+to derive a bespoke error-propagation formula for every derived
+quantity.
 
 By default, \fastspec{} generates $n_\mathrm{monte}=50$ independent
 realizations of the observed spectrum and photometry by adding
-Gaussian noise consistent with the input inverse variance,
+Gaussian noise consistent with the (floor-inflated;
+\S\ref{sec:modeling}) inverse variance,
 \begin{equation}
   d_i^{(m)} \sim \mathcal{N}\bigl(d_i,\,I_i^{-1}\bigr),
   \label{eq:mc_draw}
 \end{equation}
-for realizations $m=1,\ldots,n_\mathrm{monte}$. In this notation,
-$d_i$ indexes both spectral pixels and photometric bandpasses. Before
-drawing these realizations we inflate the formal inverse variances
-with a minimum uncertainty floor, added in quadrature, to guard
-against underestimated pipeline errors: 1\% of the flux for the
-spectroscopy, and a fixed per-band magnitude floor---2\% for DECam
-$grz$ and 5\% for WISE $W1$--$W4$---for the photometry. These draws
-are generated once, from a reproducible per-object seed recorded in
-the \texttt{SEED} output column---itself derived deterministically
-from a single global run seed---and are reused unchanged across every
-subsequent fitting stage: the same $n_\mathrm{monte}$ realizations
-flow through the velocity-dispersion, continuum, and emission-line
-fits below. The inverse variance of any fitted or derived quantity
-$\theta$ then follows from the scatter across realizations,
+for realizations $m=1,\ldots,n_\mathrm{monte}$, where $d_i$ indexes
+both spectral pixels and photometric bandpasses. We generate these
+draws once, using a reproducible per-object seed recorded in the
+\texttt{SEED} output column. This seed is itself derived
+deterministically from a single global run seed. We reuse the same
+$n_\mathrm{monte}$ realizations, unchanged, throughout the rest of the
+pipeline, so the same draws flow through the velocity-dispersion,
+continuum, and emission-line fits described below. The inverse
+variance of any fitted or derived quantity $\theta$ then follows from
+the scatter across realizations,
 \begin{equation}
   \sigma_\theta^{-2}
   = \bigl[\mathrm{Var}(\theta^{(1)},\ldots,\theta^{(n_\mathrm{monte})})\bigr]^{-1}.
   \label{eq:mc_unc}
 \end{equation}
-Throughout the pipeline, uncertainties are reported as inverse
-variances; parameters that are not measured for a given object, or
-that are held fixed at a nominal value, are assigned \texttt{IVAR}=0
-rather than a Monte Carlo estimate.
+Throughout the pipeline, we report uncertainties as inverse variances;
+for parameters that are not measured for a given object, or that are
+held fixed at a nominal value, we assign \texttt{IVAR}=0 rather than a
+Monte Carlo estimate.
 
 On the continuum side, the Monte Carlo realizations enter in two
-places. First, while \vdisp{} is being determined (\S\ref{sssec:vdisp}),
-we refit \tauv, \vdisp, and $\mathbf{c}$ jointly on each realization to
-obtain \texttt{VDISP\_IVAR}. Second, with \vdisp{} fixed at its adopted
-value, we repeat the full VARPRO solve---the outer \tauv{} minimization
-and inner NNLS solve for $\mathbf{c}$---on each realization, yielding
-$n_\mathrm{monte}$ independent estimates $\tauv^{(m)}$ and
-$\mathbf{c}^{(m)}$ and directly giving \texttt{TAUV\_IVAR}. Because
-every stellar-population and photometric quantity in
-\S\ref{ssec:quantities} is a fixed function of $\mathbf{c}$
-(equations~\ref{eq:mstar}--\ref{eq:bandshift}), we re-evaluate
-those relations on each $\mathbf{c}^{(m)}$ and propagate the resulting
-scatter to \texttt{LOGMSTAR\_IVAR}, \texttt{SFR\_IVAR},
-\texttt{AGE\_IVAR}, \texttt{DN4000\_MODEL\_IVAR}, the
-\texttt{ABSMAG*\_SYNTH\_IVAR} and rest-frame luminosity/continuum-flux
-inverse variances---no additional nonlinear refitting is required.
+places. First, after determining \vdisp{} (\S\ref{sssec:vdisp}), we
+refit \tauv, \vdisp, and $\mathbf{c}$ jointly on each realization to
+obtain \texttt{VDISP\_IVAR}. Second, with \vdisp{} fixed at its
+adopted value, we repeat the full VARPRO solve---the outer \tauv{}
+minimization and inner NNLS solve for $\mathbf{c}$---on each
+realization, yielding $n_\mathrm{monte}$ independent estimates
+$\tauv^{(m)}$ and $\mathbf{c}^{(m)}$ that directly give
+\texttt{TAUV\_IVAR}. Because every stellar-population and photometric
+quantity in \S\ref{ssec:quantities} is a fixed function of
+$\mathbf{c}$ (equations~\ref{eq:mstar}--\ref{eq:bandshift}), we
+re-evaluate those relations on each $\mathbf{c}^{(m)}$ and propagate
+the resulting scatter to determine \texttt{LOGMSTAR\_IVAR},
+\texttt{SFR\_IVAR}, \texttt{AGE\_IVAR}, \texttt{DN4000\_MODEL\_IVAR},
+the \texttt{ABSMAG*\_SYNTH\_IVAR}, and the rest-frame luminosity and
+continuum-flux inverse variances.
 
-The emission-line Monte Carlo is deliberately cheaper. Rather than
-repeating the full kinematic model-selection procedure
-(\S\ref{sssec:kinematic})---which chooses between narrow-only and
-narrow+broad models and optionally relaxes velocity-width
-bounds---for every realization, we fix the kinematic model and bounds
-at their fiducial values and refit only the line
+The emission-line Monte Carlo is deliberately cheaper. The full
+kinematic model-selection procedure (\S\ref{sssec:kinematic}) chooses
+between narrow-only and narrow+broad models and optionally relaxes
+velocity-width bounds; repeating it for every Monte Carlo realization
+would be expensive. Instead, we fix the kinematic model and
+velocity-width bounds at their fiducial values and refit only the line
 parameters, warm-started at the fiducial best-fit solution with
-loosened convergence tolerances. This is a good approximation because
-each realization is a small perturbation of the data rather than an
-independent object, so the preferred kinematic model rarely changes
-between realizations. We build each realization's continuum-subtracted
-spectrum from the corresponding continuum-fitting realization, $d^{(m)}
-- C^{(m)}(\lambda) - S(\lambda)$, holding the smooth continuum
-correction $S(\lambda)$ (\S\ref{sssec:smooth}) fixed at its fiducial
-value across all realizations rather than recomputing it per draw.
-This procedure yields Monte Carlo uncertainties for every fitted line
-parameter---amplitude, flux, equivalent width, velocity shift and
-width, non-parametric moments---and for the doublet ratios.
+loosened convergence tolerances. The assumption underpinning these
+choices is that each realization is a small perturbation of the data
+rather than an independent object, so the preferred kinematic model
+should rarely change between realizations. We build each realization's
+continuum-subtracted spectrum from the corresponding continuum-fitting
+realization, $d^{(m)} - C^{(m)}(\lambda) -
+C_\mathrm{smooth}(\lambda)$, holding the smooth continuum correction
+$C_\mathrm{smooth}(\lambda)$ (\S\ref{sssec:smooth}) fixed at its
+fiducial value across all realizations rather than recomputing it per
+draw. This procedure yields Monte Carlo uncertainties for every fitted
+line parameter (see \S\ref{sssec:lines} and
+Table~\ref{table:linesummary}).
 
 \subsection{Additional Fitting Modes}
 \label{sec:modes}
 
-\fastspecfit{} operates in two modes. \fastphot{} fits broadband SEDs
-to Legacy Survey photometry with no spectroscopic data. \fastspec{}
-jointly fits spectra from all three DESI cameras (B, R, Z) and
-broadband photometry simultaneously. Both modes share the same
-template library, dust model, and physical output quantities; they
-differ only in the data that enter the fit and in whether the stellar
-velocity dispersion is a free parameter.
+Everything described in this section so far uses \fastspecfit{}'s
+default fitting code, \fastspec, which, by default, jointly fits each
+object's DESI spectrum with its corresponding optical/IR broadband
+photometry using a nominal (adopted) set of modeling priors. However,
+we designed \fastspecfit{} with flexibility and extensibility in mind,
+letting users choose different input data and model parameters while
+sharing a single, speed-oriented fitting engine.
 
-In \fastphot{} mode we do not fit a velocity dispersion: we
-convolve all templates with ${\vdisp}^\mathrm{kern}_\mathrm{nom}$ and
-report $\vdisp = 150$~\kms{} with \texttt{VDISP\_IVAR}~$= 0$.
+In practice, \fastspecfit{} exposes this flexibility through
+command-line entry points that specify what data to fit. For example,
+the \texttt{--ignore-photometry} option drops the broadband photometry
+from the \fastspec{} fit, effectively disabling the aperture
+correction (\S\ref{sssec:apercorr}). For a scientific study focused on
+lower-redshift BGS targets, this mode is arguably more relevant. Other
+comparable options such as \texttt{--no-smooth-continuum} disable the
+smooth continuum correction (\S\ref{sssec:smooth}), while
+\texttt{--no-broadlinefit} skips the narrow+broad kinematic fitting
+(\S\ref{sssec:kinematic}), which may be useful when studying, for
+example, individual \hii-region spectra.
 
-A handful of options adapt \fastspecfit{} to non-default inputs. The
-\texttt{--targetids} and \texttt{--input-redshifts} options fit a
-specified subset of targets at externally supplied redshifts (e.g.,
-from visual inspection) instead of the pipeline's Redrock or
-QuasarNet value. \texttt{--ignore-photometry} drops the broadband
-photometry from the fit; because the aperture correction
-(\S\ref{sssec:apercorr}) requires comparing the model to the observed
-photometry, this also disables it, leaving the spectrum on its
-native, uncalibrated flux scale---we do not use this option in the
-DR2 production runs. And \texttt{--fphotofile} substitutes an
-alternate photometric-catalog configuration file for the bundled
-\texttt{data/legacysurvey-dr9.yaml} (\S\ref{ssec:quantities}), letting
-\fastspecfit{} fit photometry from surveys other than the Legacy
-Surveys. The DESI coaddition type---per-exposure, per-night,
-cumulative (multi-night), or per-HEALPix---is detected automatically
-from the input Redrock file and requires no separate configuration.
+Another major fitting mode is \fastphot, which fits only the broadband
+photometric SED with the templates convolved to a nominal velocity
+dispersion, $\vdisp = 150$~\kms. As for \fastspec, in this mode the
+redshift is an input quantity; it is taken from the DESI pipeline
+based on the DESI coaddition type---per-exposure, per-night,
+cumulative (multi-night), or per-HEALPix---which is detected
+automatically from the input Redrock file \citep{guy23a,
+  desi-collaboration26a}. However, the user can override the pipeline
+redshifts via the \texttt{--input-redshifts} argument if externally
+supplied redshifts (e.g., from visual inspection) are available.
 
-Finally, a third entry point, \texttt{stackfit}, fits arbitrary
-user-supplied stacked spectra (e.g., binned by stellar mass and
-redshift) rather than individual DESI targets; since such stacks lack
-associated broadband photometry, \texttt{stackfit} runs with
-\texttt{--ignore-photometry} enabled by default and fits the spectrum
-on its own internal flux scale.
+A third fitting mode is called \texttt{stackfit}, which fits arbitrary
+user-supplied stacked spectra (e.g., binned by redshift, stellar mass,
+or another physical property) rather than spectra of individual DESI
+targets \citep[e.g.,][]{scholte24a}. In this mode, the user is
+responsible for providing a ``stacked'' (mean) resolution matrix and
+for recognizing that the assumption of uncorrelated pixels no longer
+holds, but at DESI scale, stacked spectra can reveal significantly
+fainter spectroscopic features. With \texttt{stackfit}, the fit is
+purely spectroscopic (i.e., \texttt{--ignore-photometry} is enforced).
 
-\todo{Note that the user can easily define their own custom
-  line-list.}
+Finally, three bundled configuration files control the physical inputs
+to every fitting mode, and each can be swapped out for a custom
+version. The photometric-catalog file
+(\texttt{data/legacysurvey-dr9.yaml} by default; see
+\S\ref{ssec:quantities}) can be overridden with \texttt{--fphotofile},
+letting \fastspecfit{} fit photometry from surveys other than the
+Legacy Surveys. Users can similarly override the emission-line
+parameter file (\texttt{data/emlines.ecsv} by default; see
+\S\ref{ssec:emlinelist}) with \texttt{--emlinesfile} to add, remove,
+or retune individual lines, or the kinematic-constraints file
+(\texttt{data/emline-constraints.yaml} by default; see
+\S\ref{sssec:kinematic}) with \texttt{--constraintsfile} to redefine
+the kinematic groups, velocity-width bounds, and amplitude ratios that
+link lines during fitting. Users can even build a custom sets of SPS
+templates with \texttt{bin/build-templates} (\S\ref{ssec:templates})
+and use them with any of the available fitting modes with the
+\texttt{--templates} command-line argument.
+
+More details regarding these fitting modes and all the available
+options can be found in the ever-evolving online documentation for
+\fastspecfit.\footnote{\url{https://fastspecfit.readthedocs.io}}
+Meanwhile, we describe additional fitting modes and capabilities
+currently under development in \S\ref{ssec:improvements}.
+
 
 %% ============================================================
 \section{Illustrative Examples}
