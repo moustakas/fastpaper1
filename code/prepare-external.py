@@ -252,9 +252,15 @@ def prepare_zouhu(survey=None, specprod=DEFAULT_SPECPROD, verbose=False):
         },
         'iron': {
             'readcols': ['TARGETID', 'TARGET_RA', 'TARGET_DEC', 'Z', 'FLUX_SCALE', 'AV_CG',
-                         'AVERR_CG', 'SFR_CG', 'SFRERR_CG', 'MASS_CG', 'MASSERR_CG', ],
+                         'AVERR_CG', 'SFR_CG', 'SFRERR_CG', 'MASS_CG', 'MASSERR_CG',
+                         'OII3726_FLUX', 'OII3726_FLUXERR', 'OII3729_FLUX', 'OII3729_FLUXERR',
+                         'OIII5007_FLUX', 'OIII5007_FLUXERR', 'HBETA_FLUX', 'HBETA_FLUXERR',
+                         'HALPHA_FLUX', 'HALPHA_FLUXERR', ],
             'newcols': ['TARGETID', 'RA', 'DEC', 'Z', 'APERCORR', 'AV', 'AV_ERR', 'SFR',
-                        'SFR_ERR', 'MSTAR', 'MSTAR_ERR', ],
+                        'SFR_ERR', 'MSTAR', 'MSTAR_ERR',
+                        'OII_3726_FLUX', 'OII_3726_FLUX_ERR', 'OII_3729_FLUX', 'OII_3729_FLUX_ERR',
+                        'OIII_5007_FLUX', 'OIII_5007_FLUX_ERR', 'HBETA_FLUX', 'HBETA_FLUX_ERR',
+                        'HALPHA_FLUX', 'HALPHA_FLUX_ERR', ],
         },
     }
     readcols = _columns[specprod]['readcols']
