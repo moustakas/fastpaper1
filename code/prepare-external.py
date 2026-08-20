@@ -46,6 +46,41 @@ SURVEY_PROGRAMS = [
 # the rest are added explicitly wherever they're needed.
 _REF_EMLINES = ['OII_3726_FLUX', 'OII_3729_FLUX', 'OIII_5007_FLUX', 'HBETA_FLUX', 'HALPHA_FLUX']
 
+# Rest-frame vacuum wavelengths [Angstrom], from fastspecfit/data/emlines.ecsv.
+_LINE_RESTWAVE = {
+    'OII_3726_FLUX':  3727.10,
+    'OII_3729_FLUX':  3729.86,
+    'HBETA_FLUX':     4862.71,
+    'OIII_5007_FLUX': 5008.24,
+    'HALPHA_FLUX':    6564.60,
+}
+# emlinefit's OII_FLUX is the blended 3726+3729 doublet (single column); the
+# small (~3A) difference between the two rest wavelengths is negligible for
+# the Galactic-dust correction, so just use their mean.
+_EMLINEFIT_LINE_RESTWAVE = {
+    'OII_FLUX':    0.5 * (_LINE_RESTWAVE['OII_3726_FLUX'] + _LINE_RESTWAVE['OII_3729_FLUX']),
+    'HBETA_FLUX':  _LINE_RESTWAVE['HBETA_FLUX'],
+    'OIII_FLUX':   _LINE_RESTWAVE['OIII_5007_FLUX'],
+    'HALPHA_FLUX': _LINE_RESTWAVE['HALPHA_FLUX'],
+}
+
+
+def mw_deredden(flux, ivar, restwave, z, ebv):
+    """Correct an emission-line flux/ivar pair for foreground (Milky Way) dust
+    extinction, given each object's redshift and E(B-V) (Schlegel/Finkbeiner/
+    Davis 1998).
+
+    Uses the Fitzpatrick reddening law via desiutil.dust.dust_transmission
+    (Rv=3.1), evaluated at each object's observed-frame wavelength
+    restwave*(1+z) — Galactic dust extinguishes light at the wavelength it is
+    observed at, not the source's rest-frame wavelength.
+    """
+    from desiutil.dust import dust_transmission
+    wave_obs = restwave * (1. + np.asarray(z, dtype=float))
+    transmission = dust_transmission(wave_obs, np.asarray(ebv, dtype=float), Rv=3.1)
+    return np.asarray(flux, dtype=float) / transmission, np.asarray(ivar, dtype=float) * transmission**2
+
+
 REPODIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EXTDIR  = os.path.join(REPODIR, 'external')
 
@@ -63,6 +98,7 @@ _REF_BASE_COLS = [
     'ABSMAG01_SDSS_Z', 'ABSMAG01_IVAR_SDSS_U', 'ABSMAG01_IVAR_SDSS_G',
     'ABSMAG01_IVAR_SDSS_R', 'ABSMAG01_IVAR_SDSS_I', 'ABSMAG01_IVAR_SDSS_Z',
     'OII_3726_FLUX', 'OII_3729_FLUX', 'OII_3726_FLUX_IVAR', 'OII_3729_FLUX_IVAR',
+    'EBV',
 ]
 _SV_TARGET_COLS = {
     'sv1':     ['SV1_DESI_TARGET', 'SV1_BGS_TARGET', 'SV1_MWS_TARGET'],
@@ -763,8 +799,12 @@ def prepare_fpcatalog(survey=None, verbose=False):
 # DESI emission-line afterburner (emlinefit / Loa only)
 # ---------------------------------------------------------------------------
 
-# Restricted to sv3 for now (see prepare_emlinefit docstring).
-_EMLINEFIT_SURVEY_PROGRAMS = [('sv3', 'bright'), ('sv3', 'dark')]
+_EMLINEFIT_SURVEY_PROGRAMS = [
+    ('sv3',  'bright'),
+    ('sv3',  'dark'),
+    ('main', 'bright'),
+    ('main', 'dark'),
+]
 
 _EMLINEFIT_READCOLS = [
     'TARGETID', 'Z', 'TARGET_RA', 'TARGET_DEC',
@@ -795,11 +835,18 @@ def prepare_emlinefit(survey=None, verbose=False):
     so the standard cross_match() Δv < MAX_DV_KMS consistency check (reused
     from the other prepare_* functions) is applied here too.
 
-    Restricted to sv3/bright and sv3/dark for now; the main-survey healpix
-    directories contain far more files and are left for a future update.
+    Covers sv3/bright, sv3/dark, main/bright, and main/dark. The main-survey
+    healpix directories contain far more files than sv3, so this loop is
+    slower there (serial, one file per healpixel); the per-healpix progress
+    print below is mainly useful for that case.
 
     No unit conversion is applied: emlinefit fluxes are already in the same
-    units (1e-17 erg/s/cm^2) as the FastSpecFit VAC.
+    units (1e-17 erg/s/cm^2) as the FastSpecFit VAC. Unlike the FastSpecFit
+    reference (and Zou et al.'s zouhu catalogs), emlinefit fluxes are NOT
+    corrected for Galactic (Milky Way) dust extinction; mw_deredden() applies
+    that correction (Fitzpatrick law via desiutil.dust.dust_transmission,
+    Rv=3.1) using each object's EBV and FastSpecFit redshift before anything
+    else touches emlinefit's line columns.
 
     Reference (FastSpecFit) OIII_5007_FLUX, HBETA_FLUX, and HALPHA_FLUX are
     also pulled in (OII_3726_FLUX/OII_3729_FLUX already come via
@@ -878,6 +925,16 @@ def prepare_emlinefit(survey=None, verbose=False):
         out   = ref[i_ref].copy()
         ext_m = ext[i_ext]
 
+        # emlinefit fluxes are not corrected for Galactic (MW) dust extinction
+        # (unlike the FastSpecFit reference and Zou et al.'s zouhu catalogs,
+        # which are); deredden using the matched object's own EBV and
+        # FastSpecFit redshift before anything downstream touches these columns
+        z_ref = np.asarray(out['Z'], dtype=float)
+        ebv   = np.asarray(out['EBV'], dtype=float)
+        for col, restwave in _EMLINEFIT_LINE_RESTWAVE.items():
+            ext_m[col], ext_m[f'{col}_IVAR'] = mw_deredden(
+                ext_m[col], ext_m[f'{col}_IVAR'], restwave, z_ref, ebv)
+
         # raw Redrock redshift, kept alongside FastSpecFit's own Z for diagnostics
         out[f'Z_{shortcat.upper()}'] = ext_m['Z']
 
@@ -919,7 +976,7 @@ def main():
     parser.add_argument('--fpcatalog', action='store_true',
                         help='Prepare the Ross et al. fundamental-plane catalog (DR1/iron only).')
     parser.add_argument('--emlinefit', action='store_true',
-                        help='Prepare the DESI emission-line afterburner catalog (DR2/loa, sv3 only).')
+                        help='Prepare the DESI emission-line afterburner catalog (DR2/loa).')
     parser.add_argument('--specprod', default=DEFAULT_SPECPROD,
                         help='Spectroscopic production name.')
     parser.add_argument('--survey', default=None, choices=['sv3', 'main'],

@@ -217,7 +217,7 @@ Not a formal VAC and not under `desicollab/vac` — one file per (survey,
 program, healpix), so `prepare_emlinefit()` reads the FastSpecFit reference
 catalog first, groups it by HEALPIX, and opens only the emlinefit files
 needed; a TARGETID-only read of each file (via fitsio) selects which rows to
-load in full. Restricted to `sv3/bright` and `sv3/dark` for now.
+load in full. Covers `sv3/bright`, `sv3/dark`, `main/bright`, and `main/dark`.
 
 emlinefit uses the pure Redrock redshift rather than FastSpecFit's
 QuasarNet-corrected redshift, so the standard TARGETID + position + Δv
@@ -225,7 +225,13 @@ consistency check (`cross_match()`, |Δv| < 1000 km/s) is applied, using
 emlinefit's `TARGET_RA`/`TARGET_DEC` for the positional check.
 
 No unit conversion is applied: emlinefit fluxes are already in the same
-units (1e-17 erg/s/cm²) as the FastSpecFit VAC.
+units (1e-17 erg/s/cm²) as the FastSpecFit VAC. Unlike the FastSpecFit
+reference and Zou et al.'s zouhu catalogs, emlinefit's fluxes are **not**
+corrected for Galactic (Milky Way) dust extinction; `mw_deredden()` applies
+that correction (Fitzpatrick law via `desiutil.dust.dust_transmission`,
+Rv=3.1) at each object's observed-frame wavelength (restwave × (1+z)), using
+the matched object's own `EBV` and FastSpecFit redshift, before any other
+processing touches emlinefit's line columns.
 
 **Output columns:**
 
