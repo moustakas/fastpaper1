@@ -735,8 +735,7 @@ def compare_emlines_external(verbose=False, survey='sv3', pull_denom='quadrature
             pull = pull[np.isfinite(pull)]
             axins = ax.inset_axes([0.56, 0.12, 0.42, 0.28])
             bins = np.linspace(-5, 5, 41)
-            axins.hist(pull, bins=bins, density=True,
-                      color='0.85', edgecolor='0.5', linewidth=0.5, zorder=2)
+            axins.hist(pull, bins=bins, density=True, color='0.7', zorder=2)
             xx = np.linspace(-5, 5, 200)
             axins.plot(xx, norm.pdf(xx), color='k', lw=1.2, zorder=3)
             axins.set_xlim(-5, 5)
@@ -744,7 +743,7 @@ def compare_emlines_external(verbose=False, survey='sv3', pull_denom='quadrature
             axins.set_xlabel('Pull', fontsize='xx-small', labelpad=1)
             axins.tick_params(labelsize='xx-small', labelleft=False, length=2, pad=1)
             axins.set_yticks([])
-            axins.patch.set_alpha(0)  # transparent background: let the Hess plot show through
+            axins.set_facecolor('white')  # opaque: block the main plot's gridlines from showing through
             for side in ('top', 'left', 'right'):
                 axins.spines[side].set_visible(False)
             axins.spines['bottom'].set_linewidth(0.5)
@@ -1395,8 +1394,7 @@ def compare_vdisp(verbose=False, two_panel=False):
 
         axins = ax_pp.inset_axes([0.56, 0.12, 0.42, 0.28])
         bins = np.linspace(-5, 5, 41)
-        axins.hist(pull, bins=bins, density=True,
-                  color='0.85', zorder=2)
+        axins.hist(pull, bins=bins, density=True, color='0.7', zorder=2)
         xx = np.linspace(-5, 5, 200)
         axins.plot(xx, norm.pdf(xx), color='k', lw=1.2, zorder=3)
         axins.set_xlim(-5, 5)
@@ -1404,7 +1402,7 @@ def compare_vdisp(verbose=False, two_panel=False):
         axins.set_xlabel('Pull', fontsize='xx-small', labelpad=1)
         axins.tick_params(labelsize='xx-small', labelleft=False, length=2, pad=1)
         axins.set_yticks([])
-        axins.patch.set_alpha(0)  # transparent background: let the Hess plot show through
+        axins.set_facecolor('white')  # opaque: block the main plot's gridlines from showing through
         for side in ('top', 'left', 'right'):
             axins.spines[side].set_visible(False)
         axins.spines['bottom'].set_linewidth(0.5)
