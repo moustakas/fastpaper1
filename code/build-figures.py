@@ -390,14 +390,23 @@ def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD, verbose=False):
 # compare-mstar-external
 # ---------------------------------------------------------------------------
 
-def compare_mstar_external(verbose=False):
+def compare_mstar_external(verbose=False, black_contours=True):
     """3×3 grid: FastSpecFit stellar masses vs external catalogs, split by target class.
 
     Rows: Zou+CIGALE (loa), CIGALE-AGN (iron), GSWLC-X2 (bright/BGS only).
     Columns: BGS | LRG | ELG.  GSWLC-X2 populates BGS only; other cells hidden.
-    Each panel uses a class-colored Hess background with thick colored contours.
-    Output: tex/figures/compare-mstar-external.pdf
+    Each panel uses a class-colored Hess background; contour/unity-line style
+    is controlled by black_contours.
 
+    black_contours : bool
+        Default True: black, thinner contours (contour_color='k',
+        contour_lw=1.2) and a mid-gray dashed 1:1 line, matching the Figs
+        6/8/12 treatment. Pass False to revert to the original per-class-
+        colored, thicker contours and solid-black 1:1 line. Either way,
+        writes to the same output filename (no separate preview file) and
+        the Hess density background stays class-colored regardless.
+
+    Output: tex/figures/compare-mstar-external.pdf
     """
     import fitsio
     from desitarget.sv3.sv3_targetmask import desi_mask as sv3_mask
@@ -485,10 +494,16 @@ def compare_mstar_external(verbose=False):
             delta = e - r
             color = TARGET_CLASS_COLORS[cls]
 
-            hess_contours(ax, r, e, mstarlim, mstarlim, bins=60,
-                          cmap=make_class_cmap(color),
-                          contour_color=color, contour_lw=2.0)
-            ax.plot(mstarlim, mstarlim, 'k--', lw=1.5, zorder=5)
+            if black_contours:
+                hess_contours(ax, r, e, mstarlim, mstarlim, bins=60,
+                              cmap=make_class_cmap(color),
+                              contour_color='k', contour_lw=1.2)
+                ax.plot(mstarlim, mstarlim, color='0.4', ls='--', lw=1.6, zorder=5)
+            else:
+                hess_contours(ax, r, e, mstarlim, mstarlim, bins=60,
+                              cmap=make_class_cmap(color),
+                              contour_color=color, contour_lw=2.0)
+                ax.plot(mstarlim, mstarlim, 'k--', lw=1.5, zorder=5)
             ax.set_xlim(mstarlim)
             ax.set_ylim(mstarlim)
 
@@ -992,14 +1007,22 @@ def compare_sfr_external(verbose=False):
 # mstar-redshift
 # ---------------------------------------------------------------------------
 
-def mstar_redshift(verbose=False):
+def mstar_redshift(verbose=False, black_contours=True):
     """M* vs. redshift for BGS, LRG, and ELG from sv3 (bright + dark programs).
 
-    Three-panel figure (one per target class) with Hess background and smoothed
-    contours; panels share the y-axis (stellar mass) and use the same redshift
-    range.
-    Output: tex/figures/mstar-redshift.pdf
+    Three-panel figure (one per target class) with Hess background and
+    contours; panels share the y-axis (stellar mass) and use the same
+    redshift range.
 
+    black_contours : bool
+        Default True: black, thinner contours (contour_color='k',
+        contour_lw=1.2), matching the Figs 6/8/12 treatment. Pass False to
+        revert to the original per-class-colored, thicker contours. No
+        unity/reference line in this figure, so nothing else changes either
+        way. Writes to the same output filename regardless. The Hess
+        density background stays class-colored either way.
+
+    Output: tex/figures/mstar-redshift.pdf
     """
     zrange   = [-0.1, 1.8]
     mstarlim = [6, 13]
@@ -1023,11 +1046,13 @@ def mstar_redshift(verbose=False):
     for ax, g in zip(axes, groups):
         sub = cat[g['mask']]
         color = g['color']
+        contour_color = 'k' if black_contours else color
+        contour_lw    = 1.2 if black_contours else 2.0
         hess_contours(ax, sub['Z'], sub['LOGMSTAR'],
                       zrange, mstarlim,
                       bins=60, smooth=1.0,
                       cmap=make_class_cmap(color),
-                      contour_color=color, contour_lw=2.0,
+                      contour_color=contour_color, contour_lw=contour_lw,
                       outlier_ms=2, background=True)
         ax.set_xlim(zrange)
         ax.set_ylim(mstarlim)
