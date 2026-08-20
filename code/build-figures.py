@@ -600,14 +600,14 @@ def compare_emlines_external(verbose=False, survey='sv3', pull_denom='quadrature
     lines = ['OII', 'OIII', 'Hbeta', 'Halpha']
 
     codes = [
-        dict(name='emlinefit-loa', label='emlinefit', color='#E69F00',  # orange
+        dict(name='emlinefit-loa', label='emlinefit', color='#8E4585',  # plum
             cols={
                 'OII':    (['OII_FLUX_EMLINEFIT'],    ['OII_FLUX_ERR_EMLINEFIT']),
                 'OIII':   (['OIII_FLUX_EMLINEFIT'],   ['OIII_FLUX_ERR_EMLINEFIT']),
                 'Hbeta':  (['HBETA_FLUX_EMLINEFIT'],  ['HBETA_FLUX_ERR_EMLINEFIT']),
                 'Halpha': (['HALPHA_FLUX_EMLINEFIT'], ['HALPHA_FLUX_ERR_EMLINEFIT']),
             }),
-        dict(name='zouhu-iron', label='Zou et al. (Iron)', color='#009E73',  # bluish green
+        dict(name='zouhu-iron', label='Zou et al. (Iron)', color='#4A5FBF',  # slate blue
             cols={
                 'OII':    (['OII_3726_FLUX_ZOUHU', 'OII_3729_FLUX_ZOUHU'],
                            ['OII_3726_FLUX_ERR_ZOUHU', 'OII_3729_FLUX_ERR_ZOUHU']),
@@ -688,8 +688,8 @@ def compare_emlines_external(verbose=False, survey='sv3', pull_denom='quadrature
 
             hess_contours(ax, logr, loge, lim, lim, bins=60,
                           cmap=make_class_cmap(color),
-                          contour_color=color, contour_lw=2.0)
-            ax.plot(lim, lim, 'k--', lw=1.5, zorder=5)
+                          contour_color='k', contour_lw=1.2)
+            ax.plot(lim, lim, color='0.4', ls='--', lw=1.6, zorder=5)
             ax.set_xlim(lim)
             ax.set_ylim(lim)
             ax.tick_params(labelleft=(ci == 0), labelbottom=(ri == 1))
@@ -1184,7 +1184,7 @@ def bpt_agn(verbose=False):
     p1, p3 = jiyan_p1p3(log_nii_ha, log_sii_ha, log_oiii_hb)
 
     color_left  = TARGET_CLASS_COLORS['BGS']  # forest green
-    color_right = '#E69F00'                   # orange
+    color_right = '#8E4585'                   # plum
     cmap_left   = make_class_cmap(color_left)
     cmap_right  = make_class_cmap(color_right)
 
@@ -1194,13 +1194,13 @@ def bpt_agn(verbose=False):
     # --- left: BPT diagram ---
     ax = axes[0]
     hess_contours(ax, log_nii_ha, log_oiii_hb, bpt_xrange, bpt_yrange,
-                  bins=60, smooth=1.0, cmap=cmap_left, contour_color=color_left,
-                  contour_lw=2.0, outlier_ms=2, background=True)
+                  bins=60, smooth=1.0, cmap=cmap_left, contour_color='k',
+                  contour_lw=1.2, outlier_ms=2, background=True)
 
     x = np.linspace(bpt_xrange[0], 0.04, 300)
     y = 0.61 / (x - 0.05) + 1.3
     m = (y >= bpt_yrange[0]) & (y <= bpt_yrange[1])
-    ax.plot(x[m], y[m], 'k--', lw=1.5, label='Kauffmann et al. (2003)')
+    ax.plot(x[m], y[m], color='0.4', ls='--', lw=1.6, label='Kauffmann et al. (2003)')
 
     #x = np.linspace(bpt_xrange[0], 0.46, 300)
     #y = 0.61 / (x - 0.47) + 1.19
@@ -1219,8 +1219,8 @@ def bpt_agn(verbose=False):
     # --- right: P3 vs P1 ---
     ax = axes[1]
     hess_contours(ax, p1, p3, p1_range, p3_range,
-                  bins=60, smooth=1.0, cmap=cmap_right, contour_color=color_right,
-                  contour_lw=2.0, outlier_ms=2, background=True)
+                  bins=60, smooth=1.0, cmap=cmap_right, contour_color='k',
+                  contour_lw=1.2, outlier_ms=2, background=True)
     ax.set_xlim(p1_range)
     ax.set_ylim(p3_range)
     ax.yaxis.set_major_locator(plt.MultipleLocator(0.5))
@@ -1302,7 +1302,7 @@ def compare_vdisp(verbose=False):
     snrrange = [0., 2.]          # log10(SNR_B): 1 to 100
     snr_ticks = [1, 3, 10, 30, 100]
 
-    color = '#009E73'  # bluish green
+    color = '#4A5FBF'  # slate blue
     cmap  = make_class_cmap(color)
 
     plot_style(talk=True, font_scale=0.85, palette='colorblind')
@@ -1315,8 +1315,8 @@ def compare_vdisp(verbose=False):
 
     # ---- top: FS vs pPXF ----
     hess_contours(ax_pp, fs_p, ppxf_p, sigrange, sigrange, bins=60,
-                  cmap=cmap, contour_color=color, contour_lw=2.0)
-    ax_pp.plot(sigrange, sigrange, color='k', lw=1.5, ls='--', zorder=5)
+                  cmap=cmap, contour_color='k', contour_lw=1.2)
+    ax_pp.plot(sigrange, sigrange, color='0.4', lw=1.6, ls='--', zorder=5)
     ax_pp.set_xlim(sigrange)
     ax_pp.set_ylim(sigrange)
     ax_pp.set_xlabel(r'$\sigma$ [FastSpecFit] (km s$^{-1}$)')
@@ -1337,8 +1337,8 @@ def compare_vdisp(verbose=False):
     #ax_rpp.set_ylim(resrange)
 
     hess_contours(ax_rpp, np.log10(snr_p), dpp, snrrange, resrange, bins=[50, 40],
-                  cmap=cmap, contour_color=color, contour_lw=2.0)
-    ax_rpp.axhline(0, color='k', lw=1.5, ls='--', zorder=5)
+                  cmap=cmap, contour_color='k', contour_lw=1.2)
+    ax_rpp.axhline(0, color='0.4', lw=1.6, ls='--', zorder=5)
     ax_rpp.set_xlim(snrrange)
     ax_rpp.set_ylim(resrange)
     ax_rpp.set_xticks([np.log10(t) for t in snr_ticks])
