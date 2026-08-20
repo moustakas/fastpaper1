@@ -521,7 +521,7 @@ same machinery (\S\ref{sec:modes}).
 \label{ssec:templates}
 
 \begin{figure*}
-\includegraphics[width=6.5in]{figures/sps-models.pdf}
+\centering\includegraphics[width=1.0\textwidth]{figures/sps-models.pdf}
 \caption{The five SPS templates spanning \fastspecfit's lookback-time
   age bins (\S\ref{ssec:templates}), computed at solar metallicity
   ($\log_{10}Z/Z_\odot=0$) with $\tauv=0.1$ and normalized to a
@@ -682,7 +682,7 @@ line-emission (although the statistically defensible decision is made
 in the final fitting pass, described in \S\ref{sssec:kinematic}).
 
 \begin{figure*}
-\includegraphics[width=6.5in]{figures/linemasker.pdf}
+\centering\includegraphics[width=1.0\textwidth]{figures/linemasker.pdf}
 \caption{Illustration of the line-masking algorithm for an example BGS
   target at $z=0.3292$ (\texttt{TARGETID=39627670102744387} from the
   main survey bright-time program, appearing on HEALPix
@@ -1880,7 +1880,7 @@ QSOs and broad-line AGN with appropriate caution.
 \label{ssec:example_bgs}
 
 \begin{figure*}
-\includegraphics[width=6.5in]{figures/example-bgs.pdf}
+\centering\includegraphics[width=1.0\textwidth]{figures/example-bgs.pdf}
 \caption{\fastspecfit{} output for a low-redshift BGS galaxy at
   $z=0.1201$ (TARGETID~39627813136892057; main survey, bright program,
   HEALPix~31152).  Top: broadband SED, with the best-fit stellar
@@ -1942,7 +1942,7 @@ stellar population recovered by the continuum fit.
 \label{ssec:example_elg}
 
 \begin{figure*}
-\includegraphics[width=6.5in]{figures/example-elg.pdf}
+\centering\includegraphics[width=1.0\textwidth]{figures/example-elg.pdf}
 \caption{\fastspecfit{} output for an intermediate-redshift ELG at
   $z=0.9449$ (TARGETID~39627663165362386; main survey, dark program,
   HEALPix~29973). Like Figure~\ref{fig:example_bgs}, but for this ELG
@@ -1998,7 +1998,7 @@ young, low-mass, actively star-forming galaxy.
 \label{ssec:example_qso}
 
 \begin{figure*}
-\includegraphics[width=6.5in]{figures/example-qso.pdf}
+\centering\includegraphics[width=1.0\textwidth]{figures/example-qso.pdf}
 \caption{\fastspecfit{} output for a high-redshift QSO at $z=2.0731$
   (TARGETID~39627657142340435; main survey, dark program,
   HEALPix~29972). Like Figure~\ref{fig:example_bgs}, but for this QSO
@@ -2315,18 +2315,18 @@ supercomputer, whose 3072 CPU nodes each provide 128 physical cores
 (two 64-core AMD EPYC 7763
 processors).\footnote{\url{https://docs.nersc.gov/systems/perlmutter/architecture}}
 Fitting the full DR2 sample---38,245,183 objects in 52,325 HEALPix
-files---the code processes a typical DESI spectrum in a median 4.8~s
-(mean 6.0~s) of single-core time. We use MPI for Python
-\citep[\texttt{mpi4py};][]{dalcin21a} to distribute independent
-HEALPix files across ranks and Python multiprocessing to parallelize
-per-object fits within each rank.  Per-object runtime varies between a
-median 3.9~s/object/core for main-survey dark-time targets (LRGs,
-ELGs, QSOs) versus 8.1~s/object/core for main-survey bright-time
-targets (BGS). This gap in time is primarily due to BGS targets more
-frequently triggering a direct velocity-dispersion measurement than
-higher-redshift, dark-time targets, which adds a $\chi^2$-scan and
-nonlinear least-squares solve to the per-object cost
-(\S\ref{sssec:vdisp}).
+files---the code processes a typical DESI spectrum (with 50 Monte
+Carlo realizations) in a median 4.8~s (mean 6.0~s) of single-core
+time. We use MPI for Python \citep[\texttt{mpi4py};][]{dalcin21a} to
+distribute independent HEALPix files across ranks and Python
+multiprocessing to parallelize per-object fits within each rank.
+Per-object runtime varies between a median 3.9~s/object/core for
+main-survey dark-time targets (LRGs, ELGs, QSOs) versus
+8.1~s/object/core for main-survey bright-time targets (BGS). This gap
+in time is primarily due to BGS targets more frequently triggering a
+direct velocity-dispersion measurement than higher-redshift, dark-time
+targets, which adds a $\chi^2$-scan and nonlinear least-squares solve
+to the per-object cost (\S\ref{sssec:vdisp}).
 
 %Processing the complete \texttt{Loa/v2.0} catalog requires
 %approximately 850~node-hours on Perlmutter.
@@ -2335,12 +2335,59 @@ nonlinear least-squares solve to the per-object cost
 \label{ssec:validation}
 
 \begin{figure*}
-\includegraphics[width=6.5in]{compare-mstar-external.pdf}
+\centering\includegraphics[width=\textwidth]{compare-emlines-external.pdf}
+\caption{Comparison of \fastspecfit{} emission-line fluxes with two
+  independent measurements of the same DESI spectra: (top) the DESI
+  spectroscopic-pipeline \texttt{emlinefit} afterburner
+  \citep{raichoor23a}, and (bottom) the CIGALE-based emission-line
+  fluxes from the DR1 (Iron) stellar-mass-emission-line catalog of
+  \citet{zou24b,sui26a}. Columns show, left to right, \oii\
+  ($\lambda3726$+$\lambda3729$), \oiiilam, \hb, and \ha. A galaxy is
+  included only if both the \fastspecfit{} and comparison flux have
+  $\mathrm{S/N}>3$; no target-class split is applied (cf.\
+  Figure~\ref{fig:compare-mstar-external}). As in
+  Figure~\ref{fig:compare-mstar-external}, the logarithmically-scaled
+  two-dimensional number density is shown as a color map, with contours
+  enclosing 50\%, 75\%, 95\%, and 99.5\% of the joint distribution;
+  individual galaxies outside the outermost contour are shown as
+  markers, and the dashed line is the 1:1 relation. Each panel lists
+  the matched sample size $N$, the median flux offset $\Delta_{\rm
+  med}$ (external minus \fastspecfit{}) in dex, and the NMAD scatter.
+  The inset in each panel shows the pull distribution,
+  $(\mathrm{flux}_{\rm ext}-\mathrm{flux}_{\rm fastspecfit})~/~
+  \sqrt{\sigma_{\rm ext}^2+\sigma_{\rm fastspecfit}^2}$, compared to a
+  unit Gaussian (black curve), to test whether the two measurements'
+  quoted flux uncertainties are mutually
+  consistent.\label{fig:compare-emlines-external}}
+\end{figure*}
+
+To validate the \fastspecfit{} measurements, we construct overlapping
+subsets of the DR2 sample and compare our results against several
+independent codes and catalogs. Naturally, these comparisons are not
+exhaustive, and because we generate the largest possible comparison
+samples, it is possible for differences to be larger or smaller for
+narrower subsets of objects. Nevertheless, the following figures
+demonstrate that \fastspec{} produces emission-line fluxes (for strong
+lines), stellar masses, and velocity dispersions that match reasonably
+well to existing independent measurements.
+
+%...emission-line fluxes from the DESI \texttt{emlinefit} afterburner
+%and the CIGALE-based DR1 catalog of \citet{zou24b,sui26a},
+%SED-fitting-based stellar masses from three external catalogs, and
+%stellar velocity dispersions from \texttt{pPXF}. Emission-line
+%comparisons against \texttt{pPXF} and GSWLC remain for future
+%work. For each comparison we select targets with reliable measurements
+%in both catalogs and quantify systematic offsets and scatter as a
+%function of signal-to-noise ratio, redshift, and (for the stellar-mass
+%and SFR comparisons) target class.
+
+\begin{figure*}
+\centering\includegraphics[width=1.0\textwidth]{compare-mstar-external.pdf}
 \caption{Comparison of \fastspecfit{} stellar masses with three
   independent catalogs, organized by target class. Each row compares
   \fastspecfit{} $\logmstar$ (x-axis; $h=1$, Chabrier IMF) against
-  masses from (top) \citet{zou24b} using CIGALE SED fitting of DR2
-  photometry, (middle) \citet{siudek25a} using CIGALE SED fitting with
+  masses from (top) \citet{zou24b,sui26a} using CIGALE SED fitting of
+  DR2 photometry, (middle) \citet{siudek25a} using CIGALE SED fitting with
   AGN contributions fit to DR1 spectra and photometry, and (bottom)
   \citet{salim16a,salim18a} using CIGALE SED fitting of
   \textit{GALEX}$+$SDSS$+$\textit{WISE} photometry (GSWLC-X2). Columns
@@ -2355,16 +2402,33 @@ nonlinear least-squares solve to the per-object cost
   dashed line is the 1:1 relation.\label{fig:compare-mstar-external}}
 \end{figure*}
 
-We validate the \fastspecfit{} measurements by comparing them against
-independent codes and catalogs applied to overlapping subsets of the
-DR2 sample: SED-fitting-based stellar masses and SFRs from three
-external catalogs and from the COSMOS2020 photometric catalog,
-stellar velocity dispersions from \texttt{pPXF}, and emission-line
-fluxes from \texttt{pPXF}, the DESI \texttt{emlinefit} afterburner,
-and GSWLC. For each comparison we select targets with reliable
-measurements in both catalogs and quantify systematic offsets and
-scatter as a function of signal-to-noise ratio, redshift, and target
-class. \todo{Add summary of overall agreement and key findings.}
+Figure~\ref{fig:compare-emlines-external} compares \fastspecfit{}
+emission-line fluxes against the DESI \texttt{emlinefit} afterburner
+\citep{raichoor23a} and against the DR1 (Iron) CIGALE-based
+emission-line fluxes of \citet{zou24b,sui26a}, requiring
+$\mathrm{S/N}>3$ on both sides of each comparison. Agreement with
+\texttt{emlinefit} is excellent for \oii\ and \ha\ (median offsets of
+$+0.006$ and $-0.029$~dex and NMAD scatter of 0.022 and 0.020~dex, for
+$N\sim2$--5$\times10^5$ matched galaxies), but \oiiilam\ and \hb\ show
+larger offsets ($+0.115$ and $-0.085$~dex, respectively) whose pull
+distributions grow increasingly asymmetric toward higher
+signal-to-noise---the signature of a multiplicative (flux-scale)
+discrepancy between the two codes' line measurements rather than
+additive noise. \todo{Confirm physical origin of the
+  \oiiilam/\hb\ asymmetry (candidate: differences in stellar
+  continuum/Balmer-absorption modeling underlying these two lines)
+  once resolved with the \texttt{emlinefit} developer.} Agreement with
+the Iron CIGALE catalog is excellent in median offset for all four
+lines ($|\Delta_{\rm med}|<0.01$~dex), but the pull distributions are
+systematically narrower than a unit Gaussian (standard deviations of
+0.36--0.94 across the four lines), indicating that the combined quoted
+flux uncertainties overestimate the true scatter; since the same
+\fastspecfit{} reference does not show this narrowing against
+\texttt{emlinefit}, the miscalibration plausibly lies in the CIGALE
+catalog's quoted errors rather than \fastspecfit{}'s, though this
+combined-pull test alone cannot definitively separate the two.
+\todo{Emission-line comparisons against \texttt{pPXF} and the GSWLC
+  catalog of \citet{salim16a} remain for future work.}
 
 We caution that non-parametric SFH models can yield stellar masses
 that are systematically higher---by $\sim$0.2--0.3~dex on
@@ -2373,9 +2437,16 @@ accommodate more mass in old, low-luminosity stellar populations
 \citep{leja19a,leja20a}.
 
 %\begin{figure*}
-%\includegraphics[width=6.5in]{compare-sfr-external.pdf}
+%\includegraphics[width=1.0\textwidth]{compare-sfr-external.pdf}
 %\caption{Write me\label{fig:compare-sfr-external}}
 %\end{figure*}
+
+\begin{figure*}
+\centering\includegraphics[width=1.0\textwidth]{compare-vdisp.pdf}
+\caption{Comparison of \fastspecfit{} stellar velocity dispersions with
+  those from \texttt{pPXF} \citep{cappellari23a} for a matched BGS
+  sample.\label{fig:vdisp}}
+\end{figure*}
 
 Figure~\ref{fig:compare-mstar-external} compares \fastspecfit{}
 stellar masses against three independent CIGALE-based SED-fitting
@@ -2397,7 +2468,7 @@ non-parametric vs. parametric SFH choices.}
 %non-parametric vs. parametric SFH choices.}
 %
 %\begin{figure*}
-%\includegraphics[width=6.5in]{compare-cosmos2020.pdf}
+%\includegraphics[width=1.0\textwidth]{compare-cosmos2020.pdf}
 %\caption{Comparison of \fastspecfit{} stellar masses ($h=1$, Chabrier
 %  IMF) with the COSMOS2020 photometric catalog \citep{weaver22a},
 %  matched by sky position to DESI SV3 targets.  \textit{Top:}
@@ -2417,21 +2488,6 @@ Figure~\ref{fig:vdisp} compares \fastspecfit{} $\vdisp$ measurements
 against those from \texttt{pPXF} \citep{cappellari23a} for a matched
 sample of BGS galaxies with high signal-to-noise stellar
 continua. \todo{Quantify agreement: rms, bias.}
-
-\begin{figure*}
-\includegraphics[width=6.5in]{compare-vdisp.pdf}
-\caption{Comparison of \fastspecfit{} stellar velocity dispersions with
-  those from \texttt{pPXF} \citep{cappellari23a} for a matched BGS
-  sample.\label{fig:vdisp}}
-\end{figure*}
-
-We compare emission-line fluxes against \texttt{pPXF}
-\citep{cappellari23a}, the DESI \texttt{emlinefit} afterburner
-\citep{raichoor23a}, and the GSWLC catalog of \citet{salim16a} for
-targets in the SDSS footprint. \todo{Describe agreement and key
-  diagnostics compared (H$\alpha$, [\ion{O}{2}]); no figure currently
-  implemented for this comparison in code/build-figures.py---confirm
-  whether one should be built.}
 
 \subsection{Pipeline Diagnostics}
 \label{ssec:diagnostics}
@@ -2459,7 +2515,7 @@ trends with wavelength, fiber position, or observing conditions indicate
 residual errors in the arc-lamp or sky-line wavelength calibration.
 
 \begin{figure*}
-%\includegraphics[width=6.5in]{figures/wave-residuals.png}
+%\centering\includegraphics[width=1.0\textwidth]{figures/wave-residuals.png}
 \caption{Per-camera median emission-line velocity shifts as a function of
   wavelength and target class for a representative subset of the DR2
   sample. Each panel shows one DESI camera (B, R, Z); the dashed line
@@ -2484,7 +2540,7 @@ Legacy Survey band and examine their dependence on apparent magnitude,
 redshift, and target class.
 
 \begin{figure*}
-%\includegraphics[width=6.5in]{figures/fluxcal-residuals.png}
+%\centering\includegraphics[width=1.0\textwidth]{figures/fluxcal-residuals.png}
 \caption{Residual spectrophotometric calibration ($\Delta m =
   m_\mathrm{synth} - m_\mathrm{obs}$) as a function of apparent magnitude
   and redshift for BGS, LRG, and ELG targets. Each column corresponds to
@@ -2519,7 +2575,7 @@ planned improvements to the code and future VACs
 \label{ssec:reach}
 
 \begin{figure*}
-\includegraphics[width=6.5in]{figures/mstar-redshift.pdf}
+\centering\includegraphics[width=1.0\textwidth]{figures/mstar-redshift.pdf}
 \caption{Stellar mass versus redshift for BGS (left), LRG (center),
   and ELG (right) targets observed during the DESI SV3 bright and dark
   programs. The color scale and contours in each panel show the
@@ -2545,7 +2601,7 @@ to $z \approx 1.6$, making the DR2 catalog a uniquely comprehensive
 resource for studies of galaxy evolution over the past $\sim$10~Gyr.
 
 \begin{figure*}
-\includegraphics[width=6.5in]{figures/bpt-agn.pdf}
+\centering\includegraphics[width=1.0\textwidth]{figures/bpt-agn.pdf}
 \caption{AGN diagnostics for BGS galaxies in the DESI SV3 bright
   program. Both panels show the same sample of $N = {N}$ galaxies with
   signal-to-noise ratio $>3$ detected in all six diagnostic emission
@@ -2804,7 +2860,7 @@ model or emission lines to fit. Because these files carry no bulky
 \fastspec{} per-HEALPix files.
 
 \begin{figure*}
-\includegraphics[width=6.5in]{figures/compare-mstar-fastphot.pdf}
+\centering\includegraphics[width=1.0\textwidth]{figures/compare-mstar-fastphot.pdf}
 \caption{Comparison of \fastspecfit{} stellar masses derived from
   spectrophotometric fitting (\fastspec) and from photometry-only
   fitting (\fastphot{}), organized by target class.  \textit{Top row:}

@@ -545,7 +545,7 @@ _EMLINE_LABELS = {
 FLUX_LABEL = r'$\log_{10}\,(\mathrm{Flux}\,/\,10^{-17}\,\mathrm{erg\,s^{-1}\,cm^{-2}})$'
 
 
-def compare_emlines_external(verbose=False):
+def compare_emlines_external(verbose=False, survey='sv3', pull_denom='quadrature'):
     """2×4 grid: FastSpecFit vs external emission-line fluxes.
 
     Rows: emlinefit (Loa), Zou et al. (Iron).
@@ -565,30 +565,49 @@ def compare_emlines_external(verbose=False):
     per-panel axis limits set from the [1, 99] percentile of the combined
     reference+external log-flux distribution, padded by 15% of that range on
     each side so the scatter isn't too tightly cropped. Every panel additionally
-    carries a small inset pull histogram — (flux_ext − flux_ref) /
-    sqrt(err_ext² + err_ref²), with the top 1% of err on each side trimmed
-    first to drop pathologically huge (effectively unconstrained) errors —
-    filled light gray with a black unit-Gaussian curve overlaid, to check
-    whether the two codes' quoted flux uncertainties are mutually
-    consistent.
+    carries a small inset pull histogram, filled light gray with a black
+    unit-Gaussian curve overlaid, to check whether the two codes' quoted flux
+    uncertainties are mutually consistent — with the top 1% of err on each
+    side trimmed first (regardless of ``pull_denom``, so the plotted sample
+    is identical across all three choices below) to drop pathologically huge
+    (effectively unconstrained) errors.
 
-    Output: tex/figures/compare-emlines-external.pdf
+    pull_denom : {'quadrature', 'ref', 'ext'}
+        What goes in the pull's denominator — a diagnostic for teasing apart
+        which side's quoted errors are miscalibrated when the pull isn't a
+        unit Gaussian, since a single quadrature-combined pull test can't by
+        itself distinguish an overestimated reference error from an
+        overestimated external one:
+          'quadrature' (default) — sqrt(err_ext**2 + err_ref**2), the
+              standard pull, testing the combined error budget.
+          'ref' — err_ref alone (FastSpecFit); if this alone gives pull
+              std ~ 1, the reference errors capture the true scatter well.
+          'ext' — err_ext alone (emlinefit or zouhu); analogous check on the
+              external side.
+        Non-default choices append a '-{pull_denom}' suffix to the output
+        filename so repeated runs with different choices don't overwrite
+        each other.
+
+    Output: tex/figures/compare-emlines-external[-{pull_denom}].pdf
     """
     import fitsio
+
+    if pull_denom not in ('quadrature', 'ref', 'ext'):
+        raise ValueError(f"pull_denom must be 'quadrature', 'ref', or 'ext', got {pull_denom!r}")
     from scipy.stats import norm
 
     extdir = os.path.join(REPODIR, 'external')
     lines = ['OII', 'OIII', 'Hbeta', 'Halpha']
 
     codes = [
-        dict(name='emlinefit-loa', label='emlinefit', color='#0072B2',
+        dict(name='emlinefit-loa', label='emlinefit', color='#E69F00',  # orange
             cols={
                 'OII':    (['OII_FLUX_EMLINEFIT'],    ['OII_FLUX_ERR_EMLINEFIT']),
                 'OIII':   (['OIII_FLUX_EMLINEFIT'],   ['OIII_FLUX_ERR_EMLINEFIT']),
                 'Hbeta':  (['HBETA_FLUX_EMLINEFIT'],  ['HBETA_FLUX_ERR_EMLINEFIT']),
                 'Halpha': (['HALPHA_FLUX_EMLINEFIT'], ['HALPHA_FLUX_ERR_EMLINEFIT']),
             }),
-        dict(name='zouhu-iron', label='Zou et al. (Iron)', color='#D55E00',
+        dict(name='zouhu-iron', label='Zou et al. (Iron)', color='#009E73',  # bluish green
             cols={
                 'OII':    (['OII_3726_FLUX_ZOUHU', 'OII_3729_FLUX_ZOUHU'],
                            ['OII_3726_FLUX_ERR_ZOUHU', 'OII_3729_FLUX_ERR_ZOUHU']),
@@ -612,11 +631,11 @@ def compare_emlines_external(verbose=False):
         return flux, sigma
 
     def read_combined(shortcat, need_cols):
-        files = [os.path.join(extdir, f'{shortcat}-sv3-{program}.fits')
+        files = [os.path.join(extdir, f'{shortcat}-{survey}-{program}.fits')
                 for program in ('bright', 'dark')]
         files = [f for f in files if os.path.isfile(f)]
         if not files:
-            raise FileNotFoundError(f'No {shortcat}-sv3-{{bright,dark}}.fits files found in {extdir}')
+            raise FileNotFoundError(f'No {shortcat}-{survey}-{{bright,dark}}.fits files found in {extdir}')
         chunks = []
         for fn in files:
             if verbose:
@@ -691,7 +710,13 @@ def compare_emlines_external(verbose=False):
             # pathologically huge (effectively unconstrained) errors that
             # would otherwise pile up spuriously at pull~0
             err_ok = (re_ <= np.percentile(re_, 99)) & (ee <= np.percentile(ee, 99))
-            pull = (ef[err_ok] - rf[err_ok]) / np.sqrt(ee[err_ok] ** 2 + re_[err_ok] ** 2)
+            if pull_denom == 'quadrature':
+                denom = np.sqrt(ee[err_ok] ** 2 + re_[err_ok] ** 2)
+            elif pull_denom == 'ref':
+                denom = re_[err_ok]
+            else:  # 'ext'
+                denom = ee[err_ok]
+            pull = (ef[err_ok] - rf[err_ok]) / denom
             pull = pull[np.isfinite(pull)]
             axins = ax.inset_axes([0.56, 0.12, 0.42, 0.28])
             bins = np.linspace(-5, 5, 41)
@@ -714,7 +739,12 @@ def compare_emlines_external(verbose=False):
     fig.text(0.06, 0.5, FLUX_LABEL, rotation=90, va='center', ha='center')
     fig.text(0.52, 0.02, FLUX_LABEL + '\n[FastSpecFit]', ha='center', va='bottom')
 
-    outfile = os.path.join(FIGDIR, 'compare-emlines-external.pdf')
+    if pull_denom != 'quadrature':
+        denom_label = {'ref': 'FastSpecFit err only', 'ext': 'external err only'}[pull_denom]
+        fig.suptitle(f'Pull denominator: {denom_label}', fontsize='small', y=0.995)
+
+    suffix  = '' if pull_denom == 'quadrature' else f'-{pull_denom}'
+    outfile = os.path.join(FIGDIR, f'compare-emlines-external{suffix}.pdf')
     fig.savefig(outfile, dpi=150, bbox_inches='tight')
     print(f'Wrote {outfile}')
     plt.close(fig)
@@ -1153,8 +1183,10 @@ def bpt_agn(verbose=False):
 
     p1, p3 = jiyan_p1p3(log_nii_ha, log_sii_ha, log_oiii_hb)
 
-    color = TARGET_CLASS_COLORS['BGS']
-    cmap  = make_class_cmap(color)
+    color_left  = TARGET_CLASS_COLORS['BGS']  # forest green
+    color_right = '#E69F00'                   # orange
+    cmap_left   = make_class_cmap(color_left)
+    cmap_right  = make_class_cmap(color_right)
 
     plot_style(talk=True, font_scale=0.85, palette='colorblind')
     fig, axes = plt.subplots(1, 2, figsize=(13, 7))
@@ -1162,7 +1194,7 @@ def bpt_agn(verbose=False):
     # --- left: BPT diagram ---
     ax = axes[0]
     hess_contours(ax, log_nii_ha, log_oiii_hb, bpt_xrange, bpt_yrange,
-                  bins=60, smooth=1.0, cmap=cmap, contour_color=color,
+                  bins=60, smooth=1.0, cmap=cmap_left, contour_color=color_left,
                   contour_lw=2.0, outlier_ms=2, background=True)
 
     x = np.linspace(bpt_xrange[0], 0.04, 300)
@@ -1187,7 +1219,7 @@ def bpt_agn(verbose=False):
     # --- right: P3 vs P1 ---
     ax = axes[1]
     hess_contours(ax, p1, p3, p1_range, p3_range,
-                  bins=60, smooth=1.0, cmap=cmap, contour_color=color,
+                  bins=60, smooth=1.0, cmap=cmap_right, contour_color=color_right,
                   contour_lw=2.0, outlier_ms=2, background=True)
     ax.set_xlim(p1_range)
     ax.set_ylim(p3_range)
@@ -1270,8 +1302,7 @@ def compare_vdisp(verbose=False):
     snrrange = [0., 2.]          # log10(SNR_B): 1 to 100
     snr_ticks = [1, 3, 10, 30, 100]
 
-    color = '#56B4E9' # sky blue
-    #color = '#009E73'  # teal alternative
+    color = '#009E73'  # bluish green
     cmap  = make_class_cmap(color)
 
     plot_style(talk=True, font_scale=0.85, palette='colorblind')
@@ -1609,7 +1640,7 @@ def main():
         compare_mstar_external(verbose=args.verbose)
 
     if args.compare_emlines_external:
-        compare_emlines_external(verbose=args.verbose)
+        compare_emlines_external(verbose=args.verbose)#, pull_denom='ext')
 
     if args.cosmos2020:
         compare_cosmos2020(verbose=args.verbose)
