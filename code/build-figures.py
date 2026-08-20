@@ -1292,16 +1292,26 @@ def bpt_agn(verbose=False):
 # compare-vdisp
 # ---------------------------------------------------------------------------
 
-def compare_vdisp(verbose=False):
-    """FastSpecFit stellar velocity dispersions vs pPXF: scatter and S/N residuals.
+def compare_vdisp(verbose=False, two_panel=False):
+    """FastSpecFit stellar velocity dispersions vs pPXF.
 
     Data source: external/fpcatalog-iron-main-bright.fits (Ross et al. 2026).
-    Top panel: Hess + contours of sigma_FS vs sigma_pPXF.
-    Bottom panel: absolute residuals Delta-sigma vs SNR_B (log-spaced 1–100).
+
+    two_panel : bool
+        Default False: single panel — Hess + contours of sigma_FS vs
+        sigma_pPXF, with a small inset pull histogram (as in
+        compare_emlines_external) in the lower-right corner checking whether
+        the two codes' quoted vdisp uncertainties (VDISP_IVAR and
+        PPXF_VDISP_ERR_FPCATALOG) are mutually consistent.
+        True: original 2-panel layout — top scatter, bottom panel of
+        absolute residuals Delta-sigma vs SNR_B (log-spaced 1-100); no pull
+        inset.
+
     Output: tex/figures/compare-vdisp.pdf
 
     """
     from matplotlib.gridspec import GridSpec
+    from scipy.stats import norm
     import fitsio
 
     extdir = os.path.join(REPODIR, 'external')
@@ -1311,15 +1321,19 @@ def compare_vdisp(verbose=False):
         print(f'Reading {catfile}')
     d = fitsio.read(catfile)
 
-    fs   = d['VDISP'].astype(float)
+    fs      = d['VDISP'].astype(float)
     #ppxf = np.sqrt(d['PPXF_VDISP_FPCATALOG']**2 + 30.**2)
-    ppxf = d['PPXF_VDISP_FPCATALOG'].astype(float)
-    ivar = d['VDISP_IVAR'].astype(float)
-    snr  = d['SNR_B'].astype(float)
+    ppxf    = d['PPXF_VDISP_FPCATALOG'].astype(float)
+    ivar    = d['VDISP_IVAR'].astype(float)
+    ppxferr = d['PPXF_VDISP_ERR_FPCATALOG'].astype(float)
+    snr     = d['SNR_B'].astype(float)
 
     good = ((ivar > 0) & np.isfinite(fs) & (fs > 0)
-            & np.isfinite(ppxf) & (ppxf > 0) & (snr > 0))
+            & np.isfinite(ppxf) & (ppxf > 0)
+            & np.isfinite(ppxferr) & (ppxferr > 0) & (snr > 0))
     fs_p, ppxf_p, snr_p = fs[good], ppxf[good], snr[good]
+    fserr_p   = 1. / np.sqrt(ivar[good])
+    ppxferr_p = ppxferr[good]
     dpp = ppxf_p - fs_p
 
     sigrange = [30, 400]
@@ -1332,13 +1346,15 @@ def compare_vdisp(verbose=False):
 
     plot_style(talk=True, font_scale=0.85, palette='colorblind')
 
-    fig = plt.figure(figsize=(7, 7))
-    gs = GridSpec(2, 1, figure=fig, height_ratios=[3, 1], hspace=0.35)
+    if two_panel:
+        fig = plt.figure(figsize=(7, 7))
+        gs = GridSpec(2, 1, figure=fig, height_ratios=[3, 1], hspace=0.35)
+        ax_pp  = fig.add_subplot(gs[0])
+        ax_rpp = fig.add_subplot(gs[1])
+    else:
+        fig, ax_pp = plt.subplots(figsize=(7, 7))
 
-    ax_pp  = fig.add_subplot(gs[0])
-    ax_rpp = fig.add_subplot(gs[1])
-
-    # ---- top: FS vs pPXF ----
+    # ---- top (or only): FS vs pPXF ----
     hess_contours(ax_pp, fs_p, ppxf_p, sigrange, sigrange, bins=60,
                   cmap=cmap, contour_color='k', contour_lw=1.2)
     ax_pp.plot(sigrange, sigrange, color='0.4', lw=1.6, ls='--', zorder=5)
@@ -1354,22 +1370,44 @@ def compare_vdisp(verbose=False):
                va='top', ha='left',
                bbox=dict(facecolor='white', edgecolor='none', alpha=0.75, pad=2))
 
-    # ---- bottom: residuals vs SNR_B (log x via log10 transform) ----
-    #hess_contours(ax_rpp, ppxf_p, dpp, sigrange, resrange, bins=[50, 40],
-    #              cmap=cmap, contour_color=color, contour_lw=2.0)
-    #ax_rpp.axhline(0, color='k', lw=1.5, ls='--', zorder=5)
-    #ax_rpp.set_xlim(sigrange)
-    #ax_rpp.set_ylim(resrange)
+    if two_panel:
+        # ---- bottom: residuals vs SNR_B (log x via log10 transform) ----
+        hess_contours(ax_rpp, np.log10(snr_p), dpp, snrrange, resrange, bins=[50, 40],
+                      cmap=cmap, contour_color='k', contour_lw=1.2)
+        ax_rpp.axhline(0, color='0.4', lw=1.6, ls='--', zorder=5)
+        ax_rpp.set_xlim(snrrange)
+        ax_rpp.set_ylim(resrange)
+        ax_rpp.set_xticks([np.log10(t) for t in snr_ticks])
+        ax_rpp.set_xticklabels([str(t) for t in snr_ticks])
+        ax_rpp.set_xlabel(r'$S/N_b$ (pixel$^{-1}$)')
+        ax_rpp.set_ylabel(r'$\Delta\sigma$ (km s$^{-1}$)')
+    else:
+        # inset pull histogram, lower-right corner (style matches
+        # compare_emlines_external): trim the top 1% of errors on each side
+        # first, since a small fraction of rows carry pathologically huge
+        # (effectively unconstrained) errors that would otherwise pile up
+        # spuriously at pull~0
+        err_ok = ((fserr_p <= np.percentile(fserr_p, 99)) &
+                  (ppxferr_p <= np.percentile(ppxferr_p, 99)))
+        denom = np.sqrt(ppxferr_p[err_ok] ** 2 + fserr_p[err_ok] ** 2)
+        pull = (ppxf_p[err_ok] - fs_p[err_ok]) / denom
+        pull = pull[np.isfinite(pull)]
 
-    hess_contours(ax_rpp, np.log10(snr_p), dpp, snrrange, resrange, bins=[50, 40],
-                  cmap=cmap, contour_color='k', contour_lw=1.2)
-    ax_rpp.axhline(0, color='0.4', lw=1.6, ls='--', zorder=5)
-    ax_rpp.set_xlim(snrrange)
-    ax_rpp.set_ylim(resrange)
-    ax_rpp.set_xticks([np.log10(t) for t in snr_ticks])
-    ax_rpp.set_xticklabels([str(t) for t in snr_ticks])
-    ax_rpp.set_xlabel(r'$S/N_b$ (pixel$^{-1}$)')
-    ax_rpp.set_ylabel(r'$\Delta\sigma$ (km s$^{-1}$)')
+        axins = ax_pp.inset_axes([0.56, 0.12, 0.42, 0.28])
+        bins = np.linspace(-5, 5, 41)
+        axins.hist(pull, bins=bins, density=True,
+                  color='0.85', edgecolor='0.5', linewidth=0.5, zorder=2)
+        xx = np.linspace(-5, 5, 200)
+        axins.plot(xx, norm.pdf(xx), color='k', lw=1.2, zorder=3)
+        axins.set_xlim(-5, 5)
+        axins.set_xticks([-5, 0, 5])
+        axins.set_xlabel('Pull', fontsize='xx-small', labelpad=1)
+        axins.tick_params(labelsize='xx-small', labelleft=False, length=2, pad=1)
+        axins.set_yticks([])
+        axins.patch.set_alpha(0)  # transparent background: let the Hess plot show through
+        for side in ('top', 'left', 'right'):
+            axins.spines[side].set_visible(False)
+        axins.spines['bottom'].set_linewidth(0.5)
 
     outfile = os.path.join(FIGDIR, 'compare-vdisp.pdf')
     fig.savefig(outfile, dpi=150, bbox_inches='tight')
@@ -1634,6 +1672,10 @@ def main():
                         help='BPT and Ji & Yan (2020) P1-P3 diagram for BGS (sv3/bright).')
     parser.add_argument('--compare-vdisp', action='store_true',
                         help='Velocity dispersion comparison: FastSpecFit vs pPXF.')
+    parser.add_argument('--vdisp-two-panel', action='store_true',
+                        help='compare-vdisp: use the original 2-panel layout '
+                             '(scatter + S/N residuals) instead of the '
+                             'single panel with a pull-histogram inset.')
     parser.add_argument('--sfr-mstar-bgs', action='store_true',
                         help='SFR(Hα) vs. stellar mass for BGS targets.')
     parser.add_argument('--flag-agn', action='store_true',
@@ -1683,7 +1725,7 @@ def main():
         bpt_agn(verbose=args.verbose)
 
     if args.compare_vdisp:
-        compare_vdisp(verbose=args.verbose)
+        compare_vdisp(verbose=args.verbose, two_panel=args.vdisp_two_panel)
 
     if args.sfr_mstar_bgs:
         sfr_mstar_bgs(survey=survey, specprod=args.specprod,

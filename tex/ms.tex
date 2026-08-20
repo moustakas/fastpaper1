@@ -1616,14 +1616,18 @@ $h^{-2}\,\msun$), therefore, is simply
   \mathrm{SFR} = \frac{\mathcal{M}_0}{h^{2}(10^{8}~\mathrm{yr})}\sum_{n=1}^{2} c_n,
   \label{eq:sfr}
 \end{equation}
-\noindent in units of $h^{-2}\,\msun$/yr. Additional estimates of the SFR of
-course can be inferred from a variety of other tracers, such as the
-\ha, \oii, or UV luminosity (where they have been reliably measured
-and with appropriate corrections for dust attenuation and other
-effects; \citealt{moustakas06b, kennicutt98a}), but \fastspec{} does
-not directly report those quantities. Finally, we compute the mean
-stellar age as the coefficient-weighted average of the age-bin
-midpoints $t_n$ (in Gyr),
+\noindent in units of $h^{-2}\,\msun$/yr.
+%We encourage users to carefully check the SFRs derived by
+%\fastspecfit, however, because of the lack of rest-frame UV photometry
+%and the relatively simple modeling priors.
+\todo{Should we warn users to carefully vet SFR before using it?}
+Additional estimates of the SFR of course can be inferred from various
+other tracers, such as the \ha, \oii, or UV luminosity (where they
+have been reliably measured and with appropriate corrections for dust
+attenuation and other effects; \citealt{moustakas06b, kennicutt98a}),
+but \fastspec{} does not directly report those quantities. Finally, we
+compute the mean stellar age as the coefficient-weighted average of
+the age-bin midpoints $t_n$ (in Gyr),
 \begin{equation}
   \langle t_\star\rangle = \frac{\sum_{n=1}^{n_\mathrm{template}}
     c_n\,t_n}{\sum_{n=1}^{n_\mathrm{template}} c_n}.
@@ -2361,15 +2365,14 @@ to the per-object cost (\S\ref{sssec:vdisp}).
   consistent.\label{fig:compare-emlines-external}}
 \end{figure*}
 
-To validate the \fastspecfit{} measurements, we construct overlapping
-subsets of the DR2 sample and compare our results against several
-independent codes and catalogs. Naturally, these comparisons are not
-exhaustive, and because we generate the largest possible comparison
-samples, it is possible for differences to be larger or smaller for
-narrower subsets of objects. Nevertheless, the following figures
-demonstrate that \fastspec{} produces emission-line fluxes (for strong
-lines), stellar masses, and velocity dispersions that match reasonably
-well to existing independent measurements.
+To validate \fastspecfit's measurements, we compare our results
+against several independent codes and catalogs. Naturally, these
+comparisons are not exhaustive, and because we generate the largest
+possible comparison samples, it is possible for differences to be
+larger or smaller for narrower subsets of objects. Nevertheless, the
+following figures demonstrate that \fastspec{} produces strong
+emission-line fluxes, stellar masses, and velocity dispersions that
+match reasonably well to existing independent measurements.
 
 %...emission-line fluxes from the DESI \texttt{emlinefit} afterburner
 %and the CIGALE-based DR1 catalog of \citet{zou24b,sui26a},
@@ -2402,20 +2405,51 @@ well to existing independent measurements.
   dashed line is the 1:1 relation.\label{fig:compare-mstar-external}}
 \end{figure*}
 
-Figure~\ref{fig:compare-emlines-external} compares \fastspecfit{}
-emission-line fluxes against the DESI \texttt{emlinefit} afterburner
-\citep{raichoor23a} and against the DR1 (Iron) CIGALE-based
-emission-line fluxes of \citet{zou24b,sui26a}, requiring
-$\mathrm{S/N}>3$ on both sides of each comparison. Agreement with
-\texttt{emlinefit} is excellent for \oii\ and \ha\ (median offsets of
-$+0.006$ and $-0.029$~dex and NMAD scatter of 0.022 and 0.020~dex, for
-$N\sim2$--5$\times10^5$ matched galaxies), but \oiiilam\ and \hb\ show
-larger offsets ($+0.115$ and $-0.085$~dex, respectively) whose pull
-distributions grow increasingly asymmetric toward higher
-signal-to-noise---the signature of a multiplicative (flux-scale)
-discrepancy between the two codes' line measurements rather than
-additive noise. \todo{Confirm physical origin of the
-  \oiiilam/\hb\ asymmetry (candidate: differences in stellar
+For all the subsequent comparisons, we match our VAC to each external
+catalog by \texttt{TARGETID} when a common DESI identifier exists
+\citep{myers23a}, otherwise using a $1\farcs5$ positional
+threshold. We also confirm each match by requiring redshift agreement,
+$c|\Delta z|<1000~\kms$, which is necessary even when comparing two
+DESI samples because of our override of some QSO redshifts
+(\S\ref{ssec:catalog}).
+
+In Figure~\ref{fig:compare-emlines-external} we compare our
+emission-line fluxes for \oiidoublet, \oiiilam, \hb, and \ha{} against
+the DESI \texttt{emlinefit} afterburner measurements
+\citep{raichoor23a} and against the \texttt{Iron} \citep[DESI
+  DR1;][]{desi-collaboration26a} ``Stellar Mass and Emission Line
+Catalog'' (\texttt{v1.0}) by \citet{zou24b} (see also H.~Zou et al.,
+in
+preparation).\footnote{\url{https://data.desi.lbl.gov/doc/releases/dr1/vac/stellar-mass-emline}}
+
+For each matched galaxy we define the pull as
+
+\begin{equation}
+\mathrm{pull} = \frac{f_{\rm ext} - f_{\rm
+    fastspecfit}}{\sqrt{\sigma_{\rm ext}^2 + \sigma_{\rm
+      fastspecfit}^2}},
+\label{eq:pull}
+\end{equation}
+
+\noindent where $f$ and $\sigma$ are the line flux and its 1$\sigma$
+uncertainty in each catalog; a unit Gaussian pull distribution
+indicates that the two catalogs' quoted uncertainties are mutually
+consistent, while a non-unit width or a skewed/offset distribution
+signals under- or overestimated errors, or a systematic bias between
+the two measurements.
+
+%DR1 (Iron)
+
+...requiring $\mathrm{S/N}>3$ on both sides of each
+comparison. Agreement with \texttt{emlinefit} is excellent for
+\oii\ and \ha\ (median offsets of $+0.006$ and $-0.029$~dex and NMAD
+scatter of 0.022 and 0.020~dex, for $N\sim2$--5$\times10^5$ matched
+galaxies), but \oiiilam\ and \hb\ show larger offsets ($+0.115$ and
+$-0.085$~dex, respectively) whose pull distributions grow increasingly
+asymmetric toward higher signal-to-noise---the signature of a
+multiplicative (flux-scale) discrepancy between the two codes' line
+measurements rather than additive noise. \todo{Confirm physical origin
+  of the \oiiilam/\hb\ asymmetry (candidate: differences in stellar
   continuum/Balmer-absorption modeling underlying these two lines)
   once resolved with the \texttt{emlinefit} developer.} Agreement with
 the Iron CIGALE catalog is excellent in median offset for all four
@@ -2427,19 +2461,6 @@ flux uncertainties overestimate the true scatter; since the same
 \texttt{emlinefit}, the miscalibration plausibly lies in the CIGALE
 catalog's quoted errors rather than \fastspecfit{}'s, though this
 combined-pull test alone cannot definitively separate the two.
-\todo{Emission-line comparisons against \texttt{pPXF} and the GSWLC
-  catalog of \citet{salim16a} remain for future work.}
-
-We caution that non-parametric SFH models can yield stellar masses
-that are systematically higher---by $\sim$0.2--0.3~dex on
-average---than parametric estimates, because a flexible SFH can
-accommodate more mass in old, low-luminosity stellar populations
-\citep{leja19a,leja20a}.
-
-%\begin{figure*}
-%\includegraphics[width=1.0\textwidth]{compare-sfr-external.pdf}
-%\caption{Write me\label{fig:compare-sfr-external}}
-%\end{figure*}
 
 \begin{figure*}
 \centering\includegraphics[width=1.0\textwidth]{compare-vdisp.pdf}
@@ -2451,11 +2472,16 @@ accommodate more mass in old, low-luminosity stellar populations
 Figure~\ref{fig:compare-mstar-external} compares \fastspecfit{}
 stellar masses against three independent CIGALE-based SED-fitting
 catalogs. \todo{Describe agreement; highlight systematic offsets from
-non-parametric vs. parametric SFH choices.}
+  non-parametric vs. parametric SFH choices.} We caution that
+non-parametric SFH models can yield stellar masses that are
+systematically higher---by $\sim$0.2--0.3~dex on average---than
+parametric estimates, because a flexible SFH can accommodate more mass
+in old, low-luminosity stellar populations \citep{leja19a,leja20a}.
 
-\todo{We caution against using the SFRs derived by \fastspecfit{}
-  because of the lack of ultraviolet photometry and the relatively
-  simple modeling priors.}
+%\begin{figure*}
+%\includegraphics[width=1.0\textwidth]{compare-sfr-external.pdf}
+%\caption{Write me\label{fig:compare-sfr-external}}
+%\end{figure*}
 
 %Figure~\ref{fig:compare-sfr-external} makes the analogous comparison
 %for star-formation rates. \todo{Describe agreement.}
