@@ -1396,7 +1396,7 @@ def compare_vdisp(verbose=False, two_panel=False):
         axins = ax_pp.inset_axes([0.56, 0.12, 0.42, 0.28])
         bins = np.linspace(-5, 5, 41)
         axins.hist(pull, bins=bins, density=True,
-                  color='0.85', edgecolor='0.5', linewidth=0.5, zorder=2)
+                  color='0.85', zorder=2)
         xx = np.linspace(-5, 5, 200)
         axins.plot(xx, norm.pdf(xx), color='k', lw=1.2, zorder=3)
         axins.set_xlim(-5, 5)
