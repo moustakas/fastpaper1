@@ -19,6 +19,7 @@ All output columns are standardized to **h=1, Chabrier IMF** before writing.
 - [Salim et al. (GSWLC-X2) — `gswlcx2`](#salim-et-al-gswlc-x2--gswlcx2)
 - [Weaver et al. (COSMOS2020) — `cosmos2020`](#weaver-et-al-cosmos2020--cosmos2020)
 - [Ross et al. (fundamental plane) — `fpcatalog`](#ross-et-al-fundamental-plane--fpcatalog)
+- [DESI emission-line afterburner — `emlinefit`](#desi-emission-line-afterburner--emlinefit)
 
 ---
 
@@ -55,6 +56,17 @@ the prepared files.
 | `TAUV_ZOUHU` | — | V-band optical depth (converted from AV) |
 | `TAUV_ERR_ZOUHU` | — | 1σ uncertainty |
 | `APERCORR_ZOUHU` | — | Aperture correction factor |
+| `OII_3726_FLUX_ZOUHU` / `_ERR_ZOUHU` | 1e-17 erg/s/cm² | Zou et al. [O II] 3726 flux (Iron only) |
+| `OII_3729_FLUX_ZOUHU` / `_ERR_ZOUHU` | 1e-17 erg/s/cm² | Zou et al. [O II] 3729 flux (Iron only) |
+| `OIII_5007_FLUX_ZOUHU` / `_ERR_ZOUHU` | 1e-17 erg/s/cm² | Zou et al. [O III] 5007 flux (Iron only) |
+| `HBETA_FLUX_ZOUHU` / `_ERR_ZOUHU` | 1e-17 erg/s/cm² | Zou et al. Hβ flux (Iron only) |
+| `HALPHA_FLUX_ZOUHU` / `_ERR_ZOUHU` | 1e-17 erg/s/cm² | Zou et al. Hα flux (Iron only) |
+
+Reference (FastSpecFit) `OII_3726_FLUX`, `OII_3729_FLUX`, `OIII_5007_FLUX`,
+`HBETA_FLUX`, `HALPHA_FLUX` are also read in, each with a matching `_ERR`
+column converted from `_IVAR` via `fastspecfit.util.ivar2var(sigma=True,
+clip=0)`, for line-flux comparison plots against the `_ZOUHU`-suffixed
+columns above (Iron only — the Loa Zou catalog carries no line fluxes).
 
 ---
 
@@ -187,3 +199,53 @@ applied; all columns are passed through as-is.
 | `PORTSMOUTH_SIGMA_STARS_ERR_FPCATALOG` | km/s | 1σ uncertainty |
 | `FPCALIBRATOR_FPCATALOG` | — | Fundamental-plane calibrator flag |
 | `PRIMARYVDISP_FPCATALOG` | — | Primary velocity dispersion flag |
+
+---
+
+## DESI emission-line afterburner — `emlinefit`
+
+| Property | Value |
+|---|---|
+| Short name | `emlinefit` |
+| Method | DESI spectroscopic-pipeline emission-line afterburner (Gaussian line fits on the Redrock-redshift coadd) |
+| IMF | N/A |
+| H0 | N/A (no cosmological corrections needed) |
+| Specprods | `loa` (DR2 only) |
+| Source | `/dvs_ro/cfs/cdirs/desi/spectro/redux/loa/healpix/{survey}/{program}/{healpix//100}/{healpix}/emline-{survey}-{program}-{healpix}.fits` |
+
+Not a formal VAC and not under `desicollab/vac` — one file per (survey,
+program, healpix), so `prepare_emlinefit()` reads the FastSpecFit reference
+catalog first, groups it by HEALPIX, and opens only the emlinefit files
+needed; a TARGETID-only read of each file (via fitsio) selects which rows to
+load in full. Restricted to `sv3/bright` and `sv3/dark` for now.
+
+emlinefit uses the pure Redrock redshift rather than FastSpecFit's
+QuasarNet-corrected redshift, so the standard TARGETID + position + Δv
+consistency check (`cross_match()`, |Δv| < 1000 km/s) is applied, using
+emlinefit's `TARGET_RA`/`TARGET_DEC` for the positional check.
+
+No unit conversion is applied: emlinefit fluxes are already in the same
+units (1e-17 erg/s/cm²) as the FastSpecFit VAC.
+
+**Output columns:**
+
+| Column | Units | Description |
+|---|---|---|
+| `Z_EMLINEFIT` | — | Redrock redshift (kept alongside FastSpecFit's own `Z` for diagnostics) |
+| `OII_FLUX_EMLINEFIT` | 1e-17 erg/s/cm² | [O II] 3726+3729 blended flux |
+| `OII_FLUX_IVAR_EMLINEFIT` | — | Inverse variance |
+| `OII_FLUX_ERR_EMLINEFIT` | 1e-17 erg/s/cm² | 1σ uncertainty (converted from IVAR) |
+| `HBETA_FLUX_EMLINEFIT` | 1e-17 erg/s/cm² | Hβ flux |
+| `HBETA_FLUX_IVAR_EMLINEFIT` | — | Inverse variance |
+| `HBETA_FLUX_ERR_EMLINEFIT` | 1e-17 erg/s/cm² | 1σ uncertainty (converted from IVAR) |
+| `OIII_FLUX_EMLINEFIT` | 1e-17 erg/s/cm² | [O III] 5007 flux |
+| `OIII_FLUX_IVAR_EMLINEFIT` | — | Inverse variance |
+| `OIII_FLUX_ERR_EMLINEFIT` | 1e-17 erg/s/cm² | 1σ uncertainty (converted from IVAR) |
+| `HALPHA_FLUX_EMLINEFIT` | 1e-17 erg/s/cm² | Hα flux |
+| `HALPHA_FLUX_IVAR_EMLINEFIT` | — | Inverse variance |
+| `HALPHA_FLUX_ERR_EMLINEFIT` | 1e-17 erg/s/cm² | 1σ uncertainty (converted from IVAR) |
+
+Reference (FastSpecFit) `OII_3726_FLUX`, `OII_3729_FLUX`, `OIII_5007_FLUX`,
+`HBETA_FLUX`, `HALPHA_FLUX` are also read in, each with a matching `_ERR`
+column converted from `_IVAR` via `fastspecfit.util.ivar2var(sigma=True,
+clip=0)`, for line-flux comparison plots.

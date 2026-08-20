@@ -23,11 +23,12 @@ Usage (from repo root or code/):
 """
 import os, sys, argparse
 import numpy as np
-from astropy.table import Table
+from astropy.table import Table, vstack
 import fitsio
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util import read_fastspec, DEFAULT_SPECPROD
+from fastspecfit.util import ivar2var
 
 C_LIGHT        = 2.998e5  # km/s
 MAX_DV_KMS     = 1000.0   # redshift-consistency threshold [km/s]
@@ -39,6 +40,11 @@ SURVEY_PROGRAMS = [
     ('main', 'bright'),
     ('main', 'dark'),
 ]
+
+# Reference (FastSpecFit) emission-line flux columns used for line-flux
+# comparison plots; OII_3726_FLUX/OII_3729_FLUX come from _REF_BASE_COLS,
+# the rest are added explicitly wherever they're needed.
+_REF_EMLINES = ['OII_3726_FLUX', 'OII_3729_FLUX', 'OIII_5007_FLUX', 'HBETA_FLUX', 'HALPHA_FLUX']
 
 REPODIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EXTDIR  = os.path.join(REPODIR, 'external')
@@ -228,6 +234,15 @@ def prepare_zouhu(survey=None, specprod=DEFAULT_SPECPROD, verbose=False):
     Only the _CG_15 variant (5-band tractor + 10-band spectrophotometry) is
     included; the 5-band-only _CG_5 variant is omitted.
 
+    Reference (FastSpecFit) emission-line fluxes are also carried through
+    (OII_3726_FLUX, OII_3729_FLUX, OIII_5007_FLUX, HBETA_FLUX, HALPHA_FLUX),
+    with their _IVAR columns converted to _ERR via
+    fastspecfit.util.ivar2var(sigma=True, clip=0), for line-flux comparison
+    plots against Zou et al.'s own line fluxes. Zou's line fluxes (Iron
+    only — the Loa Zou catalog carries no line fluxes) are copied through
+    with a _ZOUHU suffix (e.g. HALPHA_FLUX_ZOUHU, HALPHA_FLUX_ERR_ZOUHU) to
+    avoid colliding with the identically-named reference columns above.
+
     """
     _zouhu_path = {
         'loa': '/dvs_ro/cfs/cdirs/desicollab/users/zouhu/vac/dr2/dr2_galaxy_sedfitting_v1.0.fits',
@@ -292,8 +307,11 @@ def prepare_zouhu(survey=None, specprod=DEFAULT_SPECPROD, verbose=False):
         ext.rename_columns(readcols, newcols)
 
         try:
+            cols = _ref_columns(surv)
+            cols += ['OIII_5007_FLUX', 'HBETA_FLUX', 'HALPHA_FLUX',
+                     'OIII_5007_FLUX_IVAR', 'HBETA_FLUX_IVAR', 'HALPHA_FLUX_IVAR']
             ref = read_fastspec(surv, program, specprod=DEFAULT_SPECPROD,
-                                columns=_ref_columns(surv), verbose=verbose)
+                                columns=cols, verbose=verbose)
         except (FileNotFoundError, ValueError) as exc:
             print(f'  {surv}/{program}: cannot read reference — {exc}, skipping')
             continue
@@ -306,6 +324,11 @@ def prepare_zouhu(survey=None, specprod=DEFAULT_SPECPROD, verbose=False):
 
         out   = ref[i_ref].copy()
         ext_m = ext[i_ext]
+
+        # reference (FastSpecFit) emission-line errors, converted from IVAR,
+        # for line-flux comparison plots against zouhu's own ERR columns
+        for line in _REF_EMLINES:
+            out[f'{line}_ERR'], _ = ivar2var(out[f'{line}_IVAR'], sigma=True, clip=0)
 
         # stellar mass: linear M_sun → log10(M/M_sun) at h=1
         mstar    = ext_m['MSTAR'].astype(float).copy()
@@ -326,6 +349,14 @@ def prepare_zouhu(survey=None, specprod=DEFAULT_SPECPROD, verbose=False):
 
         # aperture correction factor
         out[f'APERCORR_{shortcat.upper()}'] = ext_m['APERCORR']
+
+        # Zou et al.'s own emission-line fluxes (Iron only; the Loa Zou
+        # catalog carries no line fluxes). Suffixed to avoid colliding with
+        # the identically-named FastSpecFit reference columns added above.
+        for line in _REF_EMLINES:
+            if line in ext_m.colnames:
+                out[f'{line}_{shortcat.upper()}']     = ext_m[line]
+                out[f'{line}_ERR_{shortcat.upper()}'] = ext_m[f'{line}_ERR']
 
         out.write(outfile, overwrite=True)
 
@@ -729,6 +760,146 @@ def prepare_fpcatalog(survey=None, verbose=False):
 
 
 # ---------------------------------------------------------------------------
+# DESI emission-line afterburner (emlinefit / Loa only)
+# ---------------------------------------------------------------------------
+
+# Restricted to sv3 for now (see prepare_emlinefit docstring).
+_EMLINEFIT_SURVEY_PROGRAMS = [('sv3', 'bright'), ('sv3', 'dark')]
+
+_EMLINEFIT_READCOLS = [
+    'TARGETID', 'Z', 'TARGET_RA', 'TARGET_DEC',
+    'OII_FLUX', 'OII_FLUX_IVAR', 'HBETA_FLUX', 'HBETA_FLUX_IVAR',
+    'OIII_FLUX', 'OIII_FLUX_IVAR', 'HALPHA_FLUX', 'HALPHA_FLUX_IVAR',
+]
+
+
+def prepare_emlinefit(survey=None, verbose=False):
+    """Prepare the DESI spectroscopic-pipeline emission-line afterburner catalog (Loa only).
+
+    Source (per-healpix files, not a single VAC — not under desicollab/vac):
+        /dvs_ro/cfs/cdirs/desi/spectro/redux/loa/healpix/{survey}/{program}/
+        {healpix//100}/{healpix}/emline-{survey}-{program}-{healpix}.fits
+
+    Unlike the other external catalogs (one file with SURVEY/PROGRAM/HEALPIX
+    columns to select rows from), emlinefit is split into one file per
+    (survey, program, healpix). For each (survey, program) combination the
+    FastSpecFit reference catalog is read first and grouped by HEALPIX; only
+    the emlinefit files covering those healpixels are opened. Within each
+    file a TARGETID-only read (via fitsio) determines which rows to load in
+    full — every reference object is expected to have a matching emlinefit
+    row (a small number of misses due to file gaps/fitting failures is
+    tolerated and reported).
+
+    emlinefit uses the pure Redrock redshift, while FastSpecFit uses an
+    updated (QuasarNet-corrected) redshift for a small fraction of objects,
+    so the standard cross_match() Δv < MAX_DV_KMS consistency check (reused
+    from the other prepare_* functions) is applied here too.
+
+    Restricted to sv3/bright and sv3/dark for now; the main-survey healpix
+    directories contain far more files and are left for a future update.
+
+    No unit conversion is applied: emlinefit fluxes are already in the same
+    units (1e-17 erg/s/cm^2) as the FastSpecFit VAC.
+
+    Reference (FastSpecFit) OIII_5007_FLUX, HBETA_FLUX, and HALPHA_FLUX are
+    also pulled in (OII_3726_FLUX/OII_3729_FLUX already come via
+    _ref_columns), and both the reference and emlinefit _IVAR columns are
+    converted to _ERR via fastspecfit.util.ivar2var(sigma=True, clip=0), for
+    line-flux comparison plots.
+
+    """
+    shortcat  = 'emlinefit'
+    specprod  = 'loa'  # no other specprod supported yet
+    redux_dir = f'/dvs_ro/cfs/cdirs/desi/spectro/redux/{specprod}/healpix'
+
+    for surv, program in _EMLINEFIT_SURVEY_PROGRAMS:
+        if survey is not None and surv != survey:
+            continue
+        outfile = os.path.join(EXTDIR, f'{shortcat}-{specprod}-{surv}-{program}.fits')
+
+        try:
+            cols = _ref_columns(surv)
+            cols += ['OIII_5007_FLUX', 'HBETA_FLUX', 'HALPHA_FLUX',
+                     'OIII_5007_FLUX_IVAR', 'HBETA_FLUX_IVAR', 'HALPHA_FLUX_IVAR']
+            ref = read_fastspec(surv, program, specprod=DEFAULT_SPECPROD,
+                                columns=cols, verbose=verbose)
+        except (FileNotFoundError, ValueError) as exc:
+            print(f'  {surv}/{program}: cannot read reference — {exc}, skipping')
+            continue
+
+        hp_arr  = np.asarray(ref['HEALPIX'])
+        tid_arr = np.asarray(ref['TARGETID'])
+        healpixels = np.unique(hp_arr)
+        if verbose:
+            print(f'\n  {surv}/{program}: {len(ref):,} reference rows across '
+                  f'{len(healpixels):,} healpixels')
+
+        ext_parts = []
+        n_missing = 0
+        n_hp = len(healpixels)
+        progress_step = max(1, n_hp // 10)  # log roughly every 10%
+        for ihp, hp in enumerate(healpixels):
+            hp = int(hp)
+            want_tids = tid_arr[hp_arr == hp]
+
+            infile = os.path.join(redux_dir, surv, program, str(hp // 100), str(hp),
+                                  f'emline-{surv}-{program}-{hp}.fits')
+            if not os.path.isfile(infile):
+                print(f'    healpix {hp}: emlinefit file not found: {infile}')
+                n_missing += len(want_tids)
+                continue
+
+            with fitsio.FITS(infile) as fits:
+                tid_col = fits[1].read(columns=['TARGETID'])['TARGETID']
+                rows = np.where(np.isin(tid_col, want_tids))[0]
+                n_missing += len(want_tids) - len(rows)
+                if len(rows):
+                    ext_parts.append(Table(fits[1].read(columns=_EMLINEFIT_READCOLS, rows=rows)))
+
+            if (ihp + 1) % progress_step == 0 or (ihp + 1) == n_hp:
+                print(f'    {surv}/{program}: processed {ihp + 1:,}/{n_hp:,} healpixels '
+                      f'({100. * (ihp + 1) / n_hp:.0f}%)')
+
+        if n_missing:
+            print(f'    {n_missing:,} reference TARGETIDs missing from emlinefit files')
+
+        if not ext_parts:
+            print(f'  {surv}/{program}: no emlinefit rows read, skipping')
+            continue
+        ext = vstack(ext_parts) if len(ext_parts) > 1 else ext_parts[0]
+
+        i_ref, i_ext = cross_match(ref, ext, ext_ra_col='TARGET_RA', ext_dec_col='TARGET_DEC',
+                                   verbose=verbose)
+        if len(i_ref) == 0:
+            print(f'  {surv}/{program}: no matches after consistency checks, skipping')
+            continue
+        print(f'  {surv}/{program}: {len(i_ref):,} matched → {outfile}')
+
+        out   = ref[i_ref].copy()
+        ext_m = ext[i_ext]
+
+        # raw Redrock redshift, kept alongside FastSpecFit's own Z for diagnostics
+        out[f'Z_{shortcat.upper()}'] = ext_m['Z']
+
+        # reference (FastSpecFit) emission-line errors, converted from IVAR,
+        # for line-flux comparison plots against emlinefit's own fluxes
+        for line in _REF_EMLINES:
+            out[f'{line}_ERR'], _ = ivar2var(out[f'{line}_IVAR'], sigma=True, clip=0)
+
+        for col in ['OII_FLUX', 'OII_FLUX_IVAR', 'HBETA_FLUX', 'HBETA_FLUX_IVAR',
+                    'OIII_FLUX', 'OIII_FLUX_IVAR', 'HALPHA_FLUX', 'HALPHA_FLUX_IVAR']:
+            out[f'{col}_{shortcat.upper()}'] = ext_m[col]
+
+        # emlinefit's own line errors, converted from IVAR
+        for col in ['OII_FLUX', 'HBETA_FLUX', 'OIII_FLUX', 'HALPHA_FLUX']:
+            out[f'{col}_ERR_{shortcat.upper()}'], _ = ivar2var(ext_m[f'{col}_IVAR'], sigma=True, clip=0)
+
+        out.write(outfile, overwrite=True)
+
+    print('Done.')
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -747,6 +918,8 @@ def main():
                         help='Prepare the Weaver et al. COSMOS2020 photometric catalog.')
     parser.add_argument('--fpcatalog', action='store_true',
                         help='Prepare the Ross et al. fundamental-plane catalog (DR1/iron only).')
+    parser.add_argument('--emlinefit', action='store_true',
+                        help='Prepare the DESI emission-line afterburner catalog (DR2/loa, sv3 only).')
     parser.add_argument('--specprod', default=DEFAULT_SPECPROD,
                         help='Spectroscopic production name.')
     parser.add_argument('--survey', default=None, choices=['sv3', 'main'],
@@ -769,6 +942,9 @@ def main():
 
     if args.fpcatalog:
         prepare_fpcatalog(survey=args.survey, verbose=args.verbose)
+
+    if args.emlinefit:
+        prepare_emlinefit(survey=args.survey, verbose=args.verbose)
 
 
 if __name__ == '__main__':
