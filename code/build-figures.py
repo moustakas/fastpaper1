@@ -524,6 +524,203 @@ def compare_mstar_external(verbose=False):
 
 
 # ---------------------------------------------------------------------------
+# compare-emlines-external
+# ---------------------------------------------------------------------------
+
+# reference (FastSpecFit) flux/err columns per line; OII is the 3726+3729 sum
+_EMLINE_REF_COLS = {
+    'OII':    (['OII_3726_FLUX', 'OII_3729_FLUX'], ['OII_3726_FLUX_ERR', 'OII_3729_FLUX_ERR']),
+    'OIII':   (['OIII_5007_FLUX'], ['OIII_5007_FLUX_ERR']),
+    'Hbeta':  (['HBETA_FLUX'],     ['HBETA_FLUX_ERR']),
+    'Halpha': (['HALPHA_FLUX'],    ['HALPHA_FLUX_ERR']),
+}
+
+_EMLINE_LABELS = {
+    'OII':    r'[\mathrm{O\,II}]\,\lambda\lambda3726,29',
+    'OIII':   r'[\mathrm{O\,III}]\,\lambda5007',
+    'Hbeta':  r'\mathrm{H}\beta',
+    'Halpha': r'\mathrm{H}\alpha',
+}
+
+FLUX_LABEL = r'$\log_{10}\,(\mathrm{Flux}\,/\,10^{-17}\,\mathrm{erg\,s^{-1}\,cm^{-2}})$'
+
+
+def compare_emlines_external(verbose=False):
+    """2×4 grid: FastSpecFit vs external emission-line fluxes.
+
+    Rows: emlinefit (Loa), Zou et al. (Iron).
+    Columns: [OII] (3726+3729 blended), [OIII] 5007, Hβ, Hα.
+
+    Combines external/{emlinefit,zouhu}-{shortcat}-sv3-{bright,dark}.fits only
+    (main-survey statistics aren't needed for this comparison) — no
+    target-class split; the TARGETID + position + Δv consistency checks were
+    already applied upstream in prepare-external.py.
+
+    S/N > 3 (flux/err) is required on both the reference and external side
+    for an object to be plotted (no redshift-class cut beyond that); a bare
+    flux>0 & err>0 test isn't enough, since a Gaussian fit with no real line
+    detection can still land on an arbitrarily tiny positive amplitude and
+    dominate the low end of the log-flux axis. Each panel: log10(flux) Hess
+    density + unity line + N / Δ_med(dex) / NMAD(dex) stat box, with
+    per-panel axis limits set from the [1, 99] percentile of the combined
+    reference+external log-flux distribution, padded by 15% of that range on
+    each side so the scatter isn't too tightly cropped. Every panel additionally
+    carries a small inset pull histogram — (flux_ext − flux_ref) /
+    sqrt(err_ext² + err_ref²), with the top 1% of err on each side trimmed
+    first to drop pathologically huge (effectively unconstrained) errors —
+    filled light gray with a black unit-Gaussian curve overlaid, to check
+    whether the two codes' quoted flux uncertainties are mutually
+    consistent.
+
+    Output: tex/figures/compare-emlines-external.pdf
+    """
+    import fitsio
+    from scipy.stats import norm
+
+    extdir = os.path.join(REPODIR, 'external')
+    lines = ['OII', 'OIII', 'Hbeta', 'Halpha']
+
+    codes = [
+        dict(name='emlinefit-loa', label='emlinefit', color='#0072B2',
+            cols={
+                'OII':    (['OII_FLUX_EMLINEFIT'],    ['OII_FLUX_ERR_EMLINEFIT']),
+                'OIII':   (['OIII_FLUX_EMLINEFIT'],   ['OIII_FLUX_ERR_EMLINEFIT']),
+                'Hbeta':  (['HBETA_FLUX_EMLINEFIT'],  ['HBETA_FLUX_ERR_EMLINEFIT']),
+                'Halpha': (['HALPHA_FLUX_EMLINEFIT'], ['HALPHA_FLUX_ERR_EMLINEFIT']),
+            }),
+        dict(name='zouhu-iron', label='Zou et al. (Iron)', color='#D55E00',
+            cols={
+                'OII':    (['OII_3726_FLUX_ZOUHU', 'OII_3729_FLUX_ZOUHU'],
+                           ['OII_3726_FLUX_ERR_ZOUHU', 'OII_3729_FLUX_ERR_ZOUHU']),
+                'OIII':   (['OIII_5007_FLUX_ZOUHU'],  ['OIII_5007_FLUX_ERR_ZOUHU']),
+                'Hbeta':  (['HBETA_FLUX_ZOUHU'],      ['HBETA_FLUX_ERR_ZOUHU']),
+                'Halpha': (['HALPHA_FLUX_ZOUHU'],     ['HALPHA_FLUX_ERR_ZOUHU']),
+            }),
+    ]
+
+    def sum_flux_err(cat, flux_cols, err_cols):
+        # a small fraction of rows carry pathologically huge (effectively
+        # unconstrained) errors whose square overflows float64; harmless,
+        # since the result is still +inf and gets excluded downstream
+        flux = np.zeros(len(cat))
+        var  = np.zeros(len(cat))
+        with np.errstate(over='ignore'):
+            for fc, ec in zip(flux_cols, err_cols):
+                flux += np.asarray(cat[fc], dtype=float)
+                var  += np.asarray(cat[ec], dtype=float) ** 2
+            sigma = np.sqrt(var)
+        return flux, sigma
+
+    def read_combined(shortcat, need_cols):
+        files = [os.path.join(extdir, f'{shortcat}-sv3-{program}.fits')
+                for program in ('bright', 'dark')]
+        files = [f for f in files if os.path.isfile(f)]
+        if not files:
+            raise FileNotFoundError(f'No {shortcat}-sv3-{{bright,dark}}.fits files found in {extdir}')
+        chunks = []
+        for fn in files:
+            if verbose:
+                print(f'Reading {fn}')
+            chunks.append(Table(fitsio.read(fn, columns=need_cols)))
+        cat = vstack(chunks)
+        if verbose:
+            print(f'  {len(cat):,} rows total')
+        return cat
+
+    plot_style(talk=True, font_scale=0.85, palette='colorblind')
+    fig, axes = plt.subplots(2, 4, figsize=(16, 8))
+    fig.subplots_adjust(hspace=0.12, wspace=0.12, bottom=0.14)
+
+    for ri, code in enumerate(codes):
+        need_cols = set()
+        for line in lines:
+            rf, re_ = _EMLINE_REF_COLS[line]
+            ef, ee  = code['cols'][line]
+            need_cols.update(rf); need_cols.update(re_)
+            need_cols.update(ef); need_cols.update(ee)
+        cat = read_combined(code['name'], sorted(need_cols))
+
+        for ci, line in enumerate(lines):
+            ax = axes[ri, ci]
+            color = code['color']
+
+            rf_cols, re_cols = _EMLINE_REF_COLS[line]
+            ef_cols, ee_cols = code['cols'][line]
+            rflux, rerr = sum_flux_err(cat, rf_cols, re_cols)
+            eflux, eerr = sum_flux_err(cat, ef_cols, ee_cols)
+
+            # S/N > 3 on both sides; flux>0 & err>0 alone isn't enough, since
+            # a Gaussian fit with no real line detection can still land on an
+            # arbitrarily tiny positive amplitude and dominate the low end
+            with np.errstate(divide='ignore', invalid='ignore'):
+                good = (np.isfinite(rflux) & np.isfinite(rerr) & (rerr > 0) & (rflux / rerr > 3) &
+                        np.isfinite(eflux) & np.isfinite(eerr) & (eerr > 0) & (eflux / eerr > 3))
+            rf, re_ = rflux[good], rerr[good]
+            ef, ee  = eflux[good], eerr[good]
+
+            logr = np.log10(rf)
+            loge = np.log10(ef)
+            delta = loge - logr
+
+            lo = min(np.percentile(logr, 1), np.percentile(loge, 1))
+            hi = max(np.percentile(logr, 99), np.percentile(loge, 99))
+            pad = 0.15 * (hi - lo)  # breathing room beyond the [1,99] trim
+            lim = (lo - pad, hi + pad)
+
+            hess_contours(ax, logr, loge, lim, lim, bins=60,
+                          cmap=make_class_cmap(color),
+                          contour_color=color, contour_lw=2.0)
+            ax.plot(lim, lim, 'k--', lw=1.5, zorder=5)
+            ax.set_xlim(lim)
+            ax.set_ylim(lim)
+            ax.tick_params(labelleft=(ci == 0), labelbottom=(ri == 1))
+
+            if ri == 0:
+                ax.set_title(f'${_EMLINE_LABELS[line]}$', fontweight='bold')
+
+            ax.text(0.04, 0.96,
+                    f'$N={good.sum():,}$\n'
+                    f'$\\Delta_{{\\rm med}}={np.median(delta):+.3f}$\n'
+                    f'NMAD$={nmad(delta):.3f}$',
+                    transform=ax.transAxes, fontsize='small',
+                    va='top', ha='left',
+                    bbox=dict(facecolor='white', edgecolor='none', alpha=0.75, pad=2))
+
+            # inset pull histogram (both rows); trim the top 1% of errors on
+            # each side first, since a small fraction of rows carry
+            # pathologically huge (effectively unconstrained) errors that
+            # would otherwise pile up spuriously at pull~0
+            err_ok = (re_ <= np.percentile(re_, 99)) & (ee <= np.percentile(ee, 99))
+            pull = (ef[err_ok] - rf[err_ok]) / np.sqrt(ee[err_ok] ** 2 + re_[err_ok] ** 2)
+            pull = pull[np.isfinite(pull)]
+            axins = ax.inset_axes([0.56, 0.12, 0.42, 0.28])
+            bins = np.linspace(-5, 5, 41)
+            axins.hist(pull, bins=bins, density=True,
+                      color='0.85', edgecolor='0.5', linewidth=0.5, zorder=2)
+            xx = np.linspace(-5, 5, 200)
+            axins.plot(xx, norm.pdf(xx), color='k', lw=1.2, zorder=3)
+            axins.set_xlim(-5, 5)
+            axins.set_xticks([-5, 0, 5])
+            axins.set_xlabel('Pull', fontsize='xx-small', labelpad=1)
+            axins.tick_params(labelsize='xx-small', labelleft=False, length=2, pad=1)
+            axins.set_yticks([])
+            axins.patch.set_alpha(0)  # transparent background: let the Hess plot show through
+            for side in ('top', 'left', 'right'):
+                axins.spines[side].set_visible(False)
+            axins.spines['bottom'].set_linewidth(0.5)
+
+        axes[ri, 0].set_ylabel(f"[{code['label']}]")
+
+    fig.text(0.06, 0.5, FLUX_LABEL, rotation=90, va='center', ha='center')
+    fig.text(0.52, 0.02, FLUX_LABEL + '\n[FastSpecFit]', ha='center', va='bottom')
+
+    outfile = os.path.join(FIGDIR, 'compare-emlines-external.pdf')
+    fig.savefig(outfile, dpi=150, bbox_inches='tight')
+    print(f'Wrote {outfile}')
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
 # compare-cosmos2020
 # ---------------------------------------------------------------------------
 
@@ -1367,6 +1564,8 @@ def main():
                         help='Stellar mass comparison: fastspec vs fastphot.')
     parser.add_argument('--compare-mstar-external', action='store_true',
                         help='Stellar mass comparison: FastSpecFit vs external catalogs.')
+    parser.add_argument('--compare-emlines-external', action='store_true',
+                        help='Emission-line flux comparison: FastSpecFit vs emlinefit and zouhu.')
     parser.add_argument('--cosmos2020', action='store_true',
                         help='Stellar mass comparison: FastSpecFit vs COSMOS2020.')
     parser.add_argument('--compare-sfr-external', action='store_true',
@@ -1408,6 +1607,9 @@ def main():
 
     if args.compare_mstar_external:
         compare_mstar_external(verbose=args.verbose)
+
+    if args.compare_emlines_external:
+        compare_emlines_external(verbose=args.verbose)
 
     if args.cosmos2020:
         compare_cosmos2020(verbose=args.verbose)

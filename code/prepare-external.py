@@ -813,7 +813,7 @@ _EMLINEFIT_READCOLS = [
 ]
 
 
-def prepare_emlinefit(survey=None, verbose=False):
+def prepare_emlinefit(survey=None, verbose=False, apply_mw_correction=False):
     """Prepare the DESI spectroscopic-pipeline emission-line afterburner catalog (Loa only).
 
     Source (per-healpix files, not a single VAC — not under desicollab/vac):
@@ -841,12 +841,17 @@ def prepare_emlinefit(survey=None, verbose=False):
     print below is mainly useful for that case.
 
     No unit conversion is applied: emlinefit fluxes are already in the same
-    units (1e-17 erg/s/cm^2) as the FastSpecFit VAC. Unlike the FastSpecFit
-    reference (and Zou et al.'s zouhu catalogs), emlinefit fluxes are NOT
-    corrected for Galactic (Milky Way) dust extinction; mw_deredden() applies
-    that correction (Fitzpatrick law via desiutil.dust.dust_transmission,
-    Rv=3.1) using each object's EBV and FastSpecFit redshift before anything
-    else touches emlinefit's line columns.
+    units (1e-17 erg/s/cm^2) as the FastSpecFit VAC.
+
+    Whether emlinefit fluxes are already corrected for Galactic (Milky Way)
+    dust extinction is unresolved (pending confirmation from the emlinefit
+    developer) — an earlier assumption that they are NOT corrected turned out
+    to be wrong. ``apply_mw_correction`` (default False) controls whether
+    mw_deredden() applies that correction (Fitzpatrick law via
+    desiutil.dust.dust_transmission, Rv=3.1, using each object's EBV and
+    FastSpecFit redshift) to emlinefit's line columns; this is a function
+    argument only, not a CLI flag, since it should only need flipping once
+    the question is settled.
 
     Reference (FastSpecFit) OIII_5007_FLUX, HBETA_FLUX, and HALPHA_FLUX are
     also pulled in (OII_3726_FLUX/OII_3729_FLUX already come via
@@ -925,15 +930,15 @@ def prepare_emlinefit(survey=None, verbose=False):
         out   = ref[i_ref].copy()
         ext_m = ext[i_ext]
 
-        # emlinefit fluxes are not corrected for Galactic (MW) dust extinction
-        # (unlike the FastSpecFit reference and Zou et al.'s zouhu catalogs,
-        # which are); deredden using the matched object's own EBV and
-        # FastSpecFit redshift before anything downstream touches these columns
-        z_ref = np.asarray(out['Z'], dtype=float)
-        ebv   = np.asarray(out['EBV'], dtype=float)
-        for col, restwave in _EMLINEFIT_LINE_RESTWAVE.items():
-            ext_m[col], ext_m[f'{col}_IVAR'] = mw_deredden(
-                ext_m[col], ext_m[f'{col}_IVAR'], restwave, z_ref, ebv)
+        # Whether emlinefit fluxes are already corrected for Galactic (MW)
+        # dust extinction is unresolved (see apply_mw_correction docstring
+        # note); only deredden here if explicitly requested.
+        if apply_mw_correction:
+            z_ref = np.asarray(out['Z'], dtype=float)
+            ebv   = np.asarray(out['EBV'], dtype=float)
+            for col, restwave in _EMLINEFIT_LINE_RESTWAVE.items():
+                ext_m[col], ext_m[f'{col}_IVAR'] = mw_deredden(
+                    ext_m[col], ext_m[f'{col}_IVAR'], restwave, z_ref, ebv)
 
         # raw Redrock redshift, kept alongside FastSpecFit's own Z for diagnostics
         out[f'Z_{shortcat.upper()}'] = ext_m['Z']

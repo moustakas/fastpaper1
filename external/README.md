@@ -225,13 +225,17 @@ consistency check (`cross_match()`, |Δv| < 1000 km/s) is applied, using
 emlinefit's `TARGET_RA`/`TARGET_DEC` for the positional check.
 
 No unit conversion is applied: emlinefit fluxes are already in the same
-units (1e-17 erg/s/cm²) as the FastSpecFit VAC. Unlike the FastSpecFit
-reference and Zou et al.'s zouhu catalogs, emlinefit's fluxes are **not**
-corrected for Galactic (Milky Way) dust extinction; `mw_deredden()` applies
-that correction (Fitzpatrick law via `desiutil.dust.dust_transmission`,
-Rv=3.1) at each object's observed-frame wavelength (restwave × (1+z)), using
-the matched object's own `EBV` and FastSpecFit redshift, before any other
-processing touches emlinefit's line columns.
+units (1e-17 erg/s/cm²) as the FastSpecFit VAC.
+
+Whether emlinefit's fluxes are already corrected for Galactic (Milky Way)
+dust extinction is currently **unresolved**, pending confirmation from the
+emlinefit developer — an earlier assumption that they are *not* corrected
+turned out to be wrong. `prepare_emlinefit()`'s `apply_mw_correction`
+argument (default `False`, function-level only, not a CLI flag) controls
+whether `mw_deredden()` applies that correction (Fitzpatrick law via
+`desiutil.dust.dust_transmission`, Rv=3.1, at each object's observed-frame
+wavelength restwave × (1+z), using the matched object's own `EBV` and
+FastSpecFit redshift) to emlinefit's line columns.
 
 **Output columns:**
 
