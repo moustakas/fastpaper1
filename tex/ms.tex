@@ -427,12 +427,12 @@ second-best fits across all spectral classes. \todo{Should probably
   mention \texttt{COADD\_FIBERSTATUS}, if we are going to use it in
   \S\ref{ssec:cuts} to select ``good'' redshifts.} Three after-burner
 processing steps follow Redrock: an emission-line fitter
-(\texttt{emlinefit}; \citealt{raichoor23a}) used to validate ELG
-redshifts; a \mgiidoublet{} doublet fitter \citep{chaussidon23a}; and
-the \texttt{QuasarNET} neural-network QSO classifier \citep{busca18a,
-  green25a}. The latter two after-burners are essential for correctly
-classifying and measuring accurate redshifts for QSOs (see
-\S\ref{ssec:catalog}).
+(\texttt{emlinefit}; \citealt{raichoor23a, desi-collaboration24d})
+used to validate ELG redshifts; a \mgiidoublet{} doublet fitter
+\citep{chaussidon23a}; and the \texttt{QuasarNET} neural-network QSO
+classifier \citep{busca18a, green25a}. The latter two after-burners
+are essential for correctly classifying and measuring accurate
+redshifts for QSOs (see \S\ref{ssec:catalog}).
 
 %% ============================================================
 \section{Spectrophotometric Modeling}
@@ -2350,11 +2350,12 @@ match reasonably well to existing independent measurements.
 For the subsequent comparisons, we match our VAC to each external
 catalog by \texttt{TARGETID} when a common DESI identifier exists
 \citep{myers23a}, otherwise using a $1\farcs5$ positional
-threshold. We also confirm each match by requiring redshift agreement,
-$c|\Delta z|<1000~\kms$, which is necessary even when comparing two
-DESI samples because of possible differences between specprods and
-because of our override of some QSO redshifts (\S\ref{ssec:catalog}).
-For each matched pair we also compute the pull,
+threshold. In addition, we confirm each match by requiring redshift
+agreement, $c|\Delta z|<1000~\kms$, which is necessary even when
+comparing two DESI samples because of possible differences between
+specprods and because of our override of some QSO redshifts
+(\S\ref{ssec:catalog}).  For each matched pair we also compute the
+pull,
 
 \begin{equation}
 \mathrm{pull} = \frac{x_{\mathrm{ext}} - x_{\mathrm{ref}}}
@@ -2365,9 +2366,7 @@ For each matched pair we also compute the pull,
 \noindent where $x$ and $\delta x$ are the measured quantity---line
 flux in Figure~\ref{fig:compare-emlines-external}, velocity dispersion
 in Figure~\ref{fig:vdisp}---and its uncertainty in the external and
-\fastspec{} (reference) catalogs, respectively; a unit Gaussian pull
-distribution indicates that the two catalogs' quoted uncertainties are
-mutually consistent.
+\fastspec{} (reference) catalogs, respectively.
 
 \begin{figure*}
 \centering\includegraphics[width=\textwidth]{compare-emlines-external.pdf}
@@ -2377,7 +2376,7 @@ mutually consistent.
   \citep{raichoor23a}, and (bottom) the CIGALE-based emission-line
   fluxes from the DR1 (Iron) stellar-mass-emission-line catalog of
   \citet{zou24b,sui26a}. Columns show, left to right,
-  \oii\ ($\lambda3726$+$\lambda3729$), \oiiilam, \hb, and \ha. A
+  \oii{} ($\lambda3726$+$\lambda3729$), \oiiilam, \hb, and \ha. A
   galaxy is included only if both the \fastspecfit{} and comparison
   flux have $\mathrm{S/N}>3$; no target-class split is applied
   (cf.\ Figure~\ref{fig:compare-mstar-external}). As in
@@ -2395,17 +2394,19 @@ mutually consistent.
 
 In Figure~\ref{fig:compare-emlines-external} we compare our
 emission-line fluxes for \oiidoublet{} (summed, with the uncertainties
-added in quadrature), \oiii, \hb, and \ha{} against the
+added in quadrature), \oiiilam, \hb, and \ha{} against the
 \texttt{Loa} (DR2) \texttt{emlinefit} afterburner measurements
 \citep{raichoor23a} and against the \texttt{Iron} \citep[DESI
-  DR1;][]{desi-collaboration26a} ``Stellar Mass and Emission Line
-Catalog'' (\texttt{v1.0}) from \citet{zou24b} (see also H.~Zou et al.,
-in
-preparation).\footnote{\url{https://data.desi.lbl.gov/doc/releases/dr1/vac/stellar-mass-emline}}
-We require $\mathrm{S/N}>3$ for each line in both catalogs, and
-combine the SV3 bright and dark programs to maximize the matched
-sample. (Combining the main bright and dark samples gives nearly
-identical statistics, simply with many more objects.)
+  DR1;][]{desi-collaboration26a} \textit{Stellar Mass and Emission
+  Line
+  Catalog}\footnote{\url{https://data.desi.lbl.gov/doc/releases/dr1/vac/stellar-mass-emline}}
+(\texttt{v1.0}) from H.~Zou et al., in preparation (see also
+\citealt{zou24b, sui26a}) \todo{Correct ref?}. The line-fluxes in all
+these catalogs have been corrected for foreground Galactic
+extinction. We require $\mathrm{S/N}>3$ for each line in both
+catalogs, and combine the SV3 bright and dark programs to maximize the
+matched sample. (Combining the main bright and dark samples gives
+nearly identical statistics, simply with many more objects.)
 
 \begin{figure*}
 \centering\includegraphics[width=1.0\textwidth]{compare-vdisp.pdf}
@@ -2415,34 +2416,43 @@ identical statistics, simply with many more objects.)
   compared to a unit Gaussian (black curve).\label{fig:vdisp}}
 \end{figure*}
 
-Agreement with \texttt{emlinefit} is excellent for \oii\ and
-\ha\ (median offsets of $+0.006$ and $-0.029$~dex and
-\texttt{NMAD}\footnote{The normalized median absolute deviation,
+The agreement with \texttt{emlinefit} is very good for \oii, with a
+median difference and \texttt{NMAD}\footnote{The normalized median
+absolute deviation,
 $\mathtt{NMAD}\equiv1.4826\,\mathrm{median}(|x-\mathrm{median}(x)|)$,
 a robust estimator of the standard deviation for a distribution that
-may contain outliers.} scatter of 0.022 and 0.020~dex), but \oiii{}
-and \hb{} show larger offsets ($+0.115$ and $-0.085$~dex,
-respectively). Agreement with the DR1 catalog of H.~Zou et~al., (in
-preparation) is excellent in median offset ($|\Delta_{\rm
-  med}|<0.01$~dex) and scatter ($\mathtt{NMAD}<0.04$~dex) for all four
-lines.
+may contain outliers.} scatter of $0.006\pm0.022$~dex. For \ha{} and
+\hb{} we find median differences of $-0.029\pm0.020$~dex and
+$-0.085\pm0.067$~dex, respectively---tight, but shifted by of order
+one-sigma (\fastspec{} is brighter). These systematic differences are
+most likely due to \texttt{emlinefit}'s treatment of the continuum
+around each line as a constant pedestal with no correction for stellar
+absorption, which would cause the Balmer lines to be underestimated
+(negative pull; Figure~\ref{fig:compare-emlines-external} insets). The
+differences with \oiii, meanwhile, are notably larger, with an offset
+of $0.115\pm0.033$ and a distinctly non-Gaussian pull. Because the
+\texttt{emlinefit} continuum window for \oiii{} (nominally
+$\pm100$~\AA{} in the rest frame around each line) extends blueward to
+the immediate vicinity of \hb, it is possible that the same unmodeled
+stellar absorption depresses \oiii{}'s local continuum estimate and
+biases its line flux high.
 
-The pull distributions (insets) sharpen this picture. Against
-\texttt{emlinefit}, the \oiii{} and \hb{} pulls grow increasingly
-asymmetric toward higher signal-to-noise---the signature of a
-multiplicative (flux-scale) discrepancy between the two codes' line
-measurements rather than additive noise. \todo{Confirm physical origin
-  of the \oiiilam/\hb\ asymmetry (candidate: differences in stellar
-  continuum/Balmer-absorption modeling underlying these two lines)
-  once resolved with the \texttt{emlinefit} developer.} Against the
-DR1 catalog of \citet{zou24b}, the pull distributions for all four
-lines are systematically narrower than a unit Gaussian (\texttt{NMAD}
-of 0.29--0.71), indicating that the combined quoted flux uncertainties
-overestimate the true scatter; since the same \fastspecfit{} reference
-does not show this narrowing against \texttt{emlinefit}, the
-miscalibration plausibly lies in that catalog's quoted errors rather
-than \fastspecfit{}'s, though this combined-pull test alone cannot
-definitively separate the two.
+Meanwhile, the agreement with the VAC from H.~Zou et~al., (in
+preparation) is excellent in terms of median offset ($|\Delta_{\rm
+  med}|<0.005$~dex) and scatter ($\mathtt{NMAD}<0.04$~dex) for all
+four lines. The most striking result is that the pull distributions
+for all four lines are narrower than a unit Gaussian, particularly for
+\oii{} (also true for the \texttt{emlinefit} \oii{} comparison), which
+indicates that the uncertainties from one or both catalogs have been
+over-estimated. In the Zou et~al. VAC the \oii{} lines are fit fully
+independently \citep{zou24b}, while in \fastspec{} and
+\texttt{emlinefit} the two components of the \oii{} doublet share a
+fitted line-width and velocity, so their flux uncertainties are not
+strictly independent. However, neglecting this covariance would make
+the resulting \oii{} pull too wide rather than too narrow. The upshot
+is that emission-line uncertainties are notoriously difficult to
+measure, so analyses should carefully assess how they evaluate their
+statistical significance.
 
 \begin{figure*}
 \centering\includegraphics[width=1.0\textwidth]{compare-mstar-external.pdf}
