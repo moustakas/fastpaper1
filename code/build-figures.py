@@ -24,7 +24,8 @@ FIGDIR  = os.path.join(REPODIR, 'tex', 'figures')
 
 # axis label for log stellar mass stored at h=1
 MSTAR_LABEL = r'$\log_{10}\,(\mathcal{M}_{*}\,h^{-2}\,/\,\mathcal{M}_{\odot})$'
-SFR_LABEL   = r'$\log_{10}\,(\mathrm{SFR}\,h^{-2}\,/\,M_\odot\,\mathrm{yr}^{-1})$'
+SFR_LABEL = r'$\log_{10}\,(\mathrm{SFR}\,h^{-2}\,/\,M_\odot\,\mathrm{yr}^{-1})$'
+FLUX_LABEL = r'$\log_{10}\,(F_{\lambda}\,/ \,10^{-17}\,\mathrm{erg\,s^{-1}\,cm^{-2}})$'
 
 # Colorblind-friendly (Okabe-Ito) colors for DESI target classes.
 # Used for contours; pass make_class_cmap(color) to hess_contours for the background.
@@ -557,8 +558,6 @@ _EMLINE_LABELS = {
     'Halpha': r'\mathrm{H}\alpha',
 }
 
-FLUX_LABEL = r'$\log_{10}\,(\mathrm{Flux}\,/\,10^{-17}\,\mathrm{erg\,s^{-1}\,cm^{-2}})$'
-
 
 def compare_emlines_external(verbose=False, survey='sv3', pull_denom='quadrature'):
     """2×4 grid: FastSpecFit vs external emission-line fluxes.
@@ -566,10 +565,10 @@ def compare_emlines_external(verbose=False, survey='sv3', pull_denom='quadrature
     Rows: emlinefit (Loa), Zou et al. (Iron).
     Columns: [OII] (3726+3729 blended), [OIII] 5007, Hβ, Hα.
 
-    Combines external/{emlinefit,zouhu}-{shortcat}-sv3-{bright,dark}.fits only
-    (main-survey statistics aren't needed for this comparison) — no
-    target-class split; the TARGETID + position + Δv consistency checks were
-    already applied upstream in prepare-external.py.
+    Combines external/{emlinefit,zouhu}-{shortcat}-{survey}-{bright,dark}.fits
+    (default survey='sv3'; pass survey='main' for the much larger main-survey
+    sample) — no target-class split; the TARGETID + position + Δv consistency
+    checks were already applied upstream in prepare-external.py.
 
     S/N > 3 (flux/err) is required on both the reference and external side
     for an object to be plotted (no redshift-class cut beyond that); a bare
@@ -603,6 +602,10 @@ def compare_emlines_external(verbose=False, survey='sv3', pull_denom='quadrature
         filename so repeated runs with different choices don't overwrite
         each other.
 
+    verbose : also prints, per panel, the pull's N/mean/median/NMAD/skew/
+        kurtosis for whichever pull_denom was requested — rerun with each of
+        the three pull_denom choices to compare.
+
     Output: tex/figures/compare-emlines-external[-{pull_denom}].pdf
     """
     import fitsio
@@ -615,7 +618,7 @@ def compare_emlines_external(verbose=False, survey='sv3', pull_denom='quadrature
     lines = ['OII', 'OIII', 'Hbeta', 'Halpha']
 
     codes = [
-        dict(name='emlinefit-loa', label='emlinefit', color='#8E4585',  # plum
+        dict(name='emlinefit-loa', label='emlinefit (Loa)', color='#8E4585',  # plum
             cols={
                 'OII':    (['OII_FLUX_EMLINEFIT'],    ['OII_FLUX_ERR_EMLINEFIT']),
                 'OIII':   (['OIII_FLUX_EMLINEFIT'],   ['OIII_FLUX_ERR_EMLINEFIT']),
@@ -733,6 +736,14 @@ def compare_emlines_external(verbose=False, survey='sv3', pull_denom='quadrature
                 denom = ee[err_ok]
             pull = (ef[err_ok] - rf[err_ok]) / denom
             pull = pull[np.isfinite(pull)]
+
+            if verbose:
+                from scipy.stats import skew, kurtosis
+                print(f"  [{code['label']:>16s}] {line:7s} pull_denom={pull_denom:10s} "
+                      f'N={pull.size:,}  mean={np.mean(pull):+.3f}  '
+                      f'median={np.median(pull):+.3f}  NMAD={nmad(pull):.3f}  '
+                      f'skew={skew(pull):+.3f}  kurtosis={kurtosis(pull):+.3f}')
+
             axins = ax.inset_axes([0.56, 0.12, 0.42, 0.28])
             bins = np.linspace(-5, 5, 41)
             axins.hist(pull, bins=bins, density=True, color='0.7', edgecolor='0.5', linewidth=0.5, zorder=2)
@@ -752,7 +763,7 @@ def compare_emlines_external(verbose=False, survey='sv3', pull_denom='quadrature
         axes[ri, 0].set_ylabel(f"[{code['label']}]")
 
     fig.text(0.06, 0.5, FLUX_LABEL, rotation=90, va='center', ha='center')
-    fig.text(0.52, 0.02, FLUX_LABEL + '\n[FastSpecFit]', ha='center', va='bottom')
+    fig.text(0.52, 0.02, FLUX_LABEL + ' [FastSpecFit]', ha='center', va='bottom')
 
     if pull_denom != 'quadrature':
         denom_label = {'ref': 'FastSpecFit err only', 'ext': 'external err only'}[pull_denom]
@@ -1360,8 +1371,8 @@ def compare_vdisp(verbose=False, two_panel=False):
     ax_pp.plot(sigrange, sigrange, color='0.4', lw=1.6, ls='--', zorder=5)
     ax_pp.set_xlim(sigrange)
     ax_pp.set_ylim(sigrange)
-    ax_pp.set_xlabel(r'$\sigma$ [FastSpecFit] (km s$^{-1}$)')
-    ax_pp.set_ylabel(r'$\sigma$ [pPXF] (km s$^{-1}$)')
+    ax_pp.set_xlabel(r'$\sigma_{\mathrm{FastSpecFit}} (km s$^{-1}$)')
+    ax_pp.set_ylabel(r'$\sigma_{\mathrm{pPXF}} (km s$^{-1}$)')
     ax_pp.text(0.04, 0.96,
                f'$N={len(fs_p):,}$ [main/bright]\n'
                f'$\\Delta_{{\\rm med}}={np.median(dpp):+.1f}$ km s$^{{-1}}$\n'
@@ -1660,6 +1671,11 @@ def main():
                         help='Stellar mass comparison: FastSpecFit vs external catalogs.')
     parser.add_argument('--compare-emlines-external', action='store_true',
                         help='Emission-line flux comparison: FastSpecFit vs emlinefit and zouhu.')
+    parser.add_argument('--pull-denom', default='quadrature',
+                        choices=['quadrature', 'ref', 'ext'],
+                        help='compare-emlines-external: denominator for the pull statistic '
+                             '(diagnostic for isolating which side\'s quoted errors are '
+                             'miscalibrated).')
     parser.add_argument('--cosmos2020', action='store_true',
                         help='Stellar mass comparison: FastSpecFit vs COSMOS2020.')
     parser.add_argument('--compare-sfr-external', action='store_true',
@@ -1707,7 +1723,7 @@ def main():
         compare_mstar_external(verbose=args.verbose)
 
     if args.compare_emlines_external:
-        compare_emlines_external(verbose=args.verbose)#, pull_denom='ext')
+        compare_emlines_external(verbose=args.verbose, survey=survey, pull_denom=args.pull_denom)
 
     if args.cosmos2020:
         compare_cosmos2020(verbose=args.verbose)
