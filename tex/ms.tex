@@ -32,6 +32,7 @@
 \newcommand{\oiii}{[\ion{O}{3}]}
 \newcommand{\nii}{[\ion{N}{2}]}
 \newcommand{\sii}{[\ion{S}{2}]}
+\newcommand{\siii}{[\ion{S}{3}]}
 \newcommand{\hii}{\ion{H}{2}}
 \newcommand{\hei}{\ion{He}{1}}
 \newcommand{\heii}{\ion{He}{2}}
@@ -2630,27 +2631,64 @@ class (\S\ref{sssec:fluxresid}).
 \subsubsection{Wavelength Calibration Residuals}
 \label{sssec:waveresid}
 
-\fastspecfit{} fits each of the three DESI cameras (B, R, Z) separately
-and records the median emission-line velocity shift per camera for every
-spectrum in which emission lines are detected. For a perfectly calibrated
-wavelength solution, this per-camera shift should be consistent with zero
-and with the global redshift measured by Redrock. Systematic offsets or
-trends with wavelength, fiber position, or observing conditions indicate
-residual errors in the arc-lamp or sky-line wavelength calibration.
+\fastspecfit{} does not fit the three DESI cameras (B, R, Z)
+independently. Narrow emission lines instead share a common kinematic
+anchor during the primary fit---{\oiiilam} for forbidden lines, \ha{}
+for narrow Balmer and \hei{} lines (\S\ref{sssec:kinematic})---and only
+in an optional final pass are individual lines' velocity shifts
+(\texttt{VSHIFT}) freed and refit independently, within a
+$\pm100$~\kms{} window of the tied value, with the relaxed solution
+adopted only if it improves $\chi^2$ (\texttt{DELTA\_KINECHI2},
+\texttt{DELTA\_KINENDOF}). Because each line's rest wavelength and
+redshift together fix its observed-frame wavelength, this population of
+quasi-independent \texttt{VSHIFT} measurements, aggregated across many
+lines and redshifts, still serves as a proxy for residual
+wavelength-solution errors as a function of observed-frame wavelength,
+even though no single camera is ever fit in isolation.
+
+We select DR2 main-survey galaxies for which the relaxed kinematic pass
+was adopted and no broad Balmer component was fit, so that every narrow
+line's \texttt{VSHIFT} is a genuine measurement rather than a copy of
+its tied anchor, and further require $\mathrm{S/N}>7$ and a formal
+\texttt{VSHIFT} uncertainty below 25~\kms{} for 11 forbidden and 5
+Balmer lines spanning {\oiidoublet} through {\siii}~$\lambda9532$. We
+exclude the $0.02$\% of fits pinned at the optimizer's hard
+$\pm500$~\kms{} bound, which biases their formal uncertainties toward
+implausibly small values. Figure~\ref{fig:wave_resid} shows the
+resulting running median \texttt{VSHIFT} as a function of observed-frame
+wavelength, separately for forbidden and Balmer lines and combined; the
+shaded band is the interquartile range of individual measurements
+within each bin, not the uncertainty on the median, which is smaller by
+two to three orders of magnitude given the tens of thousands of
+galaxies contributing to every bin.
+
+The forbidden-line median is consistent with zero to within $\pm1$~\kms{}
+across the full DESI wavelength range, with no discontinuity at the B/R
+or R/Z camera boundaries (shaded gray). The Balmer lines, by contrast,
+show a $\approx-5$~\kms{} offset between roughly 4800 and 5600~\AA, the
+observed-frame window populated by \hb{} and higher-order Balmer lines at
+low redshift, returning to zero once \ha{} dominates the sample redward
+of $\approx6600$~\AA. Because this offset appears only in Balmer lines
+and not in forbidden lines at the same observed wavelength, we attribute
+it to residual stellar Balmer-absorption or continuum-blending bias in
+the narrow-line centroid rather than to a wavelength-calibration error,
+which would affect all species equally at fixed observed wavelength.
+
+We exclude {\siii}~$\lambda\lambda9069,9532$ from
+Figure~\ref{fig:wave_resid}: both lines show a consistent
+$+11$--$12$~\kms{} offset, but \fastspecfit{}'s internal line list
+already flags their adopted (Chianti) rest wavelengths as
+unreliable\footnote{See the comment accompanying \texttt{siii\_9069} and
+\texttt{siii\_9532} in \texttt{fastspecfit/data/emlines.ecsv}.}, and at
+the same observed wavelength---populated there only by high-redshift
+\ha---the Balmer curve remains flat. We therefore attribute this offset
+to a rest-wavelength error rather than a wavelength-calibration
+residual.
 
 \begin{figure*}
-%\centering\includegraphics[width=1.0\textwidth]{figures/wave-residuals.png}
-\caption{Per-camera median emission-line velocity shifts as a function of
-  wavelength and target class for a representative subset of the DR2
-  sample. Each panel shows one DESI camera (B, R, Z); the dashed line
-  marks zero offset. \todo{Generate figure.}\label{fig:wave_resid}}
+\centering\includegraphics[width=1.0\textwidth]{wave-residuals.pdf}
+\caption{\todo{Write caption.}\label{fig:wave_resid}}
 \end{figure*}
-
-Figure~\ref{fig:wave_resid} shows the distribution of per-camera velocity
-shifts for emission-line targets across the full DR2 footprint as a
-function of \todo{relevant variable: fiber number, focal-plane position,
-observing date?}. \todo{Describe findings: are the residuals consistent
-with zero? Any trends with target class, S/N, or observing conditions?}
 
 \subsubsection{Spectrophotometric Calibration Residuals}
 \label{sssec:fluxresid}

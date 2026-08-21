@@ -42,6 +42,11 @@ Usage (from repo root or code/, on NERSC):
     python code/pipeline-diagnostics.py --wavecal [--survey main] [--verbose]
     python code/pipeline-diagnostics.py --fluxcal [--survey main] [--verbose]
 
+The wavecal figure itself (median VSHIFT vs. observed wavelength) only reads
+the already-prepared external/wavecal-*.fits files, so it can run anywhere,
+not just on NERSC:
+    python code/pipeline-diagnostics.py --wavecal-figure [--include-siii] [--verbose]
+
 """
 import os, sys, argparse
 import numpy as np
@@ -159,9 +164,15 @@ def prepare_wavecal(survey='main', specprod=DEFAULT_SPECPROD, min_snr=7.0,
                     snr        = flux * np.sqrt(fivar)
                     vshift_err = 1. / np.sqrt(vivar)
 
+                # |VSHIFT| >= 499 km/s means the fit hit the hard optimizer
+                # bound (+/-500 km/s); a handful of such fits report
+                # pathologically tiny formal errors (down to ~1e-8 km/s), a
+                # bounded-optimizer covariance artifact that would otherwise
+                # dominate any inverse-variance-weighted statistic computed
+                # downstream despite being ~0.02% of rows.
                 sel = ((fivar > 0) & (snr > min_snr) &
                        (vivar > 0) & (vshift_err < max_vshift_err) &
-                       np.isfinite(vshift))
+                       (np.abs(vshift) < 499.) & np.isfinite(vshift))
                 n = int(np.sum(sel))
                 if n == 0:
                     continue
@@ -193,6 +204,186 @@ def prepare_wavecal(survey='main', specprod=DEFAULT_SPECPROD, min_snr=7.0,
         print(f'  {survey}/{program}: wrote {len(out):,} rows -> {outfile}')
 
     print('Done.')
+
+
+# Curated line sets for the wavecal figure. Weak/rare lines dropped for excess
+# scatter well beyond their formal errors (NeV 3346/3426, [NII] 5755,
+# [OIII] 4363, [SIII] 6312, He I 4471 -- all N < 50,000 with std(VSHIFT) more
+# than ~10x the median formal VSHIFT_ERR) or suspiciously tiny formal errors
+# ([OII] 7320/7330, median VSHIFT_ERR ~0.4 km/s despite N ~34,000, an order of
+# magnitude smaller than any other line -- likely a fit-degeneracy artifact
+# from the tied auroral quadruplet, not a real precision gain).
+#
+# [SIII] 9069/9532 are deliberately excluded from the default figure: both
+# show a consistent +11-12 km/s median offset, but fastspecfit's own
+# emlines.ecsv carries the comment "Note that the Chianti [SIII] 9069,9532
+# wavelengths are quite wrong" -- and at the same observed wavelength (>9000
+# Angstrom, populated there only by high-z Halpha) the Balmer curve stays
+# flat, so this looks like the known rest-wavelength bug, not a DESI
+# wavelength-calibration residual. Pass include_siii=True to show them anyway
+# (e.g. to double check this interpretation).
+WAVECAL_FORBIDDEN_LINES = ['OII_3726', 'OII_3729', 'NEIII_3869', 'OIII_4959', 'OIII_5007',
+                          'NII_6548', 'NII_6584', 'SII_6716', 'SII_6731', 'ARIII_7135',
+                          'OI_6300']
+WAVECAL_SIII_LINES       = ['SIII_9069', 'SIII_9532']
+WAVECAL_BALMER_LINES     = ['HALPHA', 'HBETA', 'HGAMMA', 'HDELTA', 'HEI_5876']
+
+# nominal DESI camera dichroic transition zones [Angstrom], approximate
+WAVECAL_CAMERA_TRANSITIONS = [(5660., 5930.), (7470., 7720.)]
+
+
+def _binned_median_sem(x, y, bins, xrange, min_count=200):
+    """Running median of y vs x, with an NMAD-based standard error per bin.
+
+    SEM_median ~ 1.2533 * NMAD(y) / sqrt(N) is the standard large-sample
+    approximation for the SEM of a median under (possibly non-Gaussian)
+    scatter described by a robust scale estimator; used here instead of an
+    inverse-variance-weighted mean because a small fraction of catastrophic
+    or underestimated per-object VSHIFT_ERR values otherwise dominate a
+    naive weighted statistic (see prepare_wavecal's boundary-pinned-fit cut).
+
+    Returns
+    -------
+    centers, median, sem, count : ndarray, ndarray, ndarray, ndarray
+        Bins with count < min_count have median and sem set to NaN.
+    """
+    from scipy.stats import binned_statistic
+    from util import nmad
+
+    kw = dict(bins=bins, range=xrange)
+    cnt, edges, _ = binned_statistic(x, y, statistic='count', **kw)
+    med, _, _     = binned_statistic(x, y, statistic='median', **kw)
+    mad, _, _     = binned_statistic(x, y, statistic=nmad, **kw)
+
+    centers = 0.5 * (edges[:-1] + edges[1:])
+    sem = 1.2533 * mad / np.sqrt(np.maximum(cnt, 1))
+    sparse = cnt < min_count
+    med[sparse] = np.nan
+    sem[sparse] = np.nan
+
+    return centers, med, sem, cnt
+
+
+def wavecal_residuals(specprod=DEFAULT_SPECPROD, survey='main', nbins=62,
+                      xrange=(3550., 9850.), min_count=200, include_siii=False,
+                      verbose=False):
+    """Sec. 5.5.1 figure: median emission-line VSHIFT vs. observed-frame
+    wavelength, as a proxy for residual wavelength-calibration errors.
+
+    Reads external/wavecal-{specprod}-{survey}-{bright,dark}.fits (written by
+    prepare_wavecal), drops boundary-pinned fits defensively (harmless if
+    prepare_wavecal has already been rerun with that cut applied), and plots
+    three running-median curves -- all curated lines combined, forbidden
+    lines only, Balmer lines only -- so that a genuine wavelength-calibration
+    residual (which should affect any line the same way at a given observed
+    wavelength) can be distinguished from a species-dependent astrophysical
+    or fit-blending effect (which should not).
+
+    The shaded band is the 25th-75th percentile spread of individual-object
+    VSHIFT values in each bin (via util.running_binstat, matching the
+    convention used elsewhere in build-figures.py), *not* the uncertainty on
+    the plotted median -- with N/bin in the tens of thousands, the standard
+    error of the median is of order 0.01-0.1 km/s (printed per curve when
+    verbose=True), far too small to plot usefully; the individual-object
+    scatter (tens of km/s, dominated by real velocity dispersion and
+    per-object measurement noise) is what's actually visible to the eye, and
+    is what the band shows.
+
+    Output: tex/figures/wave-residuals.pdf
+
+    """
+    import matplotlib.pyplot as plt
+    from util import plot_style, running_binstat
+
+    chunks = []
+    for program in PROGRAMS:
+        infile = os.path.join(EXTDIR, f'wavecal-{specprod}-{survey}-{program}.fits')
+        if not os.path.isfile(infile):
+            print(f'  Missing {infile}, skipping.')
+            continue
+        if verbose:
+            print(f'Reading {infile}')
+        chunks.append(Table.read(infile))
+    if not chunks:
+        raise FileNotFoundError('No wavecal input files found; run --wavecal first.')
+    t = vstack(chunks)
+
+    # Table.read() returns FITS string columns as fixed-width bytes (|S10),
+    # not str, so np.isin() against a Python str line list would silently
+    # match nothing.
+    t['LINE'] = np.asarray(t['LINE']).astype(str)
+
+    t = t[np.abs(np.asarray(t['VSHIFT'], dtype=float)) < 499.]
+
+    forbidden_lines = list(WAVECAL_FORBIDDEN_LINES)
+    if include_siii:
+        forbidden_lines += WAVECAL_SIII_LINES
+    balmer_lines = list(WAVECAL_BALMER_LINES)
+    all_lines = forbidden_lines + balmer_lines
+
+    if verbose:
+        for label, lines in [('forbidden', forbidden_lines), ('Balmer', balmer_lines)]:
+            n = np.isin(t['LINE'], lines).sum()
+            print(f'  {label}: {n:,} rows across {len(lines)} lines')
+
+    sns, colors = plot_style(talk=True, font_scale=0.9, palette='colorblind')
+    fig, (ax, axn) = plt.subplots(
+        2, 1, figsize=(9, 6.5), sharex=True,
+        gridspec_kw={'height_ratios': [3, 1], 'hspace': 0.08})
+
+    for lo, hi in WAVECAL_CAMERA_TRANSITIONS:
+        ax.axvspan(lo, hi, color='0.85', zorder=0)
+        axn.axvspan(lo, hi, color='0.85', zorder=0)
+
+    # fill zorders (1-3) are all below every median line's zorder (11-13), so
+    # the lines stay on top regardless of draw order -- equal-zorder artists
+    # otherwise stack in draw order, which buried the first-drawn line under
+    # later fill_between() calls.
+    curves = [
+        ('All lines (combined)', all_lines,       'k',        2.5, 11),
+        ('Forbidden lines',      forbidden_lines,  colors[0],  2.2, 12),
+        ('Balmer lines',         balmer_lines,     colors[1],  2.2, 13),
+    ]
+    xc = cnt = None
+    ymax = 15.  # widened below if the IQR band needs more room
+    for label, lines, color, lw, zorder in curves:
+        sel = np.isin(t['LINE'], lines)
+        x = np.asarray(t['OBSWAVE'][sel], dtype=float)
+        y = np.asarray(t['VSHIFT'][sel],  dtype=float)
+
+        centers, med, qlo, qhi = running_binstat(x, y, bins=nbins, xrange=xrange, min_count=min_count)
+        finite = np.isfinite(med)
+        ax.fill_between(centers[finite], qlo[finite], qhi[finite],
+                        color=color, alpha=0.2, zorder=zorder - 10)
+        ax.plot(centers[finite], med[finite], color=color, lw=lw, label=label, zorder=zorder)
+        if np.any(finite):
+            ymax = max(ymax, 1.05 * np.nanmax(np.abs(np.concatenate([qlo[finite], qhi[finite]]))))
+
+        _, _, sem, count = _binned_median_sem(x, y, nbins, xrange, min_count=min_count)
+        if verbose:
+            finite_sem = np.isfinite(sem)
+            print(f'  {label}: SEM on the median ranges '
+                  f'{np.nanmin(sem[finite_sem]):.3f}-{np.nanmax(sem[finite_sem]):.3f} km/s across bins '
+                  f'(vs. IQR half-width up to {0.5*np.nanmax(qhi[finite]-qlo[finite]):.1f} km/s)')
+
+        if label.startswith('All'):
+            xc, cnt = centers, count
+
+    ax.axhline(0, color='0.4', lw=1, ls='--', zorder=10)
+    ax.set_ylim(-ymax, ymax)
+    ax.set_ylabel(r'$\Delta v$ (km s$^{-1}$)')
+    ax.legend(loc='upper right', fontsize='small', framealpha=0.85)
+    ax.set_xlim(xrange)
+
+    axn.plot(xc, cnt, color='k', lw=1.2, drawstyle='steps-mid')
+    axn.set_yscale('log')
+    axn.set_ylabel(r'$N$/bin')
+    axn.set_xlabel(r'Observed-frame Wavelength ($\mathrm{\AA}$)')
+
+    outfile = os.path.join(REPODIR, 'tex', 'figures', 'wave-residuals.pdf')
+    fig.savefig(outfile, dpi=150, bbox_inches='tight')
+    print(f'Wrote {outfile}')
+    plt.close(fig)
 
 
 # ---------------------------------------------------------------------------
@@ -302,6 +493,11 @@ def main():
     )
     parser.add_argument('--wavecal', action='store_true',
                         help='Build the wavelength-calibration diagnostic sample (Sec 5.5.1).')
+    parser.add_argument('--wavecal-figure', action='store_true',
+                        help='Make the wavecal VSHIFT-vs-wavelength figure (Sec 5.5.1) from existing samples.')
+    parser.add_argument('--include-siii', action='store_true',
+                        help='wavecal-figure only: include SIII_9069/9532 despite the likely '
+                             'emlines.ecsv rest-wavelength bug (see WAVECAL_SIII_LINES docstring).')
     parser.add_argument('--fluxcal', action='store_true',
                         help='Build the spectrophotometric-calibration diagnostic sample (Sec 5.5.2).')
     parser.add_argument('--survey', default='main', choices=['sv3', 'main'],
@@ -322,6 +518,10 @@ def main():
         if args.min_snr is not None:
             kwargs['min_snr'] = args.min_snr
         prepare_wavecal(**kwargs)
+
+    if args.wavecal_figure:
+        wavecal_residuals(specprod=args.specprod, survey=args.survey,
+                          include_siii=args.include_siii, verbose=args.verbose)
 
     if args.fluxcal:
         kwargs = dict(survey=args.survey, specprod=args.specprod, verbose=args.verbose)
