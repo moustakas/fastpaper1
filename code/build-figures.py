@@ -603,8 +603,11 @@ def compare_emlines_external(verbose=False, survey='sv3', pull_denom='quadrature
         each other.
 
     verbose : also prints, per panel, the pull's N/mean/median/NMAD/skew/
-        kurtosis for whichever pull_denom was requested — rerun with each of
-        the three pull_denom choices to compare.
+        kurtosis for whichever pull_denom was requested, computed on the same
+        |pull|<=5 window the inset histogram plots (a handful of rows can
+        carry a vanishingly small quoted error despite passing S/N>3,
+        blowing up mean/skew/kurtosis if left in) — rerun with each of the
+        three pull_denom choices to compare.
 
     Output: tex/figures/compare-emlines-external[-{pull_denom}].pdf
     """
@@ -739,10 +742,20 @@ def compare_emlines_external(verbose=False, survey='sv3', pull_denom='quadrature
 
             if verbose:
                 from scipy.stats import skew, kurtosis
+                # match the histogram's plotted range (bins=linspace(-5,5,41)
+                # below): a handful of rows carry a vanishingly small quoted
+                # error despite passing S/N>3 (tiny flux, tinier error),
+                # blowing up the pull denominator and dominating mean/skew/
+                # kurtosis (though not median/NMAD, which are robust) if left
+                # in; the histogram itself is unaffected since matplotlib
+                # silently drops values outside the bin range
+                pull_stats = pull[(pull >= -5) & (pull <= 5)]
+                nclip = pull.size - pull_stats.size
                 print(f"  [{code['label']:>16s}] {line:7s} pull_denom={pull_denom:10s} "
-                      f'N={pull.size:,}  mean={np.mean(pull):+.3f}  '
-                      f'median={np.median(pull):+.3f}  NMAD={nmad(pull):.3f}  '
-                      f'skew={skew(pull):+.3f}  kurtosis={kurtosis(pull):+.3f}')
+                      f'N={pull_stats.size:,} (clipped {nclip:,} at |pull|>5)  '
+                      f'mean={np.mean(pull_stats):+.3f}  '
+                      f'median={np.median(pull_stats):+.3f}  NMAD={nmad(pull_stats):.3f}  '
+                      f'skew={skew(pull_stats):+.3f}  kurtosis={kurtosis(pull_stats):+.3f}')
 
             axins = ax.inset_axes([0.56, 0.12, 0.42, 0.28])
             bins = np.linspace(-5, 5, 41)
