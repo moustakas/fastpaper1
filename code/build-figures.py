@@ -1376,7 +1376,7 @@ def compare_vdisp(verbose=False, two_panel=False):
         ax_pp  = fig.add_subplot(gs[0])
         ax_rpp = fig.add_subplot(gs[1])
     else:
-        fig, ax_pp = plt.subplots(figsize=(7, 7))
+        fig, ax_pp = plt.subplots(figsize=(7, 6))
 
     # ---- top (or only): FS vs pPXF ----
     hess_contours(ax_pp, fs_p, ppxf_p, sigrange, sigrange, bins=60,
@@ -1384,8 +1384,8 @@ def compare_vdisp(verbose=False, two_panel=False):
     ax_pp.plot(sigrange, sigrange, color='0.4', lw=1.6, ls='--', zorder=5)
     ax_pp.set_xlim(sigrange)
     ax_pp.set_ylim(sigrange)
-    ax_pp.set_xlabel(r'$\sigma_{\mathrm{FastSpecFit}} (km s$^{-1}$)')
-    ax_pp.set_ylabel(r'$\sigma_{\mathrm{pPXF}} (km s$^{-1}$)')
+    ax_pp.set_xlabel(r'$\sigma_{*,\mathrm{FastSpecFit}}$ (km s$^{-1}$)')
+    ax_pp.set_ylabel(r'$\sigma_{*,\mathrm{pPXF}}$ (km s$^{-1}$)')
     ax_pp.text(0.04, 0.96,
                f'$N={len(fs_p):,}$ [main/bright]\n'
                f'$\\Delta_{{\\rm med}}={np.median(dpp):+.1f}$ km s$^{{-1}}$\n'
@@ -1416,6 +1416,18 @@ def compare_vdisp(verbose=False, two_panel=False):
         denom = np.sqrt(ppxferr_p[err_ok] ** 2 + fserr_p[err_ok] ** 2)
         pull = (ppxf_p[err_ok] - fs_p[err_ok]) / denom
         pull = pull[np.isfinite(pull)]
+
+        if verbose:
+            from scipy.stats import skew, kurtosis
+            # match the histogram's plotted range (bins=linspace(-5,5,41)
+            # below), as in compare_emlines_external
+            pull_stats = pull[(pull >= -5) & (pull <= 5)]
+            nclip = pull.size - pull_stats.size
+            print(f'  pull (pPXF - FastSpecFit)/quadrature-error: '
+                  f'N={pull_stats.size:,} (clipped {nclip:,} at |pull|>5)  '
+                  f'mean={np.mean(pull_stats):+.3f}  '
+                  f'median={np.median(pull_stats):+.3f}  NMAD={nmad(pull_stats):.3f}  '
+                  f'skew={skew(pull_stats):+.3f}  kurtosis={kurtosis(pull_stats):+.3f}')
 
         axins = ax_pp.inset_axes([0.56, 0.12, 0.42, 0.28])
         bins = np.linspace(-5, 5, 41)

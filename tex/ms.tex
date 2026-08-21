@@ -296,13 +296,13 @@ DESI is a highly multiplexed fiber spectrograph mounted on the Mayall
 corrector \citep{miller24a} feeds a $3\fdg2$-diameter field of view,
 within which 5000 robotically actuated, $1\farcs5$-diameter fibers
 \citep{poppett24a} are positioned onto target coordinates and feed ten
-three-arm spectrographs covering 3600--9824\,\AA{} in the observed
+three-arm spectrographs covering 3600--9824~\AA{} in the observed
 frame \citep{guy23a}. The focal plane is divided into ten wedge-shaped
 ``petals'', each read out by all ten spectrographs. A single pointing
 of the full 5000-fiber focal plane defines a ``tile'', the basic unit
 of the survey's tiling strategy \citep{schlafly23a}. The three cameras
-sense blue (B: 3600--5930\,\AA), red (R: 5600--7720\,\AA), and
-near-infrared (Z: 7470--9824\,\AA) light, at a spectral resolution of
+sense blue (B: 3600--5930~\AA), red (R: 5600--7720~\AA), and
+near-infrared (Z: 7470--9824~\AA) light, at a spectral resolution of
 $\mathcal{R}\equiv\lambda/\Delta\lambda \approx 2000-3500$,
 $3400-4800$, and $3800-5200$, respectively \citep{guy23a}.
 
@@ -539,12 +539,12 @@ same machinery (\S\ref{sec:modes}).
 
 We generate SPS templates using Flexible Stellar Population
 Synthesis\footnote{\url{https://github.com/moustakas/fsps}}
-\citep[FSPS;][]{conroy09a,conroy10b} via a fork of the
+\citep[FSPS;][]{conroy09a, conroy10b} via a fork of the
 \texttt{python-fsps}\footnote{\url{https://github.com/moustakas/python-fsps}}
 interface. We construct these models using a custom version of the
 \texttt{C3K} theoretical spectral library,
 \texttt{C3K\_R3K}\footnote{\url{https://github.com/moustakas/c3k}},
-the MIST stellar isochrones \citep{choi16a,dotter16a}, and a
+the MIST stellar isochrones \citep{choi16a, dotter16a}, and a
 \citet{chabrier03a} IMF. The \texttt{C3K\_R3K} library spans 100~\AA{}
 to 1000~$\mu$m with $\mathcal{R}_{\mathrm{C3K}} \approx 7065$
 ($\lambda/\mathrm{FWHM}=3000$) in the rest-frame optical
@@ -2087,7 +2087,8 @@ ranges). In production, a tagged version of \fastspecfit{} takes the
 data from a specprod as its input and produces a complete VAC. Here,
 we present the second version of the \texttt{Loa} \fastspecfit{} VAC,
 and in Appendix~\ref{sec:appendix_vacs} we present additional,
-previously released VACs, including those from the EDR and DR1.
+previously released VACs, including those from the EDR (Fuji specprod)
+and DR1 (Iron specprod).
 
 In \S\ref{ssec:catalog} we describe the sample-selection criteria for
 the \texttt{Loa/v2.0} VAC, our correction of a subset of Redrock QSO
@@ -2370,26 +2371,23 @@ in Figure~\ref{fig:vdisp}---and its uncertainty in the external and
 
 \begin{figure*}
 \centering\includegraphics[width=\textwidth]{compare-emlines-external.pdf}
-\caption{Comparison of \fastspecfit{} emission-line fluxes with two
-  independent measurements of the same DESI spectra: (top) the DESI
-  spectroscopic-pipeline \texttt{emlinefit} afterburner
-  \citep{raichoor23a}, and (bottom) the CIGALE-based emission-line
-  fluxes from the DR1 (Iron) stellar-mass-emission-line catalog of
-  \citet{zou24b,sui26a}. Columns show, left to right,
-  \oii{} ($\lambda3726$+$\lambda3729$), \oiiilam, \hb, and \ha. A
-  galaxy is included only if both the \fastspecfit{} and comparison
-  flux have $\mathrm{S/N}>3$; no target-class split is applied
-  (cf.\ Figure~\ref{fig:compare-mstar-external}). As in
-  Figure~\ref{fig:compare-mstar-external}, the logarithmically-scaled
-  two-dimensional number density is shown as a color map, with
-  contours enclosing 50\%, 75\%, 95\%, and 99.5\% of the joint
-  distribution; individual galaxies outside the outermost contour are
-  shown as markers, and the dashed line is the 1:1 relation. Each
-  panel lists the matched sample size $N$, the median flux offset
-  $\Delta_{\rm med}$ (external minus \fastspecfit{}) in dex, and the
-  \texttt{NMAD} scatter.  The inset in each panel shows the pull
-  distribution (Equation~\ref{eq:pull}), compared to a unit Gaussian
-  (black curve).\label{fig:compare-emlines-external}}
+\caption{Comparison of \fastspec{} emission-line fluxes for four
+  strong nebular emission lines (\oiidoublet, summed, \oiiilam, \hb,
+  and \ha) against (top) the DESI DR2/\texttt{Loa} \texttt{emlinefit}
+  afterburner measurements \citep{raichoor23a}, and (bottom)
+  emission-line fluxes from the H.~Zou et al., (in preparation)
+  DR1/Iron VAC \citep[see also][]{zou24b, sui26a}. Within each panel,
+  we only plot objects with $\mathrm{S/N}>3$ in both catalogs and the
+  shaded histogram in the inset shows the pull distribution (see
+  equation~\ref{eq:pull}), compared to a unit Gaussian (black
+  curve). We show the logarithmically-scaled two-dimensional number
+  density as a color map and the contours enclose 50\%, 75\%, 95\%,
+  and 99.5\% of the joint distribution. Outside the outermost contour,
+  we show individual galaxies as markers and the dashed line is the
+  one-to-one relation. Finally, each panel lists the matched sample
+  size $N$, the median difference in logarithmic flux,
+  $\Delta_{\mathrm{med}}$ (external minus \fastspec) in dex, and the
+  \texttt{NMAD} scatter in dex. \label{fig:compare-emlines-external}}
 \end{figure*}
 
 In Figure~\ref{fig:compare-emlines-external} we compare our
@@ -2400,7 +2398,7 @@ added in quadrature), \oiiilam, \hb, and \ha{} against the
   DR1;][]{desi-collaboration26a} \textit{Stellar Mass and Emission
   Line
   Catalog}\footnote{\url{https://data.desi.lbl.gov/doc/releases/dr1/vac/stellar-mass-emline}}
-(\texttt{v1.0}) from H.~Zou et al., in preparation (see also
+(\texttt{v1.0}) from H.~Zou et al., (in preparation; see also
 \citealt{zou24b, sui26a}) \todo{Correct ref?}. The line-fluxes in all
 these catalogs have been corrected for foreground Galactic
 extinction. We require $\mathrm{S/N}>3$ for each line in both
@@ -2410,10 +2408,18 @@ nearly identical statistics, simply with many more objects.)
 
 \begin{figure*}
 \centering\includegraphics[width=1.0\textwidth]{compare-vdisp.pdf}
-\caption{Comparison of \fastspecfit{} stellar velocity dispersions with
-  those from \texttt{pPXF} \citep{cappellari23a} for a matched BGS
-  sample. The inset shows the pull distribution (Equation~\ref{eq:pull}),
-  compared to a unit Gaussian (black curve).\label{fig:vdisp}}
+\caption{Comparison of \fastspec{} stellar velocity dispersions with
+  those measured by \citet{ross25a} using \texttt{pPXF}
+  \citep{cappellari23a}, for a matched sample of main-survey,
+  bright-time galaxies (\S\ref{sssec:vdisp}). As in
+  Figure~\ref{fig:compare-emlines-external}, the color map, contours,
+  and outlying markers show the two-dimensional density distribution,
+  the dashed line is the one-to-one relation, and the inset shows the
+  pull distribution (equation~\ref{eq:pull}) compared to a unit
+  Gaussian (black curve). We find a median offset and \texttt{NMAD}
+  scatter of $-15.9\pm12.9$~\kms{} (\fastspec{} yields systematically
+  larger \vdisp{} values) and a median pull of
+  $-1.06\pm0.82$. \label{fig:vdisp}}
 \end{figure*}
 
 The agreement with \texttt{emlinefit} is very good for \oii, with a
@@ -2451,30 +2457,8 @@ fitted line-width and velocity, so their flux uncertainties are not
 strictly independent. However, neglecting this covariance would make
 the resulting \oii{} pull too wide rather than too narrow. The upshot
 is that emission-line uncertainties are notoriously difficult to
-measure, so analyses should carefully assess how they evaluate their
-statistical significance.
-
-\begin{figure*}
-\centering\includegraphics[width=1.0\textwidth]{compare-mstar-external.pdf}
-\caption{Comparison of \fastspecfit{} stellar masses with three
-  independent catalogs, organized by target class. Each row compares
-  \fastspecfit{} $\logmstar$ (x-axis; $h=1$, Chabrier IMF) against
-  masses from (top) \citet{zou24b,sui26a} using CIGALE SED fitting of
-  DR2 photometry, (middle) \citet{siudek25a} using CIGALE SED fitting
-  with AGN contributions fit to DR1 spectra and photometry, and
-  (bottom) \citet{salim16a,salim18a} using CIGALE SED fitting of
-  \textit{GALEX}$+$SDSS$+$\textit{WISE} photometry (GSWLC-X2). Columns
-  show BGS, LRG, and ELG subsamples; the GSWLC-X2 comparison is
-  restricted to BGS targets owing to negligible overlap with the other
-  classes. The logarithmically-scaled two-dimensional number density
-  is shown as a color map, with contours enclosing 50\%, 75\%, 95\%,
-  and 99.5\% of the joint distribution; individual galaxies outside
-  the outermost contour are shown as markers. Each panel lists the
-  matched sample size $N$, the median mass offset $\Delta_{\rm med}$
-  (external minus \fastspecfit{}) in dex, and the \texttt{NMAD}
-  scatter. The dashed line is the 1:1
-  relation.\label{fig:compare-mstar-external}}
-\end{figure*}
+measure, so analyses should carefully assess how they evaluate the
+statistical significance of individual lines.
 
 %\begin{figure*}
 %\includegraphics[width=1.0\textwidth]{compare-sfr-external.pdf}
@@ -2508,16 +2492,77 @@ statistical significance.
 %  range.\label{fig:cosmos2020}}
 %\end{figure*}
 
-Figure~\ref{fig:vdisp} compares \fastspecfit{} $\vdisp$ measurements
-against those from \texttt{pPXF} \citep{cappellari23a} for a matched
-sample of BGS galaxies with high signal-to-noise stellar
-continua. \todo{Quantify agreement: rms, bias, and pull.}
+Next, Figure~\ref{fig:vdisp} compares the \fastspec{} $\vdisp$
+measurements (\S\ref{sssec:vdisp}) against those from the DESI DR1
+(Iron) Fundamental Plane study of \citet{ross25a} for the same set of
+objects observed at $0.0033<z<0.1$ in the bright program of the main
+survey (see also \citealt{said25a}). \citet{ross25a} fit each DESI
+spectrum with \texttt{pPXF} \citep[v8.2.4;][]{cappellari23a} against
+the empirical Indo-US Coud\'e Feed empirical stellar library
+\citep[$\sigma_{\mathrm{Indo-US}}=30$~\kms;][]{valdes04a}, restricted
+to the DESI B camera ($\approx$3600--5550~\AA,
+$\sigma_{\mathrm{B}}\approx 85-150$~\kms; see
+\S\ref{ssec:spectra}). By comparison, our theoretical
+\texttt{C3K\_R3K} templates have $\sigma_\mathrm{C3K}=42$~\kms{}
+(\S\ref{ssec:templates}) and we fit \vdisp{} over a slightly different
+observed-frame wavelength range, 3800--6000~\AA{} (see
+\S\ref{sssec:vdisp}).
 
-Figure~\ref{fig:compare-mstar-external} compares \fastspecfit{}
-stellar masses against three independent CIGALE-based SED-fitting
-catalogs. \todo{Describe agreement; highlight systematic offsets from
-  non-parametric vs. parametric SFH choices.} We caution that
-non-parametric SFH models can yield stellar masses that are
+\begin{figure*}
+\centering\includegraphics[width=1.0\textwidth]{compare-mstar-external.pdf}
+\caption{Comparison of \fastspecfit{} stellar masses with three
+  independent catalogs, organized by target class. Each row compares
+  \fastspecfit{} $\logmstar$ (x-axis; $h=1$, Chabrier IMF) against
+  masses from (top) \citet{zou24b,sui26a} using CIGALE SED fitting of
+  DR2 photometry, (middle) \citet{siudek25a} using CIGALE SED fitting
+  with AGN contributions fit to DR1 spectra and photometry, and
+  (bottom) \citet{salim16a,salim18a} using CIGALE SED fitting of
+  \textit{GALEX}$+$SDSS$+$\textit{WISE} photometry (GSWLC-X2). Columns
+  show BGS, LRG, and ELG subsamples; the GSWLC-X2 comparison is
+  restricted to BGS targets owing to negligible overlap with the other
+  classes. The logarithmically-scaled two-dimensional number density
+  is shown as a color map, with contours enclosing 50\%, 75\%, 95\%,
+  and 99.5\% of the joint distribution; individual galaxies outside
+  the outermost contour are shown as markers. Each panel lists the
+  matched sample size $N$, the median mass offset $\Delta_{\rm med}$
+  (external minus \fastspecfit{}) in dex, and the \texttt{NMAD}
+  scatter. The dashed line is the 1:1
+  relation.\label{fig:compare-mstar-external}}
+\end{figure*}
+
+For $N=80,693$ objects in common, we find a median offset and
+\texttt{NMAD} scatter of $\Delta_\mathrm{med}=-15.9\pm12.9$~\kms{}
+(\fastspec{} systematically higher), with a pull of
+$-1.06\pm0.82$. The residual is statistically significant but
+relatively small on an instrumental scale---about a third of a native
+DESI pixel ($0.8$~\AA, or $\approx53$~\kms{} at 4500~\AA). However,
+its precise origin is not clear from this comparison alone. For
+context, \citet{ross25a} also compare their \vdisp{} measurements
+against \citet{thomas13a}, who measure velocity dispersions for a
+sample of Sloan Digital Sky Survey \citep[SDSS;][]{york00a} galaxies
+using the MILES empirical stellar library \citep{sanchez-blazquez06a}
+and an earlier version of \texttt{pPXF}; they find very good
+agreement, with an offset of only $\approx$1--2~\kms{} over most of
+the $\sigma$ range. Certainly, there are real differences between the
+stellar libraries used in these analyses relative to the theoretical
+stellar library we adopt, especially with respect to non-solar
+[$\alpha$/Fe] abundance patterns, which may have an effect on the
+derived velocity dispersion \citep[e.g.,][]{conroy14a, pernet24a}. On
+the other hand, \fastspec{} incorporates the wavelength-dependent
+instrumental resolution (via the DESI resolution matrix) directly into
+a full forward model, with no pixel resampling; we do not know what
+impact approximating (or neglecting) the resolution matrix, or
+resampling onto a common wavelength grid, would have on the derived
+velocity dispersion. In conclusion, we find that \fastspec{} yields
+precise velocity dispersions over the full dynamic range of \vdisp{}
+values spanned by low-redshift galaxies, albeit with an as-yet
+unexplained systematic difference relative to existing measurements.
+
+Finally, in Figure~\ref{fig:compare-mstar-external} we compare the
+stellar masses from \fastspec{} against three independent CIGALE-based
+SED-fitting catalogs. \todo{Describe agreement; highlight systematic
+  offsets from non-parametric vs. parametric SFH choices.} We caution
+that non-parametric SFH models can yield stellar masses that are
 systematically higher---by $\sim$0.2--0.3~dex on average---than
 parametric estimates, because a flexible SFH can accommodate more mass
 in old, low-luminosity stellar populations \citep{leja19a,leja20a}.
