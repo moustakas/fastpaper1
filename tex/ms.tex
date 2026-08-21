@@ -2508,28 +2508,6 @@ $\sigma_{\mathrm{B}}\approx 85-150$~\kms; see
 observed-frame wavelength range, 3800--6000~\AA{} (see
 \S\ref{sssec:vdisp}).
 
-\begin{figure*}
-\centering\includegraphics[width=1.0\textwidth]{compare-mstar-external.pdf}
-\caption{Comparison of \fastspecfit{} stellar masses with three
-  independent catalogs, organized by target class. Each row compares
-  \fastspecfit{} $\logmstar$ (x-axis; $h=1$, Chabrier IMF) against
-  masses from (top) \citet{zou24b,sui26a} using CIGALE SED fitting of
-  DR2 photometry, (middle) \citet{siudek25a} using CIGALE SED fitting
-  with AGN contributions fit to DR1 spectra and photometry, and
-  (bottom) \citet{salim16a,salim18a} using CIGALE SED fitting of
-  \textit{GALEX}$+$SDSS$+$\textit{WISE} photometry (GSWLC-X2). Columns
-  show BGS, LRG, and ELG subsamples; the GSWLC-X2 comparison is
-  restricted to BGS targets owing to negligible overlap with the other
-  classes. The logarithmically-scaled two-dimensional number density
-  is shown as a color map, with contours enclosing 50\%, 75\%, 95\%,
-  and 99.5\% of the joint distribution; individual galaxies outside
-  the outermost contour are shown as markers. Each panel lists the
-  matched sample size $N$, the median mass offset $\Delta_{\rm med}$
-  (external minus \fastspecfit{}) in dex, and the \texttt{NMAD}
-  scatter. The dashed line is the 1:1
-  relation.\label{fig:compare-mstar-external}}
-\end{figure*}
-
 For $N=80,693$ objects in common, we find a median offset and
 \texttt{NMAD} scatter of $\Delta_\mathrm{med}=-15.9\pm12.9$~\kms{}
 (\fastspec{} systematically higher), with a pull of
@@ -2559,13 +2537,81 @@ values spanned by low-redshift galaxies, albeit with an as-yet
 unexplained systematic difference relative to existing measurements.
 
 Finally, in Figure~\ref{fig:compare-mstar-external} we compare the
-stellar masses from \fastspec{} against three independent CIGALE-based
-SED-fitting catalogs. \todo{Describe agreement; highlight systematic
-  offsets from non-parametric vs. parametric SFH choices.} We caution
-that non-parametric SFH models can yield stellar masses that are
-systematically higher---by $\sim$0.2--0.3~dex on average---than
-parametric estimates, because a flexible SFH can accommodate more mass
-in old, low-luminosity stellar populations \citep{leja19a,leja20a}.
+stellar masses from \fastspec{} against three independent,
+CIGALE-based \citep{boquien19a} SED-fitting catalogs, organized by
+DESI target class (BGS, LRG, and ELG; see \S\ref{ssec:targets}). The
+top row compares our measurements against the DR2 (\texttt{Loa})
+SED-fitting VAC from H.~Zou et al. (in preparation; see also
+\citealt{zou24b, sui26a}), while the middle and bottom rows compare
+our measurements to the DR1 (\texttt{Iron}) \textit{AGN Host Galaxies
+  Physical Properties} VAC from
+\citet[\texttt{v1.2};][]{siudek25a}\footnote{\url{https://data.desi.lbl.gov/doc/releases/dr1/vac/cigale}}
+and the GSWLC-X2\footnote{\url{https://salims.pages.iu.edu/gswlc}}
+catalog of \citet{salim16a, salim18a}, respectively. For the first two
+DESI catalogs, we compare against our combined SV3 bright plus dark
+catalogs, while for the GSWLC-X2 we compare just against SV3/bright
+(there are a negligible number of matches from SV3/dark); as before,
+matching to the main-survey \fastspec{} catalogs increases the number
+of objects in the comparison sample but not the statistical results or
+our conclusions.
+
+\begin{figure*}
+\centering\includegraphics[width=1.0\textwidth]{compare-mstar-external.pdf}
+\caption{Comparison of \fastspec{} stellar masses ($h=1$, Chabrier
+  IMF) against three independent, CIGALE-based catalogs, organized by
+  DESI target class along columns. In each row, we compare our
+  measurements against (top) the DR2 (\texttt{Loa}) VAC of H.~Zou et
+  al. (in preparation; see also \citealt{zou24b, sui26a}), (middle)
+  the DR1 (\texttt{Iron}) CIGALE-AGN VAC of \citet{siudek25a}, and
+  (bottom) the GSWLC-X2 catalog of \citet{salim16a, salim18a}. As in
+  Figure~\ref{fig:compare-emlines-external}, the color map, contours,
+  and markers show the two-dimensional density distribution and the
+  dashed line is the one-to-one relation.  Overall, we find median
+  offsets of $\Delta_\mathrm{med}=0.15$--$0.30$~dex (\fastspec{}
+  systematically higher) with $\mathtt{NMAD}=0.09$--$0.17$~dex scatter
+  for BGS and LRG targets, increasing to $\approx\pm0.4$~dex for ELG
+  targets. The median offsets and scatter are consistent with
+  expectations from different (non-parametric versus parametric) SFH
+  priors and, more generally, from the stellar-library,
+  dust-attenuation, and other modeling choices that differ across
+  independent SED-fitting codes
+  \citep{conroy13a}. \label{fig:compare-mstar-external}}
+\end{figure*}
+
+%each panel lists the matched sample size $N$, the median mass offset
+%$\Delta_\mathrm{med}$ (external minus \fastspec{}) in dex, and the
+%\texttt{NMAD} scatter.
+
+All three of these external catalogs perform photometric SED fits, but
+the Zou et al. VAC augments its $grz$ and WISE $W1$--$W2$ photometry
+with 10-band photometry synthesized from the DESI optical spectrum and
+scaled for aperture bias using an achromatic aperture correction
+analogous to our own (\S\ref{sssec:apercorr}). In addition, all three
+catalogs adopt a parametric SFH---a delayed-$\tau$ model, with an
+optional recent burst for \citet{siudek25a} and \citet{salim18a}, in
+contrast to \fastspec{}'s non-parametric, five-bin star-formation
+history (\S\ref{ssec:templates}). \citet{siudek25a} additionally
+include an AGN component \citep{fritz06a} in their SED fits. In
+constructing these comparisons, we correct for differences in IMF and
+cosmology.
+
+Within the BGS and LRG subsamples, the \fastspec{} stellar masses are
+systematically higher than each CIGALE-based catalog by
+$\Delta_\mathrm{med}=0.15$--$0.30$~dex, with tight scatter
+($\mathtt{NMAD}=0.09$--$0.17$~dex). Both the sign and the magnitude of
+this offset agree well with previous comparisons between
+non-parametric and parametric SFH-derived masses, which attribute
+$\approx0.1$--$0.3$~dex systematic differences to the additional
+flexibility of a non-parametric model accommodating more mass in old,
+low-mass-to-light-ratio stellar populations \citep{leja19b, leja20a,
+  lower20a}. The difference for ELG targets is higher ($\mathtt{NMAD}
+\approx \pm0.4$~dex), likely reflecting the fainter, lower
+signal-to-noise broadband photometry available for these star-forming
+targets, especially in the WISE IR bands. Overall, the agreement
+between \fastspec{} and three independent, CIGALE-based stellar-mass
+catalogs is very good, particularly given the different data
+(photometry only versus spectrophotometry), templates, and
+star-formation-history parameterizations involved.
 
 \subsection{Pipeline Diagnostics}
 \label{ssec:diagnostics}
@@ -2801,29 +2847,114 @@ publicly released in 2027.
 
 %% ============================================================
 \begin{acknowledgements}
-\JM{Need to thank Ben Johson. Should probably also add the Legacy
-  Surveys acknowledgment.}
+We gratefully acknowledge Ben Johnson for assistance constructing
+custom FSPS models.
 
 JM gratefully acknowledges funding support for this work from the
 U.S. Department of Energy, Office of Science, Office of High Energy
 Physics under Award Number DE-SC0020086.
 
-This research is supported by the Director, Office of Science, Office of
-High Energy Physics of the U.S. Department of Energy under Contract
-No. DE-AC02-05CH11231, and by the National Energy Research Scientific
-Computing Center, a DOE Office of Science User Facility under the same
-contract; additional support for DESI is provided by the U.S. National
-Science Foundation, Division of Astronomical Sciences under Contract
-No. AST-0950945 to the NSF's National Optical-Infrared Astronomy Research
-Laboratory; the Science and Technologies Facilities Council of the United
-Kingdom; the Gordon and Betty Moore Foundation; the Heising-Simons
-Foundation; the French Alternative Energies and Atomic Energy Commission
-(CEA); the National Council of Science and Technology of Mexico; the
-Ministry of Economy of Spain; and by the DESI Member Institutions.
+This research used data obtained with the Dark Energy Spectroscopic
+Instrument (DESI). DESI construction and operations is managed by the
+Lawrence Berkeley National Laboratory. This material is based upon
+work supported by the U.S. Department of Energy, Office of Science,
+Office of High-Energy Physics, under Contract No. DE–AC02–05CH11231,
+and by the National Energy Research Scientific Computing Center, a DOE
+Office of Science User Facility under the same contract. Additional
+support for DESI was provided by the U.S. National Science Foundation
+(NSF), Division of Astronomical Sciences under Contract
+No. AST-0950945 to the NSF’s National Optical-Infrared Astronomy
+Research Laboratory; the Science and Technology Facilities Council of
+the United Kingdom; the Gordon and Betty Moore Foundation; the
+Heising-Simons Foundation; the French Alternative Energies and Atomic
+Energy Commission (CEA); the National Council of Humanities, Science
+and Technology of Mexico (CONAHCYT); the Ministry of Science and
+Innovation of Spain (MICINN), and by the DESI Member Institutions:
+\url{https://www.desi.lbl.gov/collaborating-institutions}. The DESI
+collaboration is honored to be permitted to conduct scientific
+research on I’oligam Du’ag (Kitt Peak), a mountain with particular
+significance to the Tohono O’odham Nation. Any opinions, findings, and
+conclusions or recommendations expressed in this material are those of
+the author(s) and do not necessarily reflect the views of the
+U.S. National Science Foundation, the U.S. Department of Energy, or
+any of the listed funding agencies.
 
-The authors are honored to be permitted to conduct scientific research on
-Iolkam Du'ag (Kitt Peak), a mountain with particular significance to the
-Tohono O'odham Nation.
+The Legacy Surveys consist of three individual and complementary
+projects: the Dark Energy Camera Legacy Survey (DECaLS; Proposal ID
+\#2014B-0404; PIs: David Schlegel and Arjun Dey), the Beijing-Arizona
+Sky Survey (BASS; NOAO Prop. ID \#2015A-0801; PIs: Zhou Xu and Xiaohui
+Fan), and the Mayall $z$-band Legacy Survey (MzLS; Prop. ID
+\#2016A-0453; PI: Arjun Dey). DECaLS, BASS and MzLS together include
+data obtained, respectively, at the Blanco telescope, Cerro Tololo
+Inter-American Observatory, NSF’s NOIRLab; the Bok telescope, Steward
+Observatory, University of Arizona; and the Mayall telescope, Kitt
+Peak National Observatory, NOIRLab. Pipeline processing and analyses
+of the data were supported by NOIRLab and the Lawrence Berkeley
+National Laboratory (LBNL). The Legacy Surveys project is honored to
+be permitted to conduct astronomical research on Iolkam Du’ag (Kitt
+Peak), a mountain with particular significance to the Tohono O’odham
+Nation.
+
+NOIRLab is operated by the Association of Universities for Research in
+Astronomy (AURA) under a cooperative agreement with the National
+Science Foundation. LBNL is managed by the Regents of the University
+of California under contract to the U.S. Department of Energy.
+
+This project used data obtained with the Dark Energy Camera (DECam),
+which was constructed by the Dark Energy Survey (DES)
+collaboration. Funding for the DES Projects has been provided by the
+U.S. Department of Energy, the U.S. National Science Foundation, the
+Ministry of Science and Education of Spain, the Science and Technology
+Facilities Council of the United Kingdom, the Higher Education Funding
+Council for England, the National Center for Supercomputing
+Applications at the University of Illinois at Urbana-Champaign, the
+Kavli Institute of Cosmological Physics at the University of Chicago,
+Center for Cosmology and Astro-Particle Physics at the Ohio State
+University, the Mitchell Institute for Fundamental Physics and
+Astronomy at Texas A\&M University, Financiadora de Estudos e
+Projetos, Fundacao Carlos Chagas Filho de Amparo, Financiadora de
+Estudos e Projetos, Fundacao Carlos Chagas Filho de Amparo a Pesquisa
+do Estado do Rio de Janeiro, Conselho Nacional de Desenvolvimento
+Cientifico e Tecnologico and the Ministerio da Ciencia, Tecnologia e
+Inovacao, the Deutsche Forschungsgemeinschaft and the Collaborating
+Institutions in the Dark Energy Survey. The Collaborating Institutions
+are Argonne National Laboratory, the University of California at Santa
+Cruz, the University of Cambridge, Centro de Investigaciones
+Energeticas, Medioambientales y Tecnologicas-Madrid, the University of
+Chicago, University College London, the DES-Brazil Consortium, the
+University of Edinburgh, the Eidgenossische Technische Hochschule
+(ETH) Zurich, Fermi National Accelerator Laboratory, the University of
+Illinois at Urbana-Champaign, the Institut de Ciencies de l’Espai
+(IEEC/CSIC), the Institut de Fisica d’Altes Energies, Lawrence
+Berkeley National Laboratory, the Ludwig Maximilians Universitat
+Munchen and the associated Excellence Cluster Universe, the University
+of Michigan, NSF’s NOIRLab, the University of Nottingham, the Ohio
+State University, the University of Pennsylvania, the University of
+Portsmouth, SLAC National Accelerator Laboratory, Stanford University,
+the University of Sussex, and Texas A\&M University.
+
+BASS is a key project of the Telescope Access Program (TAP), which has
+been funded by the National Astronomical Observatories of China, the
+Chinese Academy of Sciences (the Strategic Priority Research Program
+“The Emergence of Cosmological Structures” Grant \# XDB09000000), and
+the Special Fund for Astronomy from the Ministry of Finance. The BASS
+is also supported by the External Cooperation Program of Chinese
+Academy of Sciences (Grant \# 114A11KYSB20160057), and Chinese National
+Natural Science Foundation (Grant \# 12120101003, \# 11433005).
+
+The Legacy Survey team makes use of data products from the Near-Earth
+Object Wide-field Infrared Survey Explorer (NEOWISE), which is a
+project of the Jet Propulsion Laboratory/California Institute of
+Technology. NEOWISE is funded by the National Aeronautics and Space
+Administration.
+
+The Legacy Surveys imaging of the DESI footprint is supported by the
+Director, Office of Science, Office of High Energy Physics of the
+U.S. Department of Energy under Contract No. DE-AC02-05CH1123, by the
+National Energy Research Scientific Computing Center, a DOE Office of
+Science User Facility under the same contract; and by the
+U.S. National Science Foundation, Division of Astronomical Sciences
+under Contract No. AST-0950945 to NOAO.
 \end{acknowledgements}
 
 \software{
