@@ -2365,9 +2365,9 @@ For each matched pair we also compute the pull,
 \noindent where $x$ and $\delta x$ are the measured quantity---line
 flux in Figure~\ref{fig:compare-emlines-external}, velocity dispersion
 in Figure~\ref{fig:vdisp}---and its uncertainty in the external and
-\fastspecfit{} (reference) catalogs, respectively; a unit Gaussian
-pull distribution indicates that the two catalogs' quoted
-uncertainties are mutually consistent.
+\fastspec{} (reference) catalogs, respectively; a unit Gaussian pull
+distribution indicates that the two catalogs' quoted uncertainties are
+mutually consistent.
 
 \begin{figure*}
 \centering\includegraphics[width=\textwidth]{compare-emlines-external.pdf}
@@ -2376,25 +2376,26 @@ uncertainties are mutually consistent.
   spectroscopic-pipeline \texttt{emlinefit} afterburner
   \citep{raichoor23a}, and (bottom) the CIGALE-based emission-line
   fluxes from the DR1 (Iron) stellar-mass-emission-line catalog of
-  \citet{zou24b,sui26a}. Columns show, left to right, \oii\
-  ($\lambda3726$+$\lambda3729$), \oiiilam, \hb, and \ha. A galaxy is
-  included only if both the \fastspecfit{} and comparison flux have
-  $\mathrm{S/N}>3$; no target-class split is applied (cf.\
-  Figure~\ref{fig:compare-mstar-external}). As in
+  \citet{zou24b,sui26a}. Columns show, left to right,
+  \oii\ ($\lambda3726$+$\lambda3729$), \oiiilam, \hb, and \ha. A
+  galaxy is included only if both the \fastspecfit{} and comparison
+  flux have $\mathrm{S/N}>3$; no target-class split is applied
+  (cf.\ Figure~\ref{fig:compare-mstar-external}). As in
   Figure~\ref{fig:compare-mstar-external}, the logarithmically-scaled
-  two-dimensional number density is shown as a color map, with contours
-  enclosing 50\%, 75\%, 95\%, and 99.5\% of the joint distribution;
-  individual galaxies outside the outermost contour are shown as
-  markers, and the dashed line is the 1:1 relation. Each panel lists
-  the matched sample size $N$, the median flux offset $\Delta_{\rm
-  med}$ (external minus \fastspecfit{}) in dex, and the NMAD scatter.
-  The inset in each panel shows the pull distribution (Equation~\ref{eq:pull}),
-  compared to a unit Gaussian (black curve).\label{fig:compare-emlines-external}}
+  two-dimensional number density is shown as a color map, with
+  contours enclosing 50\%, 75\%, 95\%, and 99.5\% of the joint
+  distribution; individual galaxies outside the outermost contour are
+  shown as markers, and the dashed line is the 1:1 relation. Each
+  panel lists the matched sample size $N$, the median flux offset
+  $\Delta_{\rm med}$ (external minus \fastspecfit{}) in dex, and the
+  \texttt{NMAD} scatter.  The inset in each panel shows the pull
+  distribution (Equation~\ref{eq:pull}), compared to a unit Gaussian
+  (black curve).\label{fig:compare-emlines-external}}
 \end{figure*}
 
 In Figure~\ref{fig:compare-emlines-external} we compare our
 emission-line fluxes for \oiidoublet{} (summed, with the uncertainties
-added in quadrature), \oiiilam, \hb, and \ha{} against the
+added in quadrature), \oiii, \hb, and \ha{} against the
 \texttt{Loa} (DR2) \texttt{emlinefit} afterburner measurements
 \citep{raichoor23a} and against the \texttt{Iron} \citep[DESI
   DR1;][]{desi-collaboration26a} ``Stellar Mass and Emission Line
@@ -2415,15 +2416,19 @@ identical statistics, simply with many more objects.)
 \end{figure*}
 
 Agreement with \texttt{emlinefit} is excellent for \oii\ and
-\ha\ (median offsets of $+0.006$ and $-0.029$~dex and NMAD scatter of
-0.022 and 0.020~dex), but \oiiilam\ and \hb\ show larger offsets
-($+0.115$ and $-0.085$~dex, respectively). Agreement with the DR1
-catalog of H.~Zou et~al., (in preparation) is excellent in median
-offset ($|\Delta_{\rm med}|<0.01$~dex) and scatter
-($\mathrm{NMAD}<0.04$~dex) for all four lines.
+\ha\ (median offsets of $+0.006$ and $-0.029$~dex and
+\texttt{NMAD}\footnote{The normalized median absolute deviation,
+$\mathtt{NMAD}\equiv1.4826\,\mathrm{median}(|x-\mathrm{median}(x)|)$,
+a robust estimator of the standard deviation for a distribution that
+may contain outliers.} scatter of 0.022 and 0.020~dex), but \oiii{}
+and \hb{} show larger offsets ($+0.115$ and $-0.085$~dex,
+respectively). Agreement with the DR1 catalog of H.~Zou et~al., (in
+preparation) is excellent in median offset ($|\Delta_{\rm
+  med}|<0.01$~dex) and scatter ($\mathtt{NMAD}<0.04$~dex) for all four
+lines.
 
 The pull distributions (insets) sharpen this picture. Against
-\texttt{emlinefit}, the \oiiilam\ and \hb\ pulls grow increasingly
+\texttt{emlinefit}, the \oiii{} and \hb{} pulls grow increasingly
 asymmetric toward higher signal-to-noise---the signature of a
 multiplicative (flux-scale) discrepancy between the two codes' line
 measurements rather than additive noise. \todo{Confirm physical origin
@@ -2431,22 +2436,13 @@ measurements rather than additive noise. \todo{Confirm physical origin
   continuum/Balmer-absorption modeling underlying these two lines)
   once resolved with the \texttt{emlinefit} developer.} Against the
 DR1 catalog of \citet{zou24b}, the pull distributions for all four
-lines are systematically narrower than a unit Gaussian (NMAD of
-0.29--0.71), indicating that the combined quoted flux uncertainties
+lines are systematically narrower than a unit Gaussian (\texttt{NMAD}
+of 0.29--0.71), indicating that the combined quoted flux uncertainties
 overestimate the true scatter; since the same \fastspecfit{} reference
 does not show this narrowing against \texttt{emlinefit}, the
 miscalibration plausibly lies in that catalog's quoted errors rather
 than \fastspecfit{}'s, though this combined-pull test alone cannot
 definitively separate the two.
-
-Figure~\ref{fig:compare-mstar-external} compares \fastspecfit{}
-stellar masses against three independent CIGALE-based SED-fitting
-catalogs. \todo{Describe agreement; highlight systematic offsets from
-  non-parametric vs. parametric SFH choices.} We caution that
-non-parametric SFH models can yield stellar masses that are
-systematically higher---by $\sim$0.2--0.3~dex on average---than
-parametric estimates, because a flexible SFH can accommodate more mass
-in old, low-luminosity stellar populations \citep{leja19a,leja20a}.
 
 \begin{figure*}
 \centering\includegraphics[width=1.0\textwidth]{compare-mstar-external.pdf}
@@ -2454,9 +2450,9 @@ in old, low-luminosity stellar populations \citep{leja19a,leja20a}.
   independent catalogs, organized by target class. Each row compares
   \fastspecfit{} $\logmstar$ (x-axis; $h=1$, Chabrier IMF) against
   masses from (top) \citet{zou24b,sui26a} using CIGALE SED fitting of
-  DR2 photometry, (middle) \citet{siudek25a} using CIGALE SED fitting with
-  AGN contributions fit to DR1 spectra and photometry, and (bottom)
-  \citet{salim16a,salim18a} using CIGALE SED fitting of
+  DR2 photometry, (middle) \citet{siudek25a} using CIGALE SED fitting
+  with AGN contributions fit to DR1 spectra and photometry, and
+  (bottom) \citet{salim16a,salim18a} using CIGALE SED fitting of
   \textit{GALEX}$+$SDSS$+$\textit{WISE} photometry (GSWLC-X2). Columns
   show BGS, LRG, and ELG subsamples; the GSWLC-X2 comparison is
   restricted to BGS targets owing to negligible overlap with the other
@@ -2465,8 +2461,9 @@ in old, low-luminosity stellar populations \citep{leja19a,leja20a}.
   and 99.5\% of the joint distribution; individual galaxies outside
   the outermost contour are shown as markers. Each panel lists the
   matched sample size $N$, the median mass offset $\Delta_{\rm med}$
-  (external minus \fastspecfit{}) in dex, and the NMAD scatter. The
-  dashed line is the 1:1 relation.\label{fig:compare-mstar-external}}
+  (external minus \fastspecfit{}) in dex, and the \texttt{NMAD}
+  scatter. The dashed line is the 1:1
+  relation.\label{fig:compare-mstar-external}}
 \end{figure*}
 
 %\begin{figure*}
@@ -2505,6 +2502,15 @@ Figure~\ref{fig:vdisp} compares \fastspecfit{} $\vdisp$ measurements
 against those from \texttt{pPXF} \citep{cappellari23a} for a matched
 sample of BGS galaxies with high signal-to-noise stellar
 continua. \todo{Quantify agreement: rms, bias, and pull.}
+
+Figure~\ref{fig:compare-mstar-external} compares \fastspecfit{}
+stellar masses against three independent CIGALE-based SED-fitting
+catalogs. \todo{Describe agreement; highlight systematic offsets from
+  non-parametric vs. parametric SFH choices.} We caution that
+non-parametric SFH models can yield stellar masses that are
+systematically higher---by $\sim$0.2--0.3~dex on average---than
+parametric estimates, because a flexible SFH can accommodate more mass
+in old, low-luminosity stellar populations \citep{leja19a,leja20a}.
 
 \subsection{Pipeline Diagnostics}
 \label{ssec:diagnostics}
@@ -2889,15 +2895,15 @@ model or emission lines to fit. Because these files carry no bulky
   outside the outermost contour are shown as markers.  Each panel
   lists the matched sample size $N$, the median mass offset
   $\Delta_{\rm med}$ (\fastphot{} minus \fastspec) in dex, and the
-  NMAD scatter.  The dashed line is the 1:1 relation.  \textit{Bottom
-    row:} Residual $\Delta\logmstar$ (\fastphot{} minus \fastspec)
-  as a function of redshift for the same three subsamples.  The solid
-  curve shows the running median and the shaded band encloses the
-  interquartile range.  The dashed horizontal line marks zero offset.
-  We attribute the systematic offset seen in BGS targets at low
-  redshift to imperfect aperture corrections for the most extended,
-  nearby galaxies, whose half-light radii subtend a significant
-  fraction of the DESI fiber
+  \texttt{NMAD} scatter.  The dashed line is the 1:1 relation.
+  \textit{Bottom row:} Residual $\Delta\logmstar$ (\fastphot{} minus
+  \fastspec) as a function of redshift for the same three subsamples.
+  The solid curve shows the running median and the shaded band
+  encloses the interquartile range.  The dashed horizontal line marks
+  zero offset.  We attribute the systematic offset seen in BGS targets
+  at low redshift to imperfect aperture corrections for the most
+  extended, nearby galaxies, whose half-light radii subtend a
+  significant fraction of the DESI fiber
   diameter.\label{fig:compare_mstar_fastphot}}
 \end{figure*}
 
