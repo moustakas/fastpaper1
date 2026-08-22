@@ -39,6 +39,7 @@
 \newcommand{\lya}{Ly\ensuremath{\alpha}}
 \newcommand{\ha}{H\ensuremath{\alpha}}
 \newcommand{\hb}{H\ensuremath{\beta}}
+\newcommand{\hg}{H\ensuremath{\gamma}}
 
 \newcommand{\niilam}{[\ion{N}{2}]~$\lambda6584$}
 \newcommand{\oiiilam}{[\ion{O}{3}]~$\lambda5007$}
@@ -48,6 +49,7 @@
 \newcommand{\oiiidoublet}{[\ion{O}{3}]~$\lambda\lambda4959,5007$}
 \newcommand{\niidoublet}{[\ion{N}{2}]~$\lambda\lambda6548,84$}
 \newcommand{\siidoublet}{[\ion{S}{2}]~$\lambda\lambda6716,31$}
+\newcommand{\siiidoublet}{[\ion{S}{3}]~$\lambda\lambda9069,9532$}
 
 \newcommand{\deltachisq}{{\ensuremath{\Delta\chi^2}}}
 \newcommand{\vdisp}{\ensuremath{\sigma_\star}}
@@ -71,7 +73,7 @@
 
 \correspondingauthor{John Moustakas}
 
-\author[0000-0002-2733-4559]{John Moustakas}
+\author[0000-0002-2733-4559]{J.~Moustakas}
 \email{jmoustakas@siena.edu}
 \affil{Department of Physics \& Astronomy, Siena University,
   515 Loudon Road, Loudonville, NY 12110, USA}
@@ -759,15 +761,15 @@ union of both patches' lines.
 %lines in the full line-list are used in the final mask-building step,
 %as we describe below.
 
-Next, if any broad Balmer line falls within the observed spectral
-range, we repeat the procedure with the narrow+broad model,
-initializing all the broad Balmer line-widths at 1000~\kms. In this
-fitting mode, all the ``strong'' broad Balmer lines are kinematically
-tied together, separately from the two previously described
-narrow-line kinematic groups (see also \S\ref{sssec:kinematic} for
-more details). After this fitting pass, if any broad Balmer line
-reaches $\mathrm{S/N} > 1.5$ we adopt the narrow+broad line-widths for
-masking, and otherwise retain the narrow-only widths.
+Next, if any of the three strongest Balmer lines (\ha, \hb, or \hg)
+fall within the observed spectral range, we repeat the procedure with
+the narrow+broad model, initializing all the broad Balmer line-widths
+at 1000~\kms. In this fitting mode, all the ``strong'' broad Balmer
+lines are kinematically tied together, separately from the two
+previously described narrow-line kinematic groups (see also
+\S\ref{sssec:kinematic}). After this fitting pass, if any broad Balmer
+line reaches $\mathrm{S/N} > 1.5$ we adopt the narrow+broad
+line-widths for masking, and otherwise retain the narrow-only widths.
 
 With the robustly estimated line-widths, we can now build the complete
 line-mask. Iterating over all the lines in the observed spectral range
@@ -1405,88 +1407,130 @@ with both narrow and broad lines (\emph{narrow+broad}).
 
 The narrow-only model ties all forbidden lines to one group anchored
 to \oiiilam{} and a second group consisting of all \ion{H}{1} and
-\hei{} lines anchored to \ha. ``Anchored'' in this context means that
-all the lines share the same $\Delta v$ and $\sigma$. Meanwhile, the
-narrow+broad model instead assigns the \oiiidoublet{} doublet to its
-own group, the remaining forbidden, Balmer, and helium lines to a
-second group anchored on narrow \ha, and the broad Balmer lines to a
-third group anchored on broad \ha, whose shared kinematics are fit
-from whichever member lines actually fall within the observed
-spectral range, not necessarily \ha{} itself.
+\hei{} lines anchored to \ha. Separately, the narrow+broad model
+assigns the \oiiidoublet{} doublet to its own group anchored on
+\oiiilam; the remaining forbidden, Balmer, and helium lines to a
+second group anchored on narrow \ha; and the broad Balmer lines to a
+third group anchored on broad \ha. The \oiii{} doublet gets its own
+kinematic group because of the frequency with which this doublet shows
+an asymmetric or complex line-profile in AGN, which can bias the
+fitting of the fainter forbidden lines.
 
-\todo{Not a great paragraph. In fact, the whole rest of this section
-  is not great. We also need to better describe parameters like
-  \texttt{OII\_DOUBLET}.} Narrow-line bounds are $1 < \sigma <
-750$~\kms{} and $|\Delta v| < 500$~\kms; broad-line bounds are $1 <
-\sigma < 10{,}000$~\kms{} and $|\Delta v| < 2{,}500$~\kms. Within
-these groups, most doublets---for example,
-\oiii~$\lambda$4959\,/\,$\lambda$5007 and
-\nii~$\lambda$6548\,/\,$\lambda$6584---carry a fixed amplitude ratio
-set by atomic physics, while a few density-sensitive doublets, such as
-\oii~$\lambda$3726\,/\,$\lambda$3729 and
-\sii~$\lambda$6716\,/\,$\lambda$6731, instead carry a free ratio that
-encodes the electron density. Table~\ref{table:kinematic} lists every
-group's full membership, anchor, bounds, and amplitude constraint for
-both profile models.
+Within each kinematic group, select emission-line doublets carry an
+additional amplitude constraint, set in the same constraints file as
+either fixed or free. In the default configuration, the amplitude
+ratios of \nii~$\lambda$6548\,/\,$\lambda$6584,
+\oiii~$\lambda$4959\,/\,$\lambda$5007, and
+\oii~$\lambda$7330\,/\,$\lambda$7320 are fixed to their theoretical
+spontaneous-transition-probability value \citep{osterbrock89a}, while
+\oii~$\lambda$3726\,/\,$\lambda$3729,
+\sii~$\lambda$6716\,/\,$\lambda$6731, and
+\mgii~$\lambda$2796\,/\,$\lambda$2803, carry a free (but bounded)
+amplitude ratio. In the fitting engine, we parameterize each doublet
+as a reference-line amplitude and a bounded (or fixed) amplitude
+ratio, which is a better-constrained optimization problem than fitting
+two amplitudes independently. Moreover, for \oiidoublet{} and
+\siidoublet{} the fitted ratio, \texttt{OII\_DOUBLET\_RATIO} and
+\texttt{SII\_DOUBLET\_RATIO}, respectively, carries physical
+significance as tracers of the local electron density
+\citep{osterbrock89a}. In addition, this parameterization often lets
+\fastspecfit{} recover a faint doublet component in noisy spectral
+regions, where an independent-amplitude fit might otherwise drive it
+to an unphysical part of parameter space.
 
-Eight UV and broad-AGN permitted lines carry independently free
-kinematics in both fitting models, and two doublet pairs
-(\ion{Si}{3}]~$\lambda$1892/\ion{C}{3}]~$\lambda$1908 and
-    \mgiidoublet) act as global kinematic anchors, the latter with a
-    free amplitude ratio; Table~\ref{table:kinematic} lists these
-    lines and bounds in full.
+%\fastspecfit{} reports all six ratios in the output catalog as
+%\texttt{\{LINE\}\_DOUBLET\_RATIO} columns:
+%\texttt{NII\_DOUBLET\_RATIO}, \texttt{OIII\_DOUBLET\_RATIO},
+%\texttt{OIIRED\_DOUBLET\_RATIO}, \texttt{OII\_DOUBLET\_RATIO},
+%\texttt{SII\_DOUBLET\_RATIO}, and \texttt{MGII\_DOUBLET\_RATIO}, each
+%paired with an \texttt{\_IVAR} column. For the three free ratios, both
+%columns come from the fit and its Monte Carlo resampling
+%(\S\ref{ssec:uncertainties}). For the three fixed ratios,
+%\texttt{\_IVAR} is zero, flagging that the value is the adopted
+%constant rather than a measurement.
 
-\fastspecfit{} always fits the narrow-only model first. It additionally
-fits the narrow+broad model only when broad-line fitting is enabled and
-at least one broad Balmer line falls within the observed spectral
-range---the same coverage check the line-masker performs in
-\S\ref{ssec:patches}; otherwise it adopts the narrow-only result
-directly. When both models are fit, \fastspecfit{} selects the
-preferred solution based on four conditions that must all be satisfied.
-First, the
-reduction in $\chi^2$ over the pixels spanning the broad Balmer lines
-must exceed the corresponding reduction in degrees of freedom,
+%By default we fix each ratio to its theoretical
+%spontaneous-transition-probability value, since a measured departure
+%from that ratio would signal a data or fitting problem rather than new
+%astrophysics. This choice is a configuration setting, not a hard
+%constraint; the constraints file could instead release any of these
+%three ratios as a free parameter, which is why the output catalog
+%still carries an inverse-variance column for each
+%one. Table~\ref{table:kinematic} lists every group's full membership,
+%anchor, bounds, and amplitude constraint for both profile models.
+
+%Eight UV and broad-AGN permitted lines carry independently free
+%kinematics in both fitting models, and two doublet pairs
+%(\ion{Si}{3}]~$\lambda$1892/\ion{C}{3}]~$\lambda$1908 and
+%    \mgiidoublet) act as global kinematic anchors; Table~\ref{table:kinematic}
+%    lists these lines and bounds in full.
+
+\fastspecfit{} fits the narrow-only model first and then tests the
+narrow+broad model only when broad-line fitting is enabled (true by
+default, but see \S\ref{sec:modes}) and when at least one of the first
+three Balmer lines (\ha, \hb, or \hg) falls within the observed
+spectral range. When both models are fit, \fastspecfit{} selects the
+preferred solution based on four conditions that must all be
+satisfied:
+\begin{enumerate}
+
+\item{The change in $\chi^2$ over the pixels spanning the broad Balmer
+  lines must exceed the corresponding reduction in the number of
+  degrees of freedom,
 \begin{equation}
   \Delta\chi^2_\mathrm{Balmer} \;>\; \Delta N_\mathrm{dof,\,Balmer},
   \label{eq:broadchi2}
 \end{equation}
 where $\Delta\chi^2 = \chi^2_\mathrm{narrow} - \chi^2_\mathrm{broad}$
-and $\Delta N_\mathrm{dof}$ counts the additional free parameters
-introduced by the broad-Balmer group, evaluated only over pixels within
-$\pm N_\sigma$ of the non-helium broad Balmer lines. Second, the fitted
-velocity dispersion of the broad \ha{} component must exceed
-$\sigma_\mathrm{broad}(\ha) > 250$~\kms, excluding spurious broad fits
-driven by noise or continuum residuals. Third, the broad component must
-be wider than the narrow component,
-$\sigma_\mathrm{broad}(\ha) > \sigma_\mathrm{narrow}(\ha)$, ensuring a
-physical hierarchy between the two kinematic components. Fourth, at
-least one of the two brightest broad Balmer lines in the spectral range
-must satisfy $S/N_\mathrm{broad} > 2.5$, where we estimate the noise
-robustly from the interquartile range of the fit residuals in the
-Balmer-line pixels after subtracting the full broad model. If any
-condition fails, we retain the narrow-only result. We record the
-pixel-level $\chi^2$ comparison in the output columns
+and $\Delta N_\mathrm{dof} = N_\mathrm{dof,\,narrow} -
+N_\mathrm{dof,\,broad}$, equal to the number of additional free
+parameters introduced by the broad-Balmer group. In other words, the
+data must justify the additional free parameters in a
+maximum-likelihood sense. This criterion is only evaluated using
+pixels within $\pm 2.5\sigma_\mathrm{broad}$ of the non-helium broad
+Balmer lines.}
+\item{The fitted velocity dispersion of the broad \ha{} component must
+  exceed $\sigma_\mathrm{broad}(\ha) > 250$~\kms, in order to exclude
+  spurious broad fits driven by noise or unmodeled continuum
+  residuals.}
+\item{The broad component must be wider than the narrow component,
+  $\sigma_\mathrm{broad}(\ha) > \sigma_\mathrm{narrow}(\ha)$, ensuring
+  a physical hierarchy between the two kinematic components.}
+\item{The amplitude of at least one of the first two broad Balmer
+  lines in the spectral range (e.g., \ha{} and \hb{} or, at higher
+  redshift, \hb{} and \hg) must satisfy $\mathrm{S/N}_\mathrm{broad} >
+  2.5$, where we estimate the noise robustly from the interquartile
+  range of the fit residuals in the Balmer-line pixels after
+  subtracting the full emission-line model.}
+\end{enumerate}
+If any condition fails, we retain the narrow-only result, but always
+record the pixel-level $\chi^2$ comparison in the output columns
 \texttt{DELTA\_LINECHI2} and \texttt{DELTA\_LINENDOF}.
 
-Once a model is selected, \fastspecfit{} runs an optional final
-relaxation pass that frees individual velocity shifts for the
-narrow-only groups flagged in Table~\ref{table:kinematic}; the
-three-group narrow+broad model already has enough kinematic freedom to
-absorb residual complexity through its broad Balmer component, and
-relaxing it further would risk over-fitting. For the narrow-only
-model, we free each narrow line's velocity shift within a
-$\pm100$~\kms{} window around its primary best-fit value, while line
-widths remain tied within each kinematic group; this accommodates
-galaxies with forbidden-line outflows or small wavelength-calibration
-residuals, where individual lines can settle at slightly different
-velocities than their group's anchor. Doublet-tied pairs (e.g.,
-[\ion{N}{2}]~$\lambda\lambda$6548,6584) retain a shared velocity shift
-during this relaxation, since releasing transitions from the same
-upper level independently would allow unphysical offsets between
-them. We adopt the relaxed solution only when $\Delta\chi^2 > \Delta
-N_\mathrm{dof}$; otherwise we retain the primary result. We record
-this comparison in the output columns \texttt{DELTA\_KINECHI2} and
-\texttt{DELTA\_KINENDOF}.
+Once a model has been selected, \fastspecfit{} runs an optional final
+relaxation pass that frees the velocity shifts and/or line-widths of
+individual lines. However, we only adopt this solution if there is a
+statistically significant improvement in the fit given the increased
+number of degrees of freedom, $\Delta\chi^2 > \Delta
+N_\mathrm{dof}$. We record the relevant comparison parameters in the
+output file as \texttt{DELTA\_KINECHI2} and \texttt{DELTA\_KINENDOF}.
+
+In the default configuration (Table~\ref{table:kinematic}), we only
+relax the final velocity shifts of lines in the narrow-only model,
+allowing them to change by no more than $\pm100$~\kms{} around their
+best-fit value, but keeping the line-widths constrained within each
+kinematic group. This final round of flexibility accommodates minor
+wavelength-calibration residuals (see \S\ref{ssec:diagnostics}) and is
+especially important when fitting star-forming galaxies with extremely
+narrow and strong line-emission (J~Moustakas et~al., in
+preparation). Doublet-tied pairs (e.g., \niidoublet) always retain a
+shared velocity shift during this final optimization round, to prevent
+unphysical differences between emission lines arising from the same
+atomic species. By default, we do not enable a final relaxation pass
+for the three-group narrow+broad model to prevent overfitting.
+
+%already has enough kinematic freedom to absorb residual complexity
+%through its broad Balmer component
 
 \subsubsection{Summary of Measured Emission-Line Properties}
 \label{sssec:lines}
@@ -2619,32 +2663,36 @@ star-formation-history parameterizations involved.
 
 One of the dividends of fitting every DESI spectrum with a physically
 motivated forward model is that the residuals carry information about
-the quality of the underlying data reduction. In this section we use
-\fastspec{} measurements to characterize two classes of residual
-systematic error in the DR2 pipeline: wavelength-solution errors
-revealed by per-camera emission-line velocity shifts
-(\S\ref{sssec:waveresid}), and spectrophotometric calibration
-residuals revealed by the difference between synthesized and observed
-broadband photometry as a function of magnitude, redshift, and target
-class (\S\ref{sssec:fluxresid}).
-
-\subsubsection{Wavelength Calibration Residuals}
-\label{sssec:waveresid}
+possible systematic calibration errors in the reduced data. To
+illustrate this kind of application, in this section we use
+\fastspec{} measurements to characterize wavelength-solution errors
+revealed by correlated per-camera emission-line velocity
+shifts. \todo{I may or may not check spectrophotometric calibration
+  residuals, too, but that would require rerunning a bunch of fits
+  without the aperture correction; not a trivial amount of compute
+  time.}
 
 \fastspecfit{} does not fit the three DESI cameras (B, R, Z)
 independently. Narrow emission lines instead share a common kinematic
 anchor during the primary fit---{\oiiilam} for forbidden lines, \ha{}
-for narrow Balmer and \hei{} lines (\S\ref{sssec:kinematic})---and only
-in an optional final pass are individual lines' velocity shifts
-(\texttt{VSHIFT}) freed and refit independently, within a
-$\pm100$~\kms{} window of the tied value, with the relaxed solution
-adopted only if it improves $\chi^2$ (\texttt{DELTA\_KINECHI2},
-\texttt{DELTA\_KINENDOF}). Because each line's rest wavelength and
-redshift together fix its observed-frame wavelength, this population of
-quasi-independent \texttt{VSHIFT} measurements, aggregated across many
-lines and redshifts, still serves as a proxy for residual
-wavelength-solution errors as a function of observed-frame wavelength,
-even though no single camera is ever fit in isolation.
+for narrow Balmer and \hei{} lines (\S\ref{sssec:kinematic}). However,
+in the final fitting pass, individual lines' velocity shift, $\Delta
+v$, is freed and refit independently, within a $\pm100$~\kms{} window
+of the tied value, with the relaxed solution adopted only if it
+improves $\chi^2$ (\texttt{DELTA\_KINECHI2},
+\texttt{DELTA\_KINENDOF}).
+
+Because each line's rest wavelength and redshift together fix its
+observed-frame wavelength, this population of quasi-independent
+\texttt{VSHIFT} measurements, aggregated across many lines and
+redshifts, still serves as a proxy for residual wavelength-solution
+errors as a function of observed-frame wavelength, even though no
+single camera is ever fit in isolation.
+
+\begin{figure*}
+\centering\includegraphics[width=1.0\textwidth]{wave-residuals.pdf}
+\caption{\todo{Write caption.}\label{fig:wave_resid}}
+\end{figure*}
 
 We select DR2 main-survey galaxies for which the relaxed kinematic pass
 was adopted and no broad Balmer component was fit, so that every narrow
@@ -2674,47 +2722,38 @@ it to residual stellar Balmer-absorption or continuum-blending bias in
 the narrow-line centroid rather than to a wavelength-calibration error,
 which would affect all species equally at fixed observed wavelength.
 
-We exclude {\siii}~$\lambda\lambda9069,9532$ from
-Figure~\ref{fig:wave_resid}: both lines show a consistent
-$+11$--$12$~\kms{} offset, but \fastspecfit{}'s internal line list
-already flags their adopted (Chianti) rest wavelengths as
-unreliable\footnote{See the comment accompanying \texttt{siii\_9069} and
-\texttt{siii\_9532} in \texttt{fastspecfit/data/emlines.ecsv}.}, and at
-the same observed wavelength---populated there only by high-redshift
-\ha---the Balmer curve remains flat. We therefore attribute this offset
-to a rest-wavelength error rather than a wavelength-calibration
-residual.
+We exclude the \siiidoublet{} doublet from Figure~\ref{fig:wave_resid}
+because both lines show a consistent $+11$--$12$~\kms{} offset and
+\fastspecfit{}'s internal line list already flags their adopted
+(Chianti) rest wavelengths as unreliable\footnote{See the comment
+accompanying \texttt{siii\_9069} and \texttt{siii\_9532} in
+\texttt{fastspecfit/data/emlines.ecsv}.}, and at the same observed
+wavelength---populated there only by high-redshift \ha---the Balmer
+curve remains flat. We therefore attribute this offset to a
+rest-wavelength error rather than a wavelength-calibration residual.
 
-\begin{figure*}
-\centering\includegraphics[width=1.0\textwidth]{wave-residuals.pdf}
-\caption{\todo{Write caption.}\label{fig:wave_resid}}
-\end{figure*}
-
-\subsubsection{Spectrophotometric Calibration Residuals}
-\label{sssec:fluxresid}
-
-\fastspecfit{} simultaneously fits the DESI spectra and the Legacy Survey
-broadband photometry (\S\ref{ssec:photometry}), so the difference between
-the synthesized and observed photometry is a direct measure of residual
-spectrophotometric calibration errors in the reduced spectra. We quantify
-these residuals as $\Delta m = m_\mathrm{synth} - m_\mathrm{obs}$ in each
-Legacy Survey band and examine their dependence on apparent magnitude,
-redshift, and target class.
-
-\begin{figure*}
-%\centering\includegraphics[width=1.0\textwidth]{figures/fluxcal-residuals.png}
-\caption{Residual spectrophotometric calibration ($\Delta m =
-  m_\mathrm{synth} - m_\mathrm{obs}$) as a function of apparent magnitude
-  and redshift for BGS, LRG, and ELG targets. Each column corresponds to
-  a Legacy Survey band ($g$, $r$, $z$); rows separate target class. Dashed
-  lines mark zero offset; contours enclose 68 and 95 per cent of the
-  sample. \todo{Generate figure.}\label{fig:fluxcal_resid}}
-\end{figure*}
-
-Figure~\ref{fig:fluxcal_resid} shows $\Delta m$ as a function of
-\todo{magnitude and/or redshift} for the three primary extragalactic
-target classes. \todo{Describe findings: systematic offsets? Magnitude
-or color dependence? Variation across target classes?}
+%\fastspecfit{} simultaneously fits the DESI spectra and the Legacy Survey
+%broadband photometry (\S\ref{ssec:photometry}), so the difference between
+%the synthesized and observed photometry is a direct measure of residual
+%spectrophotometric calibration errors in the reduced spectra. We quantify
+%these residuals as $\Delta m = m_\mathrm{synth} - m_\mathrm{obs}$ in each
+%Legacy Survey band and examine their dependence on apparent magnitude,
+%redshift, and target class.
+%
+%\begin{figure*}
+%%\centering\includegraphics[width=1.0\textwidth]{figures/fluxcal-residuals.png}
+%\caption{Residual spectrophotometric calibration ($\Delta m =
+%  m_\mathrm{synth} - m_\mathrm{obs}$) as a function of apparent magnitude
+%  and redshift for BGS, LRG, and ELG targets. Each column corresponds to
+%  a Legacy Survey band ($g$, $r$, $z$); rows separate target class. Dashed
+%  lines mark zero offset; contours enclose 68 and 95 per cent of the
+%  sample. \todo{Generate figure.}\label{fig:fluxcal_resid}}
+%\end{figure*}
+%
+%Figure~\ref{fig:fluxcal_resid} shows $\Delta m$ as a function of
+%\todo{magnitude and/or redshift} for the three primary extragalactic
+%target classes. \todo{Describe findings: systematic offsets? Magnitude
+%or color dependence? Variation across target classes?}
 
 %% ============================================================
 \section{Discussion}
