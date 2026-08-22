@@ -321,8 +321,8 @@ natural output of the optimal, ``spectroperfectionism'' algorithm of
 with uncorrelated pixels. It is also a key ingredient of
 \fastspecfit's forward-modeling philosophy: convolving a perfect,
 infinite-resolution model spectrum with $\mathbf{R}$ yields the
-equivalent model at DESI's effective spectral resolution (see
-\S\ref{sec:modeling}).
+equivalent model at DESI's effective spectral resolution
+(\S\ref{sec:modeling}).
 
 The per-fiber spectra are extracted onto an 0.8\,\AA{} linear,
 wavelength grid (in vacuum and in the Solar System barycentric frame
@@ -420,7 +420,7 @@ Spectroscopic redshifts and spectral classifications are determined by
 Redrock (S.~Bailey et~al., in preparation; \citealt{anand24a}), a
 principal component analysis (PCA) template-fitting code that
 independently fits templates for stars, galaxies, and quasars over a
-type-dependent grid of trial redshifts (S.~Bailey et al., in
+type-dependent grid of trial redshifts (S.~Bailey et~al., in
 preparation; \citealt{guy23a, anand24a}). The two primary
 redshift-quality diagnostics reported by Redrock are \texttt{ZWARN}, a
 per-object warning bitmask where \texttt{ZWARN=0} signals no known
@@ -435,7 +435,7 @@ used to validate ELG redshifts; a \mgiidoublet{} doublet fitter
 \citep{chaussidon23a}; and the \texttt{QuasarNET} neural-network QSO
 classifier \citep{busca18a, green25a}. The latter two after-burners
 are essential for correctly classifying and measuring accurate
-redshifts for QSOs (see \S\ref{ssec:catalog}).
+redshifts for QSOs (\S\ref{ssec:catalog}).
 
 %% ============================================================
 \section{Spectrophotometric Modeling}
@@ -612,8 +612,8 @@ mode.
 
 The default \fastspecfit{} line-list, \texttt{data/emlines.ecsv},
 includes 46 emission lines, spanning rest-frame
-Ly$\alpha$~$\lambda$1215 through [\ion{S}{3}]~$\lambda$9532 (see
-Table~\ref{table:emlines}). We select this list to span the full range
+Ly$\alpha$~$\lambda$1215 through [\ion{S}{3}]~$\lambda$9532
+(Table~\ref{table:emlines}). We select this list to span the full range
 of galaxy and QSO spectral types over the DESI redshift range,
 targeting the strongest and most diagnostically useful transitions
 rather than every possible detectable line; the resulting set supports
@@ -633,8 +633,8 @@ database.\footnote{\url{https://db.chiantidatabase.org}}
 
 We organize these lines into four general categories---UV/QSO lines,
 narrow Balmer/helium lines, broad Balmer/helium lines, and narrow
-forbidden lines---which are used to set kinematic fitting priors (see
-\S\ref{sssec:kinematic}). Table~\ref{table:emlines} also lists a set
+forbidden lines---which are used to set kinematic fitting priors
+(\S\ref{sssec:kinematic}). Table~\ref{table:emlines} also lists a set
 of 23 spectrally adjacent ``patches'', and a Boolean bit (``strong'')
 which flags which lines, if present, are most likely to be
 well-detected in a given spectrum. We describe these latter quantities
@@ -720,8 +720,8 @@ in the final fitting pass, described in \S\ref{sssec:kinematic}).
 %continua across all active patches, not a set of independent per-patch
 %fits.
 
-First, we activate all the spectral patches (see
-Table~\ref{table:emlines}) with at least one line in the observed
+First, we activate all the spectral patches
+(Table~\ref{table:emlines}) with at least one line in the observed
 spectral range and fit all the ``strong'' lines with the narrow-only
 kinematic model, together with a simple linear local continuum in each
 patch. The lines we initially fit are simply the subset of lines
@@ -862,8 +862,8 @@ for galaxies up to $z\approx1$. Second, we determine fit significance
 by performing a fast $\chi^2$ grid scan of six trial
 velocity-broadening widths spanning $[50,\,500]$~\kms{},
 simultaneously solving for \tauv{} and the template coefficients by
-linear least-squares at each grid point (see
-\S\ref{sssec:fitting}). If this scan yields a peak-to-peak
+linear least-squares at each grid point
+(\S\ref{sssec:fitting}). If this scan yields a peak-to-peak
 $\Delta\chi^2 \geq 25$ (and with the minimum value away from either
 boundary) then we proceed with a direct measurement. In general,
 $\Delta\chi^2 < 25$ implies that the spectrum has inadequate
@@ -879,8 +879,8 @@ stellar-mass--velocity-dispersion relation,
   \label{eq:sigma_mstar}
 \end{equation}
 with $(a,b) = (2.30,\,0.25)$ (\todo{need a ref}) using a fast,
-preliminary estimate of the stellar mass, \Mstar{} (see
-\S\ref{sssec:fitting}). If our estimate of \Mstar{} fails---for
+preliminary estimate of the stellar mass, \Mstar{}
+(\S\ref{sssec:fitting}). If our estimate of \Mstar{} fails---for
 whatever reason---we instead adopt a fallback $\vdisp = 150$~\kms{}
 (\texttt{VDISP\_NOMINAL}), close to the characteristic ``knee'' of the
 velocity dispersion function \citep{bezanson11a, taylor22a}. In either
@@ -981,7 +981,7 @@ a sequence of physical and instrumental transformations---dust
 attenuation, redshifting, and instrumental broadening (or filter
 convolution)---into a prediction that can be compared directly to the
 observed spectrophotometry, and then solve for the template weights
-and dust attenuation (at fixed \vdisp; see \S\ref{sssec:vdisp}) that
+and dust attenuation (at fixed \vdisp; \S\ref{sssec:vdisp}) that
 minimize the inverse-variance-weighted residuals.
 
 First, we model the attenuation of each template as a
@@ -1263,7 +1263,7 @@ column normalization to protect sub-pixel structure
 \citep{guy23a}. Moreover, we emphasize that this bias is not just a
 modeling artifact; simulations show that even a simple
 (model-independent) integration of the observed pixels
-($\Phi_\mathrm{box}$; see \S\ref{sssec:lines}) suffers the same loss
+($\Phi_\mathrm{box}$; \S\ref{sssec:lines}) suffers the same loss
 for lines narrower than about one pixel (S.~Koposov 2026, private
 communication).\footnote{\url{https://github.com/desihub/fastspecfit/issues/183}}
 
@@ -1520,7 +1520,7 @@ relax the final velocity shifts of lines in the narrow-only model,
 allowing them to change by no more than $\pm100$~\kms{} around their
 best-fit value, but keeping the line-widths constrained within each
 kinematic group. This final round of flexibility accommodates minor
-wavelength-calibration residuals (see \S\ref{ssec:diagnostics}) and is
+wavelength-calibration residuals (\S\ref{ssec:diagnostics}) and is
 especially important when fitting star-forming galaxies with extremely
 narrow and strong line-emission (J~Moustakas et~al., in
 preparation). Doublet-tied pairs (e.g., \niidoublet) always retain a
@@ -1551,8 +1551,8 @@ for lines narrower than one pixel), the pre-convolution regularization
 of \S\ref{sssec:emline_model} means $A$ can substantially exceed
 $A_\mathrm{obs}$; $A_\mathrm{obs}$, not $A$, is what one would measure
 by eye in the spectrum and is therefore one of the quantities we can
-use to determine the statistical significance of a line (see
-\S\ref{ssec:cuts}).
+use to determine the statistical significance of a line
+(\S\ref{ssec:cuts}).
 
 Next, we compute the Gaussian-integrated flux $\Phi$ analytically from
 the fitted parameters using equation~(\ref{eq:flux_phys}), again,
@@ -1655,7 +1655,7 @@ $h^{-2}\,\msun$), therefore, is simply
   returned to the ISM by stellar winds and supernovae (taken directly
   from FSPS). The mean star-formation rate (SFR) over the last 100~Myr
   also follows by summing the mass formed within our first two age
-  bins (0--30~Myr and 30--100~Myr; see \S\ref{ssec:templates}), and
+  bins (0--30~Myr and 30--100~Myr; \S\ref{ssec:templates}), and
   dividing by 100~Myr,
 \begin{equation}
   \mathrm{SFR} = \frac{\mathcal{M}_0}{h^{2}(10^{8}~\mathrm{yr})}\sum_{n=1}^{2} c_n,
@@ -1834,7 +1834,7 @@ C_\mathrm{smooth}(\lambda)$, holding the smooth continuum correction
 $C_\mathrm{smooth}(\lambda)$ (\S\ref{sssec:smooth}) fixed at its
 fiducial value across all realizations rather than recomputing it per
 draw. This procedure yields Monte Carlo uncertainties for every fitted
-line parameter (see \S\ref{sssec:lines} and
+line parameter (\S\ref{sssec:lines} and
 Table~\ref{table:linesummary}).
 
 \subsection{Additional Fitting Modes}
@@ -2166,7 +2166,7 @@ includes the widest possible range of objects across every DESI target
 class. And although the lower redshift limit potentially excludes a
 handful of very low-redshift dwarf galaxies, we impose the cut to
 ensure a well-defined luminosity distance and distance modulus, which
-are required by our modeling (see \S\ref{sec:modeling}). For a
+are required by our modeling (\S\ref{sec:modeling}). For a
 complementary VAC of all stellar ($z\approx0$) targets in DESI, we
 refer the reader to \citet{koposov26a}.
 
@@ -2194,8 +2194,8 @@ the full sample have corrected redshifts.
 
 We produce the \texttt{Loa/v2.0} VAC using \fastspecfit{}
 version~\texttt{3.6.1} and the \texttt{ftemplates-chabrier-2.2.0.fits}
-SPS template library (see
-\S\ref{ssec:templates}).\footnote{\url{https://fastspecfit.readthedocs.io/en/latest/loa.html}}
+SPS template library
+(\S\ref{ssec:templates}).\footnote{\url{https://fastspecfit.readthedocs.io/en/latest/loa.html}}
 We run on the HEALPix-coadded DESI spectra and organize the output
 catalogs identically to how the input spectra and redshift catalogs
 are organized in DESI DR1 and DR2 (see \S3.3 in
@@ -2229,8 +2229,8 @@ non-overlapping area.}
 \noindent\texttt{VACDIR/catalogs/fastspec-loa-main-\{bright,dark\}-nside1-hpNN.fits}
 \medskip
 
-\noindent where \texttt{NN} runs from \texttt{00} to \texttt{11} (see
-Appendix~\ref{sec:appendix_datamodel}).
+\noindent where \texttt{NN} runs from \texttt{00} to \texttt{11}
+(Appendix~\ref{sec:appendix_datamodel}).
 
 As a concrete example, the Python code snippet below shows how to
 retrieve the \fastspec{} measurements for a single target given only
@@ -2298,7 +2298,7 @@ recommend a single threshold.
 The starting point for any sample selection is a
 target-class-dependent redshift-quality cut. The relevant ingredients
 are \texttt{ZWARN}, \texttt{DELTACHI2}, and potentially
-\texttt{COADD\_FIBERSTATUS} (see \S\ref{ssec:targets}). The
+\texttt{COADD\_FIBERSTATUS} (\S\ref{ssec:targets}). The
 appropriate combination and thresholds, however, differ by target
 class.
 
@@ -2357,8 +2357,8 @@ recompiling them. With Monte Carlo resampling disabled, these
 optimizations enable \fastspec{} to fit a typical DESI spectrum in
 $\approx10^{-2}$~s. With Monte Carlo, because each realization repeats
 most of the same fitting stages, the total runtime scales roughly
-linearly with the number of Monte Carlo iterations requested (see
-\S\ref{ssec:uncertainties}).
+linearly with the number of Monte Carlo iterations requested
+(\S\ref{ssec:uncertainties}).
 
 In production, we run \fastspecfit{} on the NERSC Perlmutter
 supercomputer, whose 3072 CPU nodes each provide 128 physical cores
@@ -2420,11 +2420,11 @@ in Figure~\ref{fig:vdisp}---and its uncertainty in the external and
   strong nebular emission lines (\oiidoublet, summed, \oiiilam, \hb,
   and \ha) against (top) the DESI DR2/\texttt{Loa} \texttt{emlinefit}
   afterburner measurements \citep{raichoor23a}, and (bottom)
-  emission-line fluxes from the H.~Zou et al., (in preparation)
+  emission-line fluxes from the H.~Zou et~al. (in preparation)
   DR1/Iron VAC \citep[see also][]{zou24b, sui26a}. Within each panel,
   we only plot objects with $\mathrm{S/N}>3$ in both catalogs and the
-  shaded histogram in the inset shows the pull distribution (see
-  equation~\ref{eq:pull}), compared to a unit Gaussian (black
+  shaded histogram in the inset shows the pull distribution
+  (equation~\ref{eq:pull}), compared to a unit Gaussian (black
   curve). We show the logarithmically-scaled two-dimensional number
   density as a color map and the contours enclose 50\%, 75\%, 95\%,
   and 99.5\% of the joint distribution. Outside the outermost contour,
@@ -2443,7 +2443,7 @@ added in quadrature), \oiiilam, \hb, and \ha{} against the
   DR1;][]{desi-collaboration26a} \textit{Stellar Mass and Emission
   Line
   Catalog}\footnote{\url{https://data.desi.lbl.gov/doc/releases/dr1/vac/stellar-mass-emline}}
-(\texttt{v1.0}) from H.~Zou et al., (in preparation; see also
+(\texttt{v1.0}) from H.~Zou et~al. (in preparation; see also
 \citealt{zou24b, sui26a}) \todo{Correct ref?}. The line-fluxes in all
 these catalogs have been corrected for foreground Galactic
 extinction. We require $\mathrm{S/N}>3$ for each line in both
@@ -2550,8 +2550,8 @@ $\sigma_{\mathrm{B}}\approx 85-150$~\kms; see
 \S\ref{ssec:spectra}). By comparison, our theoretical
 \texttt{C3K\_R3K} templates have $\sigma_\mathrm{C3K}=42$~\kms{}
 (\S\ref{ssec:templates}) and we fit \vdisp{} over a slightly different
-observed-frame wavelength range, 3800--6000~\AA{} (see
-\S\ref{sssec:vdisp}).
+observed-frame wavelength range, 3800--6000~\AA{}
+(\S\ref{sssec:vdisp}).
 
 For $N=80,693$ objects in common, we find a median offset and
 \texttt{NMAD} scatter of $\Delta_\mathrm{med}=-15.9\pm12.9$~\kms{}
@@ -2584,9 +2584,9 @@ unexplained systematic difference relative to existing measurements.
 Finally, in Figure~\ref{fig:compare-mstar-external} we compare the
 stellar masses from \fastspec{} against three independent,
 CIGALE-based \citep{boquien19a} SED-fitting catalogs, organized by
-DESI target class (BGS, LRG, and ELG; see \S\ref{ssec:targets}). The
+DESI target class (BGS, LRG, and ELG; \S\ref{ssec:targets}). The
 top row compares our measurements against the DR2 (\texttt{Loa})
-SED-fitting VAC from H.~Zou et al. (in preparation; see also
+SED-fitting VAC from H.~Zou et~al. (in preparation; see also
 \citealt{zou24b, sui26a}), while the middle and bottom rows compare
 our measurements to the DR1 (\texttt{Iron}) \textit{AGN Host Galaxies
   Physical Properties} VAC from
@@ -2605,8 +2605,8 @@ our conclusions.
 \caption{Comparison of \fastspec{} stellar masses ($h=1$, Chabrier
   IMF) against three independent, CIGALE-based catalogs, organized by
   DESI target class along columns. In each row, we compare our
-  measurements against (top) the DR2 (\texttt{Loa}) VAC of H.~Zou et
-  al. (in preparation; see also \citealt{zou24b, sui26a}), (middle)
+  measurements against (top) the DR2 (\texttt{Loa}) VAC of H.~Zou
+  et~al. (in preparation; see also \citealt{zou24b, sui26a}), (middle)
   the DR1 (\texttt{Iron}) CIGALE-AGN VAC of \citet{siudek25a}, and
   (bottom) the GSWLC-X2 catalog of \citet{salim16a, salim18a}. As in
   Figure~\ref{fig:compare-emlines-external}, the color map, contours,
@@ -2628,7 +2628,7 @@ our conclusions.
 %\texttt{NMAD} scatter.
 
 All three of these external catalogs perform photometric SED fits, but
-the Zou et al. VAC augments its $grz$ and WISE $W1$--$W2$ photometry
+the Zou et~al. VAC augments its $grz$ and WISE $W1$--$W2$ photometry
 with 10-band photometry synthesized from the DESI optical spectrum and
 scaled for aperture bias using an achromatic aperture correction
 analogous to our own (\S\ref{sssec:apercorr}). In addition, all three
@@ -2676,61 +2676,88 @@ shifts. \todo{I may or may not check spectrophotometric calibration
 independently. Narrow emission lines instead share a common kinematic
 anchor during the primary fit---{\oiiilam} for forbidden lines, \ha{}
 for narrow Balmer and \hei{} lines (\S\ref{sssec:kinematic}). However,
-in the final fitting pass, individual lines' velocity shift, $\Delta
-v$, is freed and refit independently, within a $\pm100$~\kms{} window
-of the tied value, with the relaxed solution adopted only if it
-improves $\chi^2$ (\texttt{DELTA\_KINECHI2},
-\texttt{DELTA\_KINENDOF}).
+in the final fitting pass, we free the velocity shift, \texttt{VSHIFT}
+of individual lines and doublets and re-optimize the solution within a
+$\pm100$~\kms{} window of the tied value, with the relaxed solution
+adopted only if it improves $\chi^2$ (\S\ref{sssec:kinematic}).
 
-Because each line's rest wavelength and redshift together fix its
-observed-frame wavelength, this population of quasi-independent
-\texttt{VSHIFT} measurements, aggregated across many lines and
-redshifts, still serves as a proxy for residual wavelength-solution
-errors as a function of observed-frame wavelength, even though no
-single camera is ever fit in isolation.
+Because the rest wavelength and systemic redshift $z$ together
+determine each line's nominal observed-frame wavelength, this
+population of quasi-independent \texttt{VSHIFT} measurements,
+aggregated across many lines and redshifts, serves as a proxy for
+residual wavelength-solution errors as a function of observed-frame
+wavelength even though no single camera is ever fit in isolation.
 
 \begin{figure*}
 \centering\includegraphics[width=1.0\textwidth]{wave-residuals.pdf}
-\caption{\todo{Write caption.}\label{fig:wave_resid}}
+\caption{Running median \texttt{VSHIFT} (top) and the number of
+  contributing measurements (bottom) as a function of observed-frame
+  wavelength, for DR2 main-survey galaxies with a relaxed, per-line
+  kinematic solution (\S\ref{sssec:kinematic}), computed in 62
+  equal-width, $\approx100$~\AA{} bins spanning the full DESI
+  wavelength range (3550--9850~\AA). The black curve combines all
+  curated forbidden and Balmer lines; the colored curves show
+  forbidden and Balmer lines separately, and the shaded bands are the
+  interquartile range of the individual measurements within each bin.
+  Gray vertical bands mark the B/R and R/Z camera-boundary transitions
+  and the horizontal dashed line marks zero offset. \label{fig:wave_resid}}
 \end{figure*}
 
-We select DR2 main-survey galaxies for which the relaxed kinematic pass
-was adopted and no broad Balmer component was fit, so that every narrow
-line's \texttt{VSHIFT} is a genuine measurement rather than a copy of
-its tied anchor, and further require $\mathrm{S/N}>7$ and a formal
-\texttt{VSHIFT} uncertainty below 25~\kms{} for 11 forbidden and 5
-Balmer lines spanning {\oiidoublet} through {\siii}~$\lambda9532$. We
-exclude the $0.02$\% of fits pinned at the optimizer's hard
-$\pm500$~\kms{} bound, which biases their formal uncertainties toward
-implausibly small values. Figure~\ref{fig:wave_resid} shows the
-resulting running median \texttt{VSHIFT} as a function of observed-frame
-wavelength, separately for forbidden and Balmer lines and combined; the
-shaded band is the interquartile range of individual measurements
-within each bin, not the uncertainty on the median, which is smaller by
-two to three orders of magnitude given the tens of thousands of
-galaxies contributing to every bin.
+To investigate this effect, we select main-survey galaxies for which
+the relaxed kinematic pass is adopted and no broad Balmer component
+was fit, so that every narrow line's \texttt{VSHIFT} is a genuine
+measurement rather than a copy of its tied anchor. We select any line
+detected with flux $\mathrm{S/N}>7$ and a formal \texttt{VSHIFT}
+uncertainty below 25~\kms. We exclude the $0.02$\% of fits pinned at
+the optimizer's hard $\pm500$~\kms{} bound, which biases their formal
+uncertainties toward implausibly small values. These cuts yield a
+unique set of 16 usable emission lines (11 forbidden lines and 5
+Balmer lines), spanning \oiidoublet{} through \siii~$\lambda9532$.
 
-The forbidden-line median is consistent with zero to within $\pm1$~\kms{}
-across the full DESI wavelength range, with no discontinuity at the B/R
-or R/Z camera boundaries (shaded gray). The Balmer lines, by contrast,
-show a $\approx-5$~\kms{} offset between roughly 4800 and 5600~\AA, the
-observed-frame window populated by \hb{} and higher-order Balmer lines at
-low redshift, returning to zero once \ha{} dominates the sample redward
-of $\approx6600$~\AA. Because this offset appears only in Balmer lines
-and not in forbidden lines at the same observed wavelength, we attribute
-it to residual stellar Balmer-absorption or continuum-blending bias in
-the narrow-line centroid rather than to a wavelength-calibration error,
-which would affect all species equally at fixed observed wavelength.
+Figure~\ref{fig:wave_resid} shows the resulting running median
+\texttt{VSHIFT} as a function of observed-frame wavelength for
+forbidden lines (blue), Balmer and helium lines (orange), and all
+lines combined (black), as well as interquartile range of individual
+measurements within each bin (shaded band). The forbidden-line median
+is consistent with zero to within $\pm1$~\kms{} across the full DESI
+wavelength range, with no discontinuity at the B/R or R/Z camera
+boundaries (vertical shaded gray band). The Balmer lines, by contrast,
+show a $\approx-5$~\kms{} offset between roughly 4800 and 5600~\AA,
+the observed-frame window populated by \hb{} and higher-order Balmer
+lines at low redshift, returning to zero once \ha{} dominates the
+sample redward of $\approx6600$~\AA. However, because this offset
+appears only in the Balmer lines and not in the forbidden lines at the
+same observed wavelength, we attribute it to residual stellar
+Balmer-absorption or continuum-blending bias in the narrow-line
+centroid rather than to a wavelength-calibration error, which would
+affect all species equally at fixed observed wavelength. Given DESI's
+per-pixel velocity sampling of 25--66~\kms{} over this wavelength range
+(\S\ref{ssec:emlines}), the $<1$~\kms{} forbidden-line residual amounts
+to no more than a few percent of a single pixel, indicating that the
+wavelength solution is calibrated well below the pixel scale across
+the full DESI optical range.
 
-We exclude the \siiidoublet{} doublet from Figure~\ref{fig:wave_resid}
-because both lines show a consistent $+11$--$12$~\kms{} offset and
-\fastspecfit{}'s internal line list already flags their adopted
-(Chianti) rest wavelengths as unreliable\footnote{See the comment
-accompanying \texttt{siii\_9069} and \texttt{siii\_9532} in
-\texttt{fastspecfit/data/emlines.ecsv}.}, and at the same observed
-wavelength---populated there only by high-redshift \ha---the Balmer
-curve remains flat. We therefore attribute this offset to a
-rest-wavelength error rather than a wavelength-calibration residual.
+One final notable finding: We exclude the \siiidoublet{} doublet from
+Figure~\ref{fig:wave_resid} because both lines show a consistent
+$+11$--$12$~\kms{} offset which is not corroborated by any other lines
+in that part of the observed-frame spectrum. Therefore, we interpret
+the offset as a rest-wavelength error rather than a
+wavelength-calibration residual. Taking the median \texttt{VSHIFT} of
+each line as a pure rest-wavelength correction, i.e., setting $\Delta
+v=0$ in equation~(\ref{eq:lstar}) and solving for
+$\lambda_\mathrm{rest}$, implies revised rest wavelengths of
+$9071.4$~\AA{} and $9533.6$~\AA{} for \siii{}~$\lambda9069$ and
+\siii{}~$\lambda9532$, respectively, $\approx0.3$--$0.4$~\AA{} redward
+of the NIST (Ritz\footnote{A Ritz wavelength is computed from the
+difference between two independently measured energy levels via the
+Ritz combination principle. This technique is used when the transition
+itself has not been directly, reliably observed in the laboratory.})
+values used in this version of \fastspecfit.
+
+%and \fastspecfit{}'s internal line list already flags their adopted
+%(Chianti) rest wavelengths as unreliable, and at the same observed
+%wavelength---populated there only by high-redshift \ha---the Balmer
+%curve remains flat.
 
 %\fastspecfit{} simultaneously fits the DESI spectra and the Legacy Survey
 %broadband photometry (\S\ref{ssec:photometry}), so the difference between
