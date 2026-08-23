@@ -1,42 +1,40 @@
 \startlongtable
-\begin{deluxetable*}{lllll}
+\begin{deluxetable}{llll}
 \tablecaption{\fastspecfit{} VAC Revision History\label{table:vac-history}}
 \tablewidth{0pt}
-\tabletypesize{\scriptsize}
 \tablehead{
   \colhead{Version} &
   \colhead{Release} &
   \colhead{\fastspecfit{}\tablenotemark{a}} &
-  \colhead{Templates\tablenotemark{b}} &
-  \colhead{Notes and Known Issues}
+  \colhead{Templates\tablenotemark{b}}
 }
 \startdata
 \cutinhead{Loa (DR2) --- \fastspec{}}
-v2.0 & 2027\tablenotemark{c} & 3.6.1 & chabrier-2.2.0 & Adopted for this paper (\S\ref{ssec:catalog}). No known issues. \\
-v1.0\tablenotemark{d} & \nodata & 3.1.4 & chabrier-2.0.0 & In active use by DESI collaborators via NERSC. Inverse-variance errors in line fluxes/EWs and a clipping-related line-fitting bug; both fixed in \fastspecfit{}~3.2.0. \\
+v2.0 & 2027\tablenotemark{c} & 3.6.1 & chabrier-2.2.0 \\
+v1.0\tablenotemark{d} & \nodata & 3.1.4 & chabrier-2.0.0 \\
 \cutinhead{Loa (DR2) --- \fastphot{}}
-v2.0 & 2027\tablenotemark{c} & 3.6.1 & chabrier-2.2.0 & Adopted for this paper (Appendix~\ref{sec:appendix_fastphot}). No known issues. \\
-v1.0\tablenotemark{d} & \nodata & 3.2.0 & chabrier-2.0.0 & In active use by DESI collaborators via NERSC. No known issues. \\
+v2.0 & 2027\tablenotemark{c} & 3.6.1 & chabrier-2.2.0 \\
+v1.0\tablenotemark{d} & \nodata & 3.2.0 & chabrier-2.0.0 \\
 \cutinhead{Iron (DR1) --- \fastspec{}}
-v4.0\tablenotemark{e} & \todo{TBD} & 3.6.1 & chabrier-2.2.0 & No known issues. \\
-v3.0 & 2025 Jun & 3.1.5 & chabrier-2.0.0 & Near-total rewrite of the continuum and emission-line fitting engines; Monte Carlo uncertainties added for all fitted parameters; updated QSO-redshift correction algorithm; backwards-incompatible data-model split into \texttt{SPECPHOT} and \texttt{FASTSPEC} extensions. Line-fitting clipping bug (fixed in 3.2.0). \\
-v2.1 & 2024 Jan & 2.5.0 & chabrier-1.3.0 & Templates revised to single (solar) metallicity and five age bins; corrected light-weighted age, dust attenuation, and SFR calculations. \\
-v2.0 & 2023 Aug & 2.4.1, 2.4.2 & chabrier-1.1.0 & Stellar masses biased high by 0.2--0.5~dex relative to independent methods; camera-overlap line fluxes/EWs overestimated by a factor of 2 (fixed). \\
-v1.0 & 2023 Feb & 2.1.0, 2.1.1 & chabrier-1.0.0 & {[\ion{O}{2}]} doublet ratio inverted; artificial redshift dependence in stellar masses; incorrect emission-line-subtracted $D_n(4000)$. All fixed. \\
+v4.0\tablenotemark{e} & \todo{TBD} & 3.6.1 & chabrier-2.2.0 \\
+v3.0 & 2025 Jun & 3.1.5 & chabrier-2.0.0 \\
+v2.1 & 2024 Jan & 2.5.0 & chabrier-1.3.0 \\
+v2.0 & 2023 Aug & 2.4.1, 2.4.2 & chabrier-1.1.0 \\
+v1.0 & 2023 Feb & 2.1.0, 2.1.1 & chabrier-1.0.0 \\
 \cutinhead{Iron (DR1) --- \fastphot{}}
-v2.0\tablenotemark{e} & \todo{TBD} & 3.6.1 & chabrier-2.2.0 & No known issues. \\
-v1.0 & 2026 Jun & 3.2.0 & chabrier-2.0.0 & Initial public release. No known issues. \\
+v2.0\tablenotemark{e} & \todo{TBD} & 3.6.1 & chabrier-2.2.0 \\
+v1.0 & 2026 Jun & 3.2.0 & chabrier-2.0.0 \\
 \cutinhead{Fuji (EDR) --- \fastspec{}}
-v3.2 & 2024 Jan & 2.5.0 & chabrier-1.3.0 & Templates revised to single (solar) metallicity and five age bins; corrected light-weighted age, dust attenuation, and SFR calculations. \\
-v3.1 & 2023 Dec & 2.4.3 & chabrier-1.2.0 & Stellar masses biased high by 0.2--0.5~dex relative to independent methods. \\
-v3.0 & 2023 Aug & 2.4.1, 2.4.2 & chabrier-1.1.0 & Stellar masses biased high; camera-overlap line fluxes/EWs overestimated by a factor of 2 (fixed). \\
-v2.0 & 2023 Feb & 2.1.0, 2.1.1 & chabrier-1.0.0 & {[\ion{O}{2}]} doublet ratio inverted; artificial redshift dependence in stellar masses; incorrect emission-line-subtracted $D_n(4000)$. All fixed. \\
-v1.0 & 2022 Aug & 1.0.0, 1.0.1 & SSP-CKC14z~v1.0 & First public \fastspecfit{} release; superseded by later versions. \\
+v3.2 & 2024 Jan & 2.5.0 & chabrier-1.3.0 \\
+v3.1 & 2023 Dec & 2.4.3 & chabrier-1.2.0 \\
+v3.0 & 2023 Aug & 2.4.1, 2.4.2 & chabrier-1.1.0 \\
+v2.0 & 2023 Feb & 2.1.0, 2.1.1 & chabrier-1.0.0 \\
+v1.0 & 2022 Aug & 1.0.0, 1.0.1 & SSP-CKC14z~v1.0 \\
 \enddata
 \tablenotetext{a}{\fastspecfit{} version(s) used to produce the catalog.}
 \tablenotetext{b}{SPS template library, \texttt{ftemplates-\{name\}.fits} unless otherwise noted (\S\ref{ssec:templates}).}
 \tablenotetext{c}{To be released in 2027 as part of DESI/DR2.}
 \tablenotetext{d}{Released internally to DESI collaboration members via NERSC; not yet publicly released. Will be superseded by v2.0 as the public DR2 release.}
 \tablenotetext{e}{Already produced (\fastspecfit{}~3.6.1) but not yet publicly released; release date to be determined.}
-\tablecomments{No \fastphot{} VAC was produced for the Fuji (EDR) specprod. Complete release notes and the full change history are maintained in the \fastspecfit{} online change log at \url{https://github.com/desihub/fastspecfit/blob/main/doc/changes.rst}.}
-\end{deluxetable*}
+\tablecomments{No \fastphot{} VAC was produced for the Fuji (EDR) specprod. Release notes, known issues, and the full change history for every version are maintained in the \fastspecfit{} online change log at \url{https://github.com/desihub/fastspecfit/blob/main/doc/changes.rst}.}
+\end{deluxetable}

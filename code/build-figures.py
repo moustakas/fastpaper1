@@ -340,7 +340,7 @@ def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD, verbose=False):
         ax = axes[0, ci]
         hess_contours(ax, ms, mp, mstarlim, mstarlim, bins=60,
                       cmap=make_class_cmap(color),
-                      contour_color=color, contour_lw=2.0)
+                      contour_color='k', contour_lw=1.2)
         ax.plot(mstarlim, mstarlim, 'k--', lw=1.5, zorder=5)
         ax.set_xlim(mstarlim)
         ax.set_ylim(mstarlim)
@@ -359,8 +359,7 @@ def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD, verbose=False):
         ax2 = axes[1, ci]
         in_range = (xv >= xlim[0]) & (xv <= xlim[1])
         hess_contours(ax2, xv[in_range], dv[in_range], xlim, deltalim, bins=60,
-                      cmap=make_class_cmap(color),
-                      contour_color=color, contour_lw=2.0)
+                      cmap=make_class_cmap(color), contour_levels=[])
         ax2.axhline(0, color='k', ls='--', lw=1.5, zorder=5)
         ax2.set_xlim(xlim)
         ax2.set_ylim(deltalim)
