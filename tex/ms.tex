@@ -73,18 +73,18 @@
 
 \correspondingauthor{John Moustakas}
 
-\author[0000-0002-2733-4559]{J.~Moustakas}
+\author[0000-0002-2733-4559]{John Moustakas}
 \email{jmoustakas@siena.edu}
 \affil{Department of Physics \& Astronomy, Siena University,
   515 Loudon Road, Loudonville, NY 12110, USA}
 
-\author[0000-0002-4159-4226]{J.~Buhler}
+\author[0000-0002-4159-4226]{Jeremy Buhler}
 \email{jbuhler@wustl.edu}
 \affiliation{Department of Computer Science and Engineering and
   Genetics, Washington University in St. Louis, One Brookings Drive
   St. Louis, MO 63130, USA}
 
-\author[0000-0002-6867-1244]{D.~Scholte}
+\author[0000-0002-6867-1244]{Dirk Scholte}
 \email{dscholte@roe.ac.uk}
 \affiliation{Institute for Astronomy, University of Edinburgh, Royal
   Observatory, Blackford Hill, Edinburgh EH9 3HJ, UK}
@@ -183,9 +183,9 @@ onto a common wavelength grid or into the rest frame, which violates
 one of the core assumptions underpinning maximum-likelihood fitting by
 introducing off-diagonal terms into the pixel covariance matrix.
 
-\fastspecfit\footnote{\url{https://fastspecfit.readthedocs.io}} has
-been developed to meet both these challenges, scaling efficiently to
-tens of millions of spectra while fully exploiting DESI's native,
+\fastspecfit\footnote{\url{https://fastspecfit.readthedocs.io/en/latest}}
+has been developed to meet both these challenges, scaling efficiently
+to tens of millions of spectra while fully exploiting DESI's native,
 optimally extracted spectral resolution. Using a forward-modeling
 fitting approach, \fastspecfit{} convolves stellar continuum and
 emission-line templates with each fiber's resolution matrix and
@@ -250,34 +250,29 @@ the modeling of intrinsic alignments \citep{siegel25a} and
 photometric-redshift calibration \citep{blanco25a} for the next
 generation of weak-lensing surveys.
 
-%\fastspecfit{} operates in two complementary modes. \fastspec{} jointly
-%fits DESI spectra and broadband photometry, while \fastphot{} fits
-%broadband photometry alone, without any spectroscopic input---useful
-%for targets with unreliable spectra or for external, photometry-only
-%samples. The two modes share the same template library, dust model,
-%and physical output quantities, differing only in which data enter the
-%fit and in whether the stellar velocity dispersion is a free parameter
-%(\S\ref{sec:modes}).
-
-In this paper we describe the DESI spectroscopic and photometric data
-(\S\ref{sec:data}) and the algorithms underlying \fastspecfit{} in
-detail, including the spectrophotometric and physical quantities the
-code derives (\S\ref{sec:modeling}). We illustrate the complete
-fitting sequence applied end-to-end to three representative targets
-spanning the range of DESI extragalactic classes in
-\S\ref{sec:casestudy}.  We then present the \fastspecfit{} VAC for
-DESI DR2, comprising 38 million extragalactic targets, document the
-code's computational performance, and validate the measurements
-against independent codes (\S\ref{sec:vac}). \todo{Missing
-  \S\ref{sec:discussion}.} We conclude with a summary and an outlook
-toward future improvements (\S\ref{sec:summary}).
-
 Throughout this paper we adopt a flat $\Lambda$CDM cosmology with
 $\Omega_m = 0.315$, consistent with \citet{planck-collaboration20a},
 and a \citet{chabrier03a} initial mass function (IMF) spanning
 $0.1$--$100$~\msun; we define $h \equiv H_0 / (100~\kms\,{\rm
 Mpc}^{-1})$ and express stellar masses and other derived quantities in
 units with $h=1$.
+
+\subsection{A Roadmap to this Paper}
+\label{sec:roadmap}
+
+This paper is long... In this paper we describe the DESI spectroscopic
+and photometric data (\S\ref{sec:data}) and the algorithms underlying
+\fastspecfit{} in detail, including the spectrophotometric and
+physical quantities the code derives (\S\ref{sec:modeling}). We
+illustrate the complete fitting sequence applied end-to-end to three
+representative targets spanning the range of DESI extragalactic
+classes in \S\ref{sec:casestudy}.  We then present the \fastspecfit{}
+VAC for DESI DR2, comprising 38 million extragalactic targets,
+document the code's computational performance, and validate the
+measurements against independent codes
+(\S\ref{sec:vac}). \todo{Missing \S\ref{sec:discussion}.} We conclude
+with a summary and an outlook toward future improvements
+(\S\ref{sec:summary}).
 
 %% ============================================================
 \section{Spectroscopic and Photometric Data}
@@ -3231,12 +3226,56 @@ underscoring the overall agreement between the two fitting modes.
 \section{Value-Added Catalog Revision History}
 \label{sec:appendix_vacs}
 
-The EDR VAC (Fuji~v3.2) comprises approximately 1.4~million targets
-processed with \fastspecfit{}~v2.5.0 and was publicly released in
-January~2024. The DR1 VAC (Iron~v3.0) adds the first tranche of
-main-survey data, processed with \fastspecfit{}~v3.1.5, and totals
-approximately 18~million targets; it was publicly released in
-June~2025.
+\fastspecfit{} has been in near-continuous development since late-2020
+(not coincidentally, the beginning of DESI on-sky observations), and
+so the code base and its template library have evolved progressively
+and, in some cases, substantially over time. Concurrently, each new
+DESI specprod has incorporated both minor and major improvements in
+the data-reduction pipeline, as well as adding spectra for millions of
+new objects. In order to meet the significant demand for astrophysical
+measurements of DESI targets beyond just their redshift---both within
+and outside of the DESI collaboration---\fastspecfit{} has been on a
+fairly rapid development cycle, resulting in 12 unique \fastspec{}
+VACs and four unique \fastphot{} VACs (including the ones documented
+in this paper) since 2022 August. In \S\ref{sec:intro} we cite just a
+small fraction of the publications which have resulted from these
+datasets.
+
+In Table~\ref{table:vac-history} we document this history by listing
+the current set of \fastspec{} and \fastphot{} VACs, the date they
+were released, and the templates and version of \fastspecfit{} which
+were used, organized by DESI specprod and data release. For additional
+details regarding each of these releases, especially substantive
+algorithmic changes, major bug fixes, and much more, we refer to the
+detailed \fastspecfit{} change log and release
+notes.\footnote{\url{https://github.com/desihub/fastspecfit/blob/main/doc/changes.rst}}
+
+\input{tables/table-vac-history}
+
+%An earlier Loa (DR2) build (\texttt{v1.0}, \fastspecfit{}~v3.1.4) was
+%released internally to DESI collaboration members via NERSC---and
+%remains in active use by several ongoing analyses---but has not yet
+%been publicly released. We subsequently identified two bugs in this
+%internal catalog: the inverse-variance estimates for emission-line
+%fluxes and equivalent widths carried significant errors, and a
+%clipping error in the internal flux-uncertainty routine caused poor
+%line fits for a small fraction of spectra with strong emission
+%lines. We fixed both issues in \fastspecfit{}~v3.2.0; users of the
+%internal \texttt{v1.0} catalog should be aware of these issues, while
+%the \texttt{Loa/v2.0} VAC described in this paper
+%(\S\ref{ssec:catalog})---the version that will be publicly
+%released---is unaffected by either. We have also produced, but not yet
+%released, updated \texttt{Iron/v4.0} \fastspec{} and
+%\texttt{Iron/v2.0} \fastphot{} VACs using the same
+%\fastspecfit{}~v3.6.1 pipeline and template library adopted for DR2;
+%their public release date is \todo{TBD}.
+
+%The EDR VAC (Fuji~v3.2) comprises approximately 1.4~million targets
+%processed with \fastspecfit{}~v2.5.0 and was publicly released in
+%January~2024. The DR1 VAC (Iron~v3.0) adds the first tranche of
+%main-survey data, processed with \fastspecfit{}~v3.1.5, and totals
+%approximately 18~million targets; it was publicly released in
+%June~2025.
 
 %Table~\ref{table:sample-edr-dr1} summarizes the EDR and DR1 target
 %counts organized by survey and observing program, for direct
@@ -3244,49 +3283,14 @@ June~2025.
 
 %\input{tables/table-sample-edr-dr1}
 
-Relative to DR2, the EDR and DR1 catalogs are produced with earlier
-versions of the SPS template library and do not incorporate the
-corrected QSO redshifts described in \S\ref{ssec:catalog}. Users
-combining measurements across data releases should therefore expect
-small, systematic differences in stellar masses, star-formation
-rates, and emission-line properties, particularly for AGN and QSO
-targets. We defer a full quantitative comparison of stellar masses
-and emission-line measurements across releases to future work.
-
-\fastspecfit{} and its template library have evolved substantially
-since the code's first application to DESI data, and each VAC has
-consequently been reprocessed and re-released several times as
-algorithms improved and bugs were identified. Table~\ref{table:vac-history}
-lists the release date and the \fastspecfit{} and template versions
-used to produce every \fastspec{} and \fastphot{} VAC released or
-produced to date, organized by specprod. Per-version release notes,
-maintained in the \fastspecfit{} online change
-log,\footnote{\url{https://github.com/desihub/fastspecfit/blob/main/doc/changes.rst}}
-distinguish substantive algorithmic changes---which can alter measured
-quantities and are therefore relevant when combining measurements
-across releases---from software bugs, which are corrected before the
-affected catalog is made public; we summarize below the two issues
-most relevant to users of the catalogs described in this paper.
-
-An earlier Loa (DR2) build (\texttt{v1.0}, \fastspecfit{}~v3.1.4) was
-released internally to DESI collaboration members via NERSC---and
-remains in active use by several ongoing analyses---but has not yet
-been publicly released. We subsequently identified two bugs in this
-internal catalog: the inverse-variance estimates for emission-line
-fluxes and equivalent widths carried significant errors, and a
-clipping error in the internal flux-uncertainty routine caused poor
-line fits for a small fraction of spectra with strong emission
-lines. We fixed both issues in \fastspecfit{}~v3.2.0; users of the
-internal \texttt{v1.0} catalog should be aware of these issues, while
-the \texttt{Loa/v2.0} VAC described in this paper
-(\S\ref{ssec:catalog})---the version that will be publicly
-released---is unaffected by either. We have also produced, but not yet
-released, updated \texttt{Iron/v4.0} \fastspec{} and
-\texttt{Iron/v2.0} \fastphot{} VACs using the same
-\fastspecfit{}~v3.6.1 pipeline and template library adopted for DR2;
-their public release date is \todo{TBD}.
-
-\input{tables/table-vac-history}
+%Relative to DR2, the EDR and DR1 catalogs are produced with earlier
+%versions of the SPS template library and do not incorporate the
+%corrected QSO redshifts described in \S\ref{ssec:catalog}. Users
+%combining measurements across data releases should therefore expect
+%small, systematic differences in stellar masses, star-formation
+%rates, and emission-line properties, particularly for AGN and QSO
+%targets. We defer a full quantitative comparison of stellar masses
+%and emission-line measurements across releases to future work.
 
 \end{appendix}
 

@@ -92,7 +92,7 @@ def sps_models(verbose=False):
     wdesi = [0.36, 0.98]   # DESI optical range [µm]
     ffact = -3.            # filter depth below ylim[0]
 
-    fig, ax = plt.subplots(figsize=(9, 6))
+    fig, ax = plt.subplots(figsize=(9, 7))
 
     # shade DESI optical range
     ax.add_artist(Rectangle((wdesi[0], ylim[1]), np.ptp(wdesi), np.ptp(ylim),
@@ -323,7 +323,7 @@ def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD, verbose=False):
     groups = [g for g in all_groups if g['label'] in ('BGS', 'LRG', 'ELG')]
 
     plot_style(talk=True, font_scale=0.85, palette='colorblind')
-    fig, axes = plt.subplots(2, 3, figsize=(13, 9))
+    fig, axes = plt.subplots(2, 3, figsize=(13, 8))
     fig.subplots_adjust(hspace=0.35, wspace=0.08)
 
     for ci, g in enumerate(groups):
@@ -1377,7 +1377,7 @@ def compare_vdisp(verbose=False, two_panel=False):
         ax_pp  = fig.add_subplot(gs[0])
         ax_rpp = fig.add_subplot(gs[1])
     else:
-        fig, ax_pp = plt.subplots(figsize=(7, 6))
+        fig, ax_pp = plt.subplots(figsize=(9, 7))
 
     # ---- top (or only): FS vs pPXF ----
     hess_contours(ax_pp, fs_p, ppxf_p, sigrange, sigrange, bins=60,
@@ -1689,6 +1689,8 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description=__doc__,
     )
+    parser.add_argument('--all', action='store_true',
+                        help='Rebuild every figure currently included in the paper.')
     parser.add_argument('--sps-models', action='store_true',
                         help='SPS template library figure.')
     parser.add_argument('--compare-mstar', action='store_true',
@@ -1738,6 +1740,16 @@ def main():
 
     survey = 'main' if args.main else 'sv3'
     os.makedirs(FIGDIR, exist_ok=True)
+
+    if args.all:
+        sps_models(verbose=args.verbose)
+        compare_mstar(survey=survey, specprod=args.specprod, verbose=args.verbose)
+        compare_mstar_external(verbose=args.verbose)
+        compare_emlines_external(verbose=args.verbose, survey=survey, pull_denom=args.pull_denom)
+        mstar_redshift(verbose=args.verbose)
+        bpt_agn(verbose=args.verbose)
+        compare_vdisp(verbose=args.verbose, two_panel=args.vdisp_two_panel)
+        return
 
     if args.sps_models:
         sps_models(verbose=args.verbose)

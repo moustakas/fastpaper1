@@ -328,7 +328,7 @@ def wavecal_residuals(specprod=DEFAULT_SPECPROD, survey='main', nbins=62,
 
     sns, colors = plot_style(talk=True, font_scale=0.9, palette='colorblind')
     fig, (ax, axn) = plt.subplots(
-        2, 1, figsize=(9, 6.5), sharex=True,
+        2, 1, figsize=(9, 7), sharex=True,
         gridspec_kw={'height_ratios': [3, 1], 'hspace': 0.08})
 
     for lo, hi in WAVECAL_CAMERA_TRANSITIONS:
