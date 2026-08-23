@@ -11,7 +11,6 @@ Each flag generates one figure written to tex/figures/.
 import sys, os, argparse, pdb
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.patheffects as pe
 from astropy.table import Table, vstack, join
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -299,7 +298,7 @@ def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD, verbose=False):
     for program in ('bright', 'dark'):
         s = read_fastspec(survey, program, specprod=specprod,
                           columns=['LOGMSTAR', 'APERCORR'], verbose=verbose)
-        spec_chunks.append(s[good_galaxies(s)])
+        spec_chunks.append(s[good_galaxies(s, survey=survey)])
         p = read_fastphot(survey, program, specprod=specprod,
                           columns=['LOGMSTAR'], verbose=verbose)
         phot_chunks.append(p[p['LOGMSTAR'] > 0])
@@ -369,13 +368,10 @@ def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD, verbose=False):
         centers, med, qlo, qhi = running_binstat(
             xv[in_range], dv[in_range], bins=20, xrange=xlim)
         finite = np.isfinite(med)
-        halo = [pe.withStroke(linewidth=3.5, foreground='white')]
-        ax2.plot(centers[finite], med[finite], color=color, lw=2.0, zorder=6,
-                 path_effects=halo)
-        ax2.plot(centers[finite], qlo[finite], color=color, lw=1.3, ls='--',
-                 zorder=6, path_effects=halo)
-        ax2.plot(centers[finite], qhi[finite], color=color, lw=1.3, ls='--',
-                 zorder=6, path_effects=halo)
+        yerr = np.vstack([med[finite] - qlo[finite], qhi[finite] - med[finite]])
+        ax2.errorbar(centers[finite], med[finite], yerr=yerr,
+                     fmt='o', color='k', ms=3, lw=1.5, capsize=2.5,
+                     capthick=1.5, zorder=6)
 
         x_label = r'$z$' if x_var == 'Z' else 'Aperture Correction'
         ax2.set_xlabel(x_label)

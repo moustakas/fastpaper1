@@ -679,9 +679,9 @@ def good_redshift(cat, survey, fiberstatus_cut=True, ignore_emline=False):
     Applies the standard DESI per-class cuts:
       BGS  — ZWARN==0 & DELTACHI2>40
       LRG  — ZWARN==0 & Z<1.5 & DELTACHI2>15
-      ELG  — OII S/N cut: log10(OII_FLUX * sqrt(OII_FLUX_IVAR)) > 0.9 - 0.2*log10(DELTACHI2)
-              (falls back to ZWARN==0 & DELTACHI2>15 if OII columns are absent or
-              ``ignore_emline=True``)
+      ELG  — Z<1.6 & OII S/N cut: log10(OII_FLUX * sqrt(OII_FLUX_IVAR)) > 0.9 - 0.2*log10(DELTACHI2)
+              (falls back to ZWARN==0 & Z<1.6 & DELTACHI2>15 if OII columns are
+              absent or ``ignore_emline=True``)
       Other — ZWARN==0 & Z>0.001
 
     Parameters
@@ -736,9 +736,11 @@ def good_redshift(cat, survey, fiberstatus_cut=True, ignore_emline=False):
             oii_snr = np.log10(oii_flux * np.sqrt(oii_ivar))
             dc2     = np.log10(np.maximum(cat['DELTACHI2'], 1e-10))
         good_elg = ((oii_flux > 0) & (oii_ivar > 0) &
-                    (oii_snr > 0.9 - 0.2 * dc2) & good_fs)
+                    (oii_snr > 0.9 - 0.2 * dc2) &
+                    (cat['Z'] < 1.6) & good_fs)
     else:
-        good_elg = (cat['ZWARN'] == 0) & (cat['DELTACHI2'] > 15) & good_fs
+        good_elg = ((cat['ZWARN'] == 0) & (cat['Z'] < 1.6) &
+                    (cat['DELTACHI2'] > 15) & good_fs)
 
     good_other = (cat['ZWARN'] == 0) & (cat['Z'] > 0.001)
 
