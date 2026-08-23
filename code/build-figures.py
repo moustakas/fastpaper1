@@ -11,6 +11,7 @@ Each flag generates one figure written to tex/figures/.
 import sys, os, argparse, pdb
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patheffects as pe
 from astropy.table import Table, vstack, join
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -368,9 +369,13 @@ def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD, verbose=False):
         centers, med, qlo, qhi = running_binstat(
             xv[in_range], dv[in_range], bins=20, xrange=xlim)
         finite = np.isfinite(med)
-        ax2.plot(centers[finite], med[finite], color=color, lw=2.0, zorder=6)
-        ax2.fill_between(centers[finite], qlo[finite], qhi[finite],
-                         color=color, alpha=0.25, zorder=5)
+        halo = [pe.withStroke(linewidth=3.5, foreground='white')]
+        ax2.plot(centers[finite], med[finite], color=color, lw=2.0, zorder=6,
+                 path_effects=halo)
+        ax2.plot(centers[finite], qlo[finite], color=color, lw=1.3, ls='--',
+                 zorder=6, path_effects=halo)
+        ax2.plot(centers[finite], qhi[finite], color=color, lw=1.3, ls='--',
+                 zorder=6, path_effects=halo)
 
         x_label = r'$z$' if x_var == 'Z' else 'Aperture Correction'
         ax2.set_xlabel(x_label)
