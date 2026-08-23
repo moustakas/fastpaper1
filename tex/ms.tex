@@ -2159,10 +2159,12 @@ with a tagged version of the DESI pipeline. DR2 includes the
 (DESI specprods are always named after mountains or mountain
 ranges). In production, a tagged version of \fastspecfit{} takes the
 data from a specprod as its input and produces a complete VAC. Here,
-we present the second version of the \texttt{Loa} \fastspecfit{} VAC,
-and in Appendix~\ref{sec:appendix_vacs} we present additional,
-previously released VACs, including those from the EDR (Fuji specprod)
-and DR1 (Iron specprod).
+we present the \texttt{v2.0} version of the \texttt{Loa}
+\fastspecfit{} VAC. In Appendix~\ref{sec:appendix_fastphot} we
+describe a complementary \fastphot{} VAC produced with the same
+version of the code and the same input DESI redshifts, and in
+Appendix~\ref{sec:appendix_vacs} we document earlier, previously
+released VACs from the EDR (Fuji specprod) and DR1 (Iron specprod).
 
 In \S\ref{ssec:catalog} we describe the sample-selection criteria for
 the \texttt{Loa/v2.0} VAC, our correction of a subset of Redrock QSO
@@ -2230,12 +2232,46 @@ catalogs identically to how the input spectra and redshift catalogs
 are organized in DESI DR1 and DR2 (see \S3.3 in
 \citealt{desi-collaboration26a} and DESI Collaboration et~al., in
 preparation).\footnote{\url{https://fastspecfit.readthedocs.io/en/3.6.1/vacs.html\#data-organization}}
-Each \fastspec{} output file contains well over 1000 columns across
-five FITS extensions. Appendix~\ref{sec:appendix_datamodel} documents
-the data model in detail, and in Table~\ref{table:sample} we summarize
-the number of objects in the DESI main, special, and SV programs,
-totaling over 38~million objects.\footnote{\todo{Document how there
-  can be duplicates between these categories.}}
+Each \fastspec{} output file contains well over 1000 columns organized
+across five FITS extensions:
+\begin{itemize}
+  \item \texttt{HDU0} (\texttt{PRIMARY}): empty image with processing
+    metadata keywords, including the software version, Monte Carlo
+    random seed, and boolean fitting flags.
+  \item \texttt{HDU1} (\texttt{METADATA}): target metadata mirroring
+    the DESI Redrock catalog, including sky coordinates, the input
+    redshift and \texttt{ZWARN} bitmask, targeting bits, and
+    extinction-corrected Legacy Survey photometry.
+  \item \texttt{HDU2} (\texttt{SPECPHOT}): derived spectrophotometric
+    quantities, including template coefficients, stellar-population
+    parameters ($\tau_V$, $\vdisp$, age, metallicity, $\logmstar$,
+    SFR), $D_n(4000)$, synthesized photometry, K-corrections, absolute
+    magnitudes, monochromatic luminosities, and continuum flux
+    densities at key emission-line centers.
+  \item \texttt{HDU3} (\texttt{FASTSPEC}): emission-line fitting
+    results, including per-camera median S/N and smooth continuum
+    corrections, aperture correction factors, doublet line ratios, and
+    per-line measurements (amplitude, flux, equivalent width, velocity
+    shift, line width, and upper limits) for all modeled emission
+    lines.
+  \item \texttt{HDU4} (\texttt{MODELS}): 3D image array
+    [$n_\mathrm{pix} \times 3 \times n_\mathrm{obj}$] with the
+    best-fitting model spectra on a common linear wavelength grid
+    (3600--9824\,\AA, $0.8$\,\AA\,pixel$^{-1}$, vacuum
+    wavelengths). The three planes store the full spectrophotometric
+    model, the smooth continuum correction alone, and the
+    emission-line model alone, respectively.  We omit this extension
+    from the merged catalogs described below to keep individual file
+    sizes manageable.
+\end{itemize}
+\noindent A complete, column-by-column description of the data model,
+pinned to the \fastspecfit{} version used to produce this VAC, is
+maintained in the online
+documentation.\footnote{\url{https://fastspecfit.readthedocs.io/en/3.6.1/fastspec.html}}
+In Table~\ref{table:sample} we summarize the number of objects in the
+VAC observed as part of the DESI main, special, and SV programs,
+totaling over 38~million objects. \todo{Possibly document how there
+  can be duplicates between these categories?}
 
 Because there are more than 52,000 individual files (one per HEALPix),
 most users will find it convenient to work with the merged catalogs
@@ -2258,8 +2294,7 @@ non-overlapping area.}
 \noindent\texttt{VACDIR/catalogs/fastspec-loa-main-\{bright,dark\}-nside1-hpNN.fits}
 \medskip
 
-\noindent where \texttt{NN} runs from \texttt{00} to \texttt{11}
-(Appendix~\ref{sec:appendix_datamodel}).
+\noindent where \texttt{NN} runs from \texttt{00} to \texttt{11}.
 
 As a concrete example, the Python code snippet below shows how to
 retrieve the \fastspec{} measurements for a single target given only
@@ -2268,7 +2303,7 @@ locate the \texttt{nside}~=~1 HEALPix file covering that position,
 matches the nearest catalog entry, and reports its redshift, stellar
 mass, and \ha{} equivalent width---drawn, respectively, from the
 \texttt{METADATA}, \texttt{SPECPHOT}, and \texttt{FASTSPEC} extensions
-described in Appendix~\ref{sec:appendix_datamodel}.
+described above.
 
 \begin{verbatim}
 from astropy.table import Table
@@ -2300,10 +2335,10 @@ print(f"z={meta['Z'][indx]:.4f}  "
 can be found in the \fastspecfit{}
 documentation.\footnote{\url{https://fastspecfit.readthedocs.io/en/latest/tutorials.html}}
 
-Finally, as part of DESI DR2, we also publicly release the \fastphot{}
-\texttt{Loa/v2.0} VAC as a related but independent data product. In
-Appendix~\ref{sec:appendix_fastphot} we document this VAC and compare
-the derived stellar masses to the \fastspec{} values.
+%Finally, as part of DESI DR2, we also publicly release the \fastphot{}
+%\texttt{Loa/v2.0} VAC as a related but independent data product. In
+%Appendix~\ref{sec:appendix_fastphot} we document this VAC and compare
+%the derived stellar masses to the \fastspec{} values.
 
 \subsection{Recommended Quality Cuts}
 \label{ssec:cuts}
@@ -3107,6 +3142,10 @@ under Contract No. AST-0950945 to NOAO.
 %% ============================================================
 \begin{appendix}
 
+\iffalse
+%% Appendix A (DR2 VAC Data Model) removed 2026-08-22: the HDU-structure
+%% summary now lives in \S\ref{ssec:catalog}, and the column-by-column
+%% table (table-datamodel.tex) is superseded by the pinned online docs.
 \section{DR2 VAC Data Model}
 \label{sec:appendix_datamodel}
 
@@ -3175,6 +3214,7 @@ in the \fastspecfit{} online
 documentation.\footnote{\url{https://fastspecfit.readthedocs.io/en/latest/fastspec.html}}
 
 \input{tables/table-datamodel}
+\fi
 
 \section{Stellar Masses inferred using \fastphot}
 \label{sec:appendix_fastphot}
@@ -3189,7 +3229,7 @@ distributed, and checksummed under its own top-level directory:
 \texttt{/global/cfs/cdirs/desi/vac/dr2/fastphot/loa/v2.0}). Its
 per-HEALPix and merged catalogs follow the same
 \texttt{SURVEY}/\texttt{PROGRAM}/\texttt{HEALPIX} naming convention as
-\fastspec{} (Appendix~\ref{sec:appendix_datamodel}), but with a
+\fastspec{} (\S\ref{ssec:catalog}), but with a
 \texttt{fastphot} rather than \texttt{fastspec} prefix.
 
 Because \fastphot{} fits only broadband photometry, its per-HEALPix
