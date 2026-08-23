@@ -1094,9 +1094,9 @@ pixel and bandpass becomes
 \begin{equation}
   \chi^2(\tauv,\mathbf{c})
   =
-  \sum_{i=1}^{n_\mathrm{pix}} m_i I_i\Bigl(d_i - \frac{C_i}{\bar\eta}\Bigr)^2
+  \sum_{i=1}^{n_\mathrm{pix}} m_i I_i\left(d_i - \frac{C_i}{\bar\eta}\right)^2
   \;+\;
-  \sum_{k=1}^{n_\mathrm{band}} I_{D,k}\bigl(D_k - C_k\bigr)^2,
+  \sum_{k=1}^{n_\mathrm{band}} I_{D,k}\left(D_k - C_k\right)^2,
   \label{eq:chi2cont}
 \end{equation}
 where $\bar\eta$ is the scalar aperture correction described in
@@ -1111,7 +1111,7 @@ $\tauv$, with an inner NNLS solve for $\mathbf{c}$ at each trial
 $\tauv$,
 \begin{equation}
   \mathbf{c}^* = \arg\min_{\mathbf{c}\,\geq\,0}
-  \bigl\|\boldsymbol{\Psi}\,\mathbf{c} - \mathbf{b}\bigr\|^2,
+  \left\|\boldsymbol{\Psi}\,\mathbf{c} - \mathbf{b}\right\|^2,
   \label{eq:nnls}
 \end{equation}
 where $\mathbf{b}$ is the corresponding weighted data vector, and the
@@ -1327,7 +1327,7 @@ equation~(\ref{eq:emline_sum}) finally becomes
 With this pixelized model in hand, we determine the parameters
 $\theta_E$ of every line by minimizing
 \begin{equation}
-  \chi^2(\theta_E) = \sum_{i=1}^{n_\mathrm{pix}} I_i\bigl(r_i - E_i\bigr)^2,
+  \chi^2(\theta_E) = \sum_{i=1}^{n_\mathrm{pix}} I_i\left(r_i - E_i\right)^2,
   \label{eq:chi2line}
 \end{equation}
 using the trust-region reflective algorithm
@@ -1373,9 +1373,9 @@ $\sigma_\ell = \sigma/c$:
 \begin{equation}
   \frac{\partial F_i}{\partial \sigma} =
   \frac{A}{\sigma_\mathrm{eff}\,c}\,
-  \exp\!\left(-\frac{x_i^2}{2\sigma_\mathrm{eff}^2} \right) \, \Bigl[1
-    - \frac{\sigma_\ell^2}{\sigma_\mathrm{eff}^2} \Bigl(1 -
-    \frac{x_i^2}{\sigma_\mathrm{eff}^2} \Bigr)\Bigr].
+  \exp\!\left(-\frac{x_i^2}{2\sigma_\mathrm{eff}^2} \right) \, \left[1
+    - \frac{\sigma_\ell^2}{\sigma_\mathrm{eff}^2} \left(1 -
+    \frac{x_i^2}{\sigma_\mathrm{eff}^2} \right)\right].
   \label{eq:dF_ds}
 \end{equation}
 
@@ -1542,9 +1542,12 @@ summarizes their symbols, output-column names, and units.
 
 We infer $A$, $\Delta v$, and $\sigma$ by optimizing the
 pre-convolution Gaussian parameters given by
-equation~(\ref{eq:model}). We also measure the observed amplitude of
-each line, $A_\mathrm{obs}$, the peak flux density of the fully
-pixelized, resolution-matrix-convolved model
+equation~(\ref{eq:model}), as well as the $\chi^2_\mathrm{line}$ of
+the fit and the number of unmasked pixels
+$n_\mathrm{pix}^\mathrm{line}$ contributing to it (both within
+$\pm3\sigma$ of the line-center). We additionally measure the observed
+amplitude of each line, $A_\mathrm{obs}$, the peak flux density of the
+fully pixelized, resolution-matrix-convolved model
 $\mathbf{E}=\mathbf{W}\mathbf{F}$ (equation~\ref{eq:emline_pixel}) as
 it actually appears on the DESI pixel grid. In general (but especially
 for lines narrower than one pixel), the pre-convolution regularization
@@ -1592,8 +1595,8 @@ We report the $1\sigma$ upper limit on the flux of every line with a
 valid continuum measurement by substituting the uncertainty in the
 local continuum for the amplitude in equation~(\ref{eq:flux_phys}),
 \begin{equation}
-  \Phi_\mathrm{lim} = \sqrt{2\pi} \frac{\lambda^*}{\sqrt{I_{F_c}}}
-  \frac{\sigma}{c},
+  \Phi_\mathrm{lim} = \sqrt{2\pi} \left(
+  \frac{\lambda^*}{\sqrt{I_{F_c}}} \right) \frac{\sigma}{c},
   \label{eq:fluxlimit}
 \end{equation}
 where $I_{F_c}$ is the inverse variance of $F_c$ (discussed in
@@ -1605,15 +1608,41 @@ possible metric for determining the statistical significance of a line
 (\S\ref{ssec:cuts}), and so users can more easily fold upper limits
 into their specific scientific analyses.
 
-Finally, we record the pixel-level $\chi^2_\mathrm{line}$ of the fit
-and the number of unmasked pixels $n_\mathrm{pix}^\mathrm{line}$
-contributing to it, both defined within $\pm3\sigma$ of the
-line-center. In \S\ref{ssec:uncertainties} we describe how we derive
+Separately, for four lines—\ion{C}{4}~$\lambda1549$, \mgiidoublet\ (summed
+as one blended feature), \hb, and \oiiilam—we also measure three
+non-parametric moments of the line profile directly from the residual
+spectrum, without assuming any particular functional form. Departures
+from a Gaussian profile, particularly asymmetric wings, can signal
+outflows or other physical processes, most often associated with AGN;
+these moments provide a model-independent starting point for a more
+detailed follow-up analysis of such profiles.
+
+We sum over pixels within $\pm5\sigma$ of the line center $\lambda^*$
+(equation~\ref{eq:lstar}), using the same fallback width adopted above
+when $\sigma$ is unmeasured (75~\kms{} for narrow lines, 1200~\kms{} for
+broad), and requiring a window at least two pixels wide. Writing
+$\lambda_i$ and $r_i$ for the observed wavelength and residual flux of
+the $i$th pixel in that window, the first moment is the flux-weighted
+mean wavelength,
+\begin{equation}
+  M_1 = \frac{\sum_i \lambda_i\,r_i}{\sum_i r_i},
+  \label{eq:moment1}
+\end{equation}
+and the $n$th central moment is
+\begin{equation}
+  M_n = \frac{\sum_i (\lambda_i-M_1)^n\,r_i}{\sum_i r_i};
+  \label{eq:momentn}
+\end{equation}
+we evaluate equation~(\ref{eq:momentn}) for the first two non-trivial
+orders, $M_2$ and $M_3$. We tabulate $M_1$, $M_2$, and $M_3$ (in
+observed-frame \AA, \AA$^2$, and
+\AA$^3$, respectively), together with their Monte Carlo-derived inverse
+variances, as \texttt{MOMENT1}, \texttt{MOMENT2}, and \texttt{MOMENT3}
+columns prefixed by each line's name (e.g., \texttt{OIII\_5007\_MOMENT1}).
+
+In \S\ref{ssec:uncertainties} we describe how we derive
 the companion inverse-variance columns listed in
 Table~\ref{table:linesummary} via a per-object Monte Carlo procedure.
-
-\todo{Need to also explain the doublet ratios like OII\_DOUBLET. And
-  we should document the MOMENT quantities we measure, too.}
 
 \input{tables/table-linesummary}
 
@@ -1777,7 +1806,7 @@ realizations of the observed spectrum and photometry by adding
 Gaussian noise consistent with the (floor-inflated;
 \S\ref{sec:modeling}) inverse variance,
 \begin{equation}
-  d_i^{(m)} \sim \mathcal{N}\bigl(d_i,\,I_i^{-1}\bigr),
+  d_i^{(m)} \sim \mathcal{N}\left(d_i,\,I_i^{-1}\right),
   \label{eq:mc_draw}
 \end{equation}
 for realizations $m=1,\ldots,n_\mathrm{monte}$, where $d_i$ indexes
@@ -2658,6 +2687,8 @@ catalogs is very good, particularly given the different data
 (photometry only versus spectrophotometry), templates, and
 star-formation-history parameterizations involved.
 
+\todo{Could also check K-corrections against k-correct?}
+
 \subsection{Pipeline Diagnostics}
 \label{ssec:diagnostics}
 
@@ -2787,17 +2818,16 @@ values used in this version of \fastspecfit.
 \label{sec:discussion}
 %% ============================================================
 
-The \fastspecfit{} DR2 catalog provides simultaneous measurements of
+The \fastspecfit{} DR2 VAC provides simultaneous measurements of
 stellar continuum, emission-line, and broadband SED properties for
-approximately 38~million extragalactic targets spanning four decades
-in stellar mass and nearly two decades in redshift. In
+approximately 38~million extragalactic targets spanning more than six
+decades in stellar mass and nearly two decades in redshift. In
 \S\ref{ssec:reach} we illustrate the scientific reach of these
 measurements with two representative figures: the distribution of
 stellar mass with redshift across the three primary galaxy target
-classes, and the optical emission-line diagnostics that
-\fastspecfit{} uses to identify and characterize AGN. We then discuss
-planned improvements to the code and future VACs
-(\S\ref{ssec:improvements}).
+classes, and the optical emission-line diagnostics that \fastspecfit{}
+uses to identify and characterize AGN. We then discuss planned
+improvements to the code and future VACs (\S\ref{ssec:improvements}).
 
 \subsection{Galaxy Demographics and Diagnostic Power}
 \label{ssec:reach}

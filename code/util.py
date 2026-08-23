@@ -16,29 +16,48 @@ from glob import glob
 from astropy.table import Table, hstack, vstack
 import fitsio
 
-#_DESI_VAC = '/dvs_ro/cfs/cdirs/desi/vac'
-_DESI_VAC = '/pscratch/sd/i/ioannis/fastspecfit'
+# At NERSC we read from a personal pscratch mirror, since the official VAC
+# release under $DESI_ROOT/vac is not yet populated there. Off NERSC (e.g., a
+# laptop), we read from a local mirror under $DESI_ROOT, laid out to match the
+# official VAC directory structure.
+_ON_NERSC = 'NERSC_HOST' in os.environ
 
 # Per-specprod catalog directory paths.  Add entries here as new specprods
 # are released; set a value to None when the path is not yet known.
-_SPECPROD_CONFIG = {
-    'loa': {
-        'fastspec': f'{_DESI_VAC}/loa-v2.0-fastspec/loa/catalogs',
-        'fastphot': f'{_DESI_VAC}/loa-v2.0-fastphot/loa/catalogs',
-        #'fastspec': f'{_DESI_VAC}/dr2/fastspecfit/loa/v1.0/catalogs',
-        #'fastphot': f'{_DESI_VAC}/dr2/fastphot/loa/v1.0/catalogs',
-    },
-    'iron': {
-        #'fastspec': f'{_DESI_VAC}/iron-v4.0/iron/catalogs',
-        #'fastphot': f'{_DESI_VAC}/iron-fastphot-v2.0/iron/catalogs',
-        'fastspec': '/dvs_ro/cfs/cdirs/desi/vac/dr1/fastspecfit/iron/v3.0/catalogs',
-        'fastspec': '/dvs_ro/cfs/cdirs/desi/vac/dr1/fastspecfit/iron/v3.0/catalogs',
-    },
-    'fuji': {
-        'fastspec': '/dvs_ro/cfs/cdirs/desi/vac/edr/fastspecfit/fuji/v3.2/catalogs',
-        'fastphot': None,
-    },
-}
+if _ON_NERSC:
+    _DESI_VAC = '/pscratch/sd/i/ioannis/fastspecfit'
+    _SPECPROD_CONFIG = {
+        'loa': {
+            'fastspec': f'{_DESI_VAC}/loa-v2.0-fastspec/loa/catalogs',
+            'fastphot': f'{_DESI_VAC}/loa-v2.0-fastphot/loa/catalogs',
+        },
+        'iron': {
+            'fastspec': '/dvs_ro/cfs/cdirs/desi/vac/dr1/fastspecfit/iron/v3.0/catalogs',
+            'fastphot': None,
+        },
+        'fuji': {
+            'fastspec': '/dvs_ro/cfs/cdirs/desi/vac/edr/fastspecfit/fuji/v3.2/catalogs',
+            'fastphot': None,
+        },
+    }
+else:
+    if 'DESI_ROOT' not in os.environ:
+        raise RuntimeError('DESI_ROOT must be set to locate VAC catalogs off of NERSC.')
+    _DESI_VAC = os.path.join(os.environ['DESI_ROOT'], 'vac')
+    _SPECPROD_CONFIG = {
+        'loa': {
+            'fastspec': f'{_DESI_VAC}/dr2/fastspecfit/loa/v2.0/catalogs',
+            'fastphot': f'{_DESI_VAC}/dr2/fastphot/loa/v2.0/catalogs',
+        },
+        'iron': {
+            'fastspec': f'{_DESI_VAC}/dr1/fastspecfit/iron/v4.0/catalogs',
+            'fastphot': None,
+        },
+        'fuji': {
+            'fastspec': None,
+            'fastphot': None,
+        },
+    }
 
 DEFAULT_SPECPROD = 'loa'
 
