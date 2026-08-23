@@ -2163,8 +2163,9 @@ we present the \texttt{v2.0} version of the \texttt{Loa}
 \fastspecfit{} VAC. In Appendix~\ref{sec:appendix_fastphot} we
 describe a complementary \fastphot{} VAC produced with the same
 version of the code and the same input DESI redshifts, and in
-Appendix~\ref{sec:appendix_vacs} we document earlier, previously
-released VACs from the EDR (Fuji specprod) and DR1 (Iron specprod).
+Appendix~\ref{sec:appendix_vacs} we document the earlier EDR (Fuji
+specprod) and DR1 (Iron specprod) VACs and summarize the complete
+\fastspecfit{} VAC revision history.
 
 In \S\ref{ssec:catalog} we describe the sample-selection criteria for
 the \texttt{Loa/v2.0} VAC, our correction of a subset of Redrock QSO
@@ -2172,9 +2173,9 @@ redshifts, and the VAC's file organization. We recommend potential
 quality cuts in \S\ref{ssec:cuts}, discuss the code's computational
 performance at DR2 scale in \S\ref{ssec:performance}, and validate
 \fastspecfit{} measurements against independent codes and catalogs in
-\S\ref{ssec:validation}. Finally, in \S\ref{ssec:diagnostics} we
-present some pipeline diagnostics that use \fastspecfit{} residuals to
-characterize DESI calibration errors.
+\S\ref{ssec:validation}. Finally, in \S\ref{ssec:diagnostics} we use
+\fastspecfit{} emission-line velocity-shift residuals to test the
+DESI wavelength calibration.
 
 \subsection{Sample Selection and Catalog Production}
 \label{ssec:catalog}
@@ -2255,14 +2256,14 @@ across five FITS extensions:
     shift, line width, and upper limits) for all modeled emission
     lines.
   \item \texttt{HDU4} (\texttt{MODELS}): 3D image array
-    [$n_\mathrm{pix} \times 3 \times n_\mathrm{obj}$] with the
+    [$N_\mathrm{pix} \times 3 \times N_\mathrm{obj}$] with the
     best-fitting model spectra on a common linear wavelength grid
     (3600--9824\,\AA, $0.8$\,\AA\,pixel$^{-1}$, vacuum
     wavelengths). The three planes store the full spectrophotometric
     model, the smooth continuum correction alone, and the
-    emission-line model alone, respectively.  We omit this extension
-    from the merged catalogs described below to keep individual file
-    sizes manageable.
+    emission-line model alone, respectively, coadded across the three
+    cameras. We omit this extension from the merged catalogs described
+    below to keep individual file sizes manageable.
 \end{itemize}
 \noindent A complete, column-by-column description of the data model,
 pinned to the \fastspecfit{} version used to produce this VAC, is
@@ -3275,18 +3276,8 @@ fitting modes.
 
 
 %% ============================================================
-\section{EDR and DR1 Value-Added Catalogs}
+\section{Value-Added Catalog Revision History}
 \label{sec:appendix_vacs}
-
-Two known issues affect the v1.0 DR2 catalog. First, the
-inverse-variance estimates for emission-line fluxes and equivalent
-widths carry significant errors; users requiring precise flux
-uncertainties should apply appropriate caution and consult the online
-documentation for the latest status of corrections. Second, a small
-fraction of spectra with strong emission lines suffer poor line fits
-due to a clipping error in the internal flux uncertainty routine. We
-fix both issues in \fastspecfit{}~v3.2.0, and we will release updated
-catalogs in due course.
 
 The EDR VAC (Fuji~v3.2) comprises approximately 1.4~million targets
 processed with \fastspecfit{}~v2.5.0 and was publicly released in
@@ -3301,14 +3292,48 @@ direct comparison with the DR2 breakdown in Table~\ref{table:sample}.
 
 Relative to DR2, the EDR and DR1 catalogs are produced with earlier
 versions of the SPS template library and do not incorporate the
-corrected QSO redshifts described in \S\ref{ssec:catalog} or the
-flux-uncertainty and line-fitting fixes introduced in
-\fastspecfit{}~v3.2.0. Users combining measurements across data
-releases should therefore expect small, systematic differences in
-stellar masses, star-formation rates, and emission-line properties,
-particularly for AGN and QSO targets. We defer a full quantitative
-comparison of stellar masses and emission-line measurements across
-releases to future work.
+corrected QSO redshifts described in \S\ref{ssec:catalog}. Users
+combining measurements across data releases should therefore expect
+small, systematic differences in stellar masses, star-formation
+rates, and emission-line properties, particularly for AGN and QSO
+targets. We defer a full quantitative comparison of stellar masses
+and emission-line measurements across releases to future work.
+
+\fastspecfit{} and its template library have evolved substantially
+since the code's first application to DESI data, and each VAC has
+consequently been reprocessed and re-released several times as
+algorithms improved and bugs were identified. Table~\ref{table:vac-history}
+summarizes the complete revision history of every \fastspec{} and
+\fastphot{} VAC released or produced to date, organized by specprod,
+together with the \fastspecfit{} and template versions used to produce
+each. We
+distinguish substantive algorithmic changes---which can alter measured
+quantities and are therefore relevant when combining measurements
+across releases---from software bugs, which are corrected before the
+affected catalog is made public. Complete details for every change,
+including the corresponding GitHub pull requests, are available in the
+\fastspecfit{} online change
+log.\footnote{\url{https://github.com/desihub/fastspecfit/blob/main/doc/changes.rst}}
+
+An earlier Loa (DR2) build (\texttt{v1.0}, \fastspecfit{}~v3.1.4) was
+released internally to DESI collaboration members via NERSC---and
+remains in active use by several ongoing analyses---but has not yet
+been publicly released. We subsequently identified two bugs in this
+internal catalog: the inverse-variance estimates for emission-line
+fluxes and equivalent widths carried significant errors, and a
+clipping error in the internal flux-uncertainty routine caused poor
+line fits for a small fraction of spectra with strong emission
+lines. We fixed both issues in \fastspecfit{}~v3.2.0; users of the
+internal \texttt{v1.0} catalog should be aware of these issues, while
+the \texttt{Loa/v2.0} VAC described in this paper
+(\S\ref{ssec:catalog})---the version that will be publicly
+released---is unaffected by either. We have also produced, but not yet
+released, updated \texttt{Iron/v4.0} \fastspec{} and
+\texttt{Iron/v2.0} \fastphot{} VACs using the same
+\fastspecfit{}~v3.6.1 pipeline and template library adopted for DR2;
+their public release date is \todo{TBD}.
+
+\input{tables/table-vac-history}
 
 \end{appendix}
 
