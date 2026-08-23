@@ -292,6 +292,7 @@ def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD, verbose=False):
     mstarlim = (6, 13)
     deltalim = (-1.5, 1.5)
     x_var = 'Z'
+    z_ranges = {'BGS': (0.0, 0.7), 'LRG': (0.0, 1.5), 'ELG': (0.0, 1.6)}
 
     # --- read bright (BGS) and dark (LRG/ELG/QSO) programs ---
     spec_chunks, phot_chunks = [], []
@@ -334,7 +335,7 @@ def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD, verbose=False):
         ok = np.isfinite(ms) & np.isfinite(mp) & np.isfinite(dv) & np.isfinite(xv)
         ms, mp, dv, xv = ms[ok], mp[ok], dv[ok], xv[ok]
 
-        xlim = (np.percentile(xv, 1), np.percentile(xv, 99))
+        xlim = z_ranges[cls] if x_var == 'Z' else (np.percentile(xv, 1), np.percentile(xv, 99))
 
         # --- top row: fastphot vs fastspec scatter ---
         ax = axes[0, ci]

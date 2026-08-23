@@ -3,8 +3,8 @@
 \tablewidth{0pt}
 \tablehead{
   \colhead{Program} &
-  \colhead{\shortstack{Number of\\Objects\tablenotemark{a}}} &
-  \colhead{\shortstack{Number of Corrected\\QSO Redshifts\tablenotemark{b}}}
+  \colhead{\shortstack{Number of\\Objects}} &
+  \colhead{\shortstack{Number of Corrected\\QSO Redshifts\tablenotemark{a}}}
 }
 \startdata
 \cutinhead{Main Survey}
@@ -17,7 +17,7 @@ backup &        512 &        0 \\
 bright &    105,172 &        1 \\
 dark   &    261,706 &      232 \\
 total  &    367,390 &      233 \\
-\cutinhead{Survey Validation\tablenotemark{c}}
+\cutinhead{Survey Validation\tablenotemark{b}}
 backup &      2,825 &       17 \\
 bright &    438,456 &       75 \\
 dark   &    880,642 &    6,009 \\
@@ -26,11 +26,9 @@ total  &  1,358,692 &    6,207 \\
 \tableline
 Total & 38,245,183 &  164,719 \\
 \enddata
-\tablenotetext{a}{Based on Loa/v2.0 VAC, to be released 2027 as part of DESI/DR2.}
-\tablenotetext{b}{Number of corrected QSO redshifts (see \S\ref{ssec:catalog}.}
-\tablenotetext{c}{Sum of CMX, SV1, SV2, and SV3 surveys.}
+\tablenotetext{a}{Number of corrected QSO redshifts (see \S\ref{ssec:catalog}.}
+\tablenotetext{b}{Sum of CMX, SV1, SV2, and SV3 surveys.}
 \tablecomments{Target counts in the \fastspecfit{} DR2 VAC, organized
-  by survey and observing program. EDR and DR1 counts appear in
-  Table~\ref{table:sample-edr-dr1} in Appendix~\ref{sec:appendix_vacs}.}
+  by survey and observing program.}
 
 \end{deluxetable*}

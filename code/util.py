@@ -780,7 +780,7 @@ def make_class_cmap(color, lighten=0.3):
     return LinearSegmentedColormap.from_list('', ['white', light_end])
 
 
-def plot_style(talk=True, font_scale=1.0, palette=None, style='whitegrid'):
+def plot_style(talk=True, font_scale=1.0, palette=None, style='white'):
     """Set seaborn plot style and return (sns, color_palette).
 
     Parameters

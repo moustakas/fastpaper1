@@ -2145,7 +2145,7 @@ decomposition.
 
 
 %% ============================================================
-\section{DR2 Value-Added Catalog}
+\section{DR2 \fastspec{} VAC}
 \label{sec:vac}
 %% ============================================================
 
@@ -2163,9 +2163,9 @@ we present the \texttt{v2.0} version of the \texttt{Loa}
 \fastspecfit{} VAC. In Appendix~\ref{sec:appendix_fastphot} we
 describe a complementary \fastphot{} VAC produced with the same
 version of the code and the same input DESI redshifts, and in
-Appendix~\ref{sec:appendix_vacs} we document the earlier EDR (Fuji
-specprod) and DR1 (Iron specprod) VACs and summarize the complete
-\fastspecfit{} VAC revision history.
+Appendix~\ref{sec:appendix_vacs} we document previously released
+\fastspecfit{} VACs, including those from the EDR (Fuji specprod) and
+DR1 (Iron specprod).
 
 In \S\ref{ssec:catalog} we describe the sample-selection criteria for
 the \texttt{Loa/v2.0} VAC, our correction of a subset of Redrock QSO
@@ -2221,8 +2221,12 @@ when the maximum line-confidence across six diagnostic transitions
 0.99. For these objects, we use the updated \texttt{Z} and
 \texttt{ZWARN} values and copy the original Redrock redshift and
 \texttt{ZWARN} columns to \texttt{Z\_RR} and \texttt{ZWARN\_RR},
-respectively. In total, approximately 165,000 targets, or $0.4\%$ of
-the full sample have corrected redshifts.
+respectively. Table~\ref{table:sample} summarizes the total number of
+objects in the VAC observed as part of the DESI main, special, and SV
+programs, totaling over 38~million objects, including the
+approximately 165,000 targets, or $0.4\%$ of the full sample with
+corrected redshifts. \todo{Possibly document how there can be
+  duplicates between these categories?}
 
 We produce the \texttt{Loa/v2.0} VAC using \fastspecfit{}
 version~\texttt{3.6.1} and the \texttt{ftemplates-chabrier-2.2.0.fits}
@@ -2265,14 +2269,13 @@ across five FITS extensions:
     cameras. We omit this extension from the merged catalogs described
     below to keep individual file sizes manageable.
 \end{itemize}
-\noindent A complete, column-by-column description of the data model,
-pinned to the \fastspecfit{} version used to produce this VAC, is
-maintained in the online
+\noindent For the most complete, column-by-column description of the
+data model, pinned to the \fastspecfit{} version used to produce this
+VAC, we refer to the online
 documentation.\footnote{\url{https://fastspecfit.readthedocs.io/en/3.6.1/fastspec.html}}
-In Table~\ref{table:sample} we summarize the number of objects in the
-VAC observed as part of the DESI main, special, and SV programs,
-totaling over 38~million objects. \todo{Possibly document how there
-  can be duplicates between these categories?}
+\todo{I'm not sure we should link to the 3.6.1 documation because I've
+  already corrected a few errors, although there's some risk with
+  pointing to ``latest.''}
 
 Because there are more than 52,000 individual files (one per HEALPix),
 most users will find it convenient to work with the merged catalogs
@@ -2314,7 +2317,7 @@ from fastspecfit.util import radec2pix
 
 # for main-bright/main-dark, the merged VAC is pre-split into 12
 # nside=1 HEALPixels; radec2pix locates the file for a given target
-ra, dec = 143.508, 55.241   # example coordinates
+ra, dec = 143.508, 55.241   # example coordinates (I Zw 18)
 hpix = radec2pix(nside=1, ra=ra, dec=dec)
 fastfile = f'fastspec-loa-main-bright-nside1-hp{hpix:02d}.fits'
 
@@ -2363,9 +2366,11 @@ recommend a single threshold.
 The starting point for any sample selection is a
 target-class-dependent redshift-quality cut. The relevant ingredients
 are \texttt{ZWARN}, \texttt{DELTACHI2}, and potentially
-\texttt{COADD\_FIBERSTATUS} (\S\ref{ssec:targets}). The
-appropriate combination and thresholds, however, differ by target
-class.
+\texttt{COADD\_FIBERSTATUS} (\S\ref{ssec:targets}). The appropriate
+combination and thresholds, however, differ by target class, so we
+recommend checking the DESI documentation and associated data-release
+papers for the most recent
+recommendations.\footnote{\url{https://data.desi.lbl.gov/doc}}
 
 For individual emission lines, we recommend selecting on
 line-amplitude signal-to-noise,
@@ -2387,14 +2392,14 @@ realization, so it captures their correlated contribution to the flux
 uncertainty in a way \texttt{AMP\_IVAR} does not.
 
 For continuum-derived quantities, we do not recommend a single
-threshold either. \fastspecfit{} instead measures dozens of
-independent diagnostics, continuum and per-line $\chi^2$ values,
-aperture corrections, velocity dispersion, and more, precisely so that
-users can build a sample selection driven by their own science case
-rather than inherit ours. \texttt{RCHI2\_PHOT}, the reduced $\chi^2$ of
-the broadband photometric fit, is one such example, and a natural cut
-for any analysis that leans on the stellar-population parameters
-derived from the SED (stellar mass, SFR, K-corrections).
+threshold. \fastspecfit{} instead measures dozens of independent
+diagnostics, continuum and per-line $\chi^2$ values, aperture
+corrections, velocity dispersion, and more, precisely so that users
+can build a sample selection driven by their own science case rather
+than inherit ours. \texttt{RCHI2\_PHOT}, the reduced $\chi^2$ of the
+broadband photometric fit, is one such example, and a natural cut for
+any analysis that leans on the stellar-population parameters derived
+from the SED (stellar mass, SFR, K-corrections).
 
 \subsection{Computational Performance}
 \label{ssec:performance}
@@ -2406,17 +2411,17 @@ design requirement. We strive to meet this requirement by optimizing
 the per-object fitting code and by exploiting the problem's
 embarrassing parallelism.
 
-First, we cache reused arrays---template FFTs and per-object
-redshift/IGM prefactors chief among them---across the Monte Carlo
-realizations (\S\ref{ssec:uncertainties}) and, for \vdisp{}, the
-$\chi^2$-scan grid (\S\ref{sssec:vdisp}). We implement the numerically
-intensive kernels---dust attenuation, IGM transmission,
-resolution-matrix convolution, and the emission-line forward model and
-its Jacobian---using \texttt{Numba} just-in-time (JIT) compilation to
+First, we cache reused arrays, especially template FFTs, the
+per-object redshift and IGM prefactors, and the $\chi^2(\vdisp)$ grid
+(\S\ref{sssec:vdisp}) across the Monte Carlo realizations
+(\S\ref{ssec:uncertainties}). We implement the numerically intensive
+kernels---dust attenuation, IGM transmission, resolution-matrix
+convolution, and the emission-line forward model and its
+Jacobian---using \texttt{Numba} just-in-time (JIT) compilation to
 native machine code \citep{lam15a}. Moreover, we run an explicit
-warm-up pass before the parallel production run---compiling every
+warm-up pass before the parallel production run, compiling every
 kernel once and writing the compiled artifacts to a shared, persistent
-on-disk \texttt{Numba} cache---every subsequent process, across all
+on-disk \texttt{Numba} cache; every subsequent process, across all
 ranks and nodes, loads the compiled kernels from cache rather than
 recompiling them. With Monte Carlo resampling disabled, these
 optimizations enable \fastspec{} to fit a typical DESI spectrum in
@@ -2439,9 +2444,9 @@ Per-object runtime varies between a median 3.9~s/object/core for
 main-survey dark-time targets (LRGs, ELGs, QSOs) versus
 8.1~s/object/core for main-survey bright-time targets (BGS). This gap
 in time is primarily due to BGS targets more frequently triggering a
-direct velocity-dispersion measurement than higher-redshift, dark-time
-targets, which adds a $\chi^2$-scan and nonlinear least-squares solve
-to the per-object cost (\S\ref{sssec:vdisp}).
+direct velocity-dispersion measurement, which adds a $\chi^2$-scan and
+nonlinear least-squares solve to the per-object cost
+(\S\ref{sssec:vdisp}).
 
 %Processing the complete \texttt{Loa/v2.0} catalog requires
 %approximately 850~node-hours on Perlmutter.
@@ -2646,25 +2651,6 @@ precise velocity dispersions over the full dynamic range of \vdisp{}
 values spanned by low-redshift galaxies, albeit with an as-yet
 unexplained systematic difference relative to existing measurements.
 
-Finally, in Figure~\ref{fig:compare-mstar-external} we compare the
-stellar masses from \fastspec{} against three independent,
-CIGALE-based \citep{boquien19a} SED-fitting catalogs, organized by
-DESI target class (BGS, LRG, and ELG; \S\ref{ssec:targets}). The
-top row compares our measurements against the DR2 (\texttt{Loa})
-SED-fitting VAC from H.~Zou et~al. (in preparation; see also
-\citealt{zou24b, sui26a}), while the middle and bottom rows compare
-our measurements to the DR1 (\texttt{Iron}) \textit{AGN Host Galaxies
-  Physical Properties} VAC from
-\citet[\texttt{v1.2};][]{siudek25a}\footnote{\url{https://data.desi.lbl.gov/doc/releases/dr1/vac/cigale}}
-and the GSWLC-X2\footnote{\url{https://salims.pages.iu.edu/gswlc}}
-catalog of \citet{salim16a, salim18a}, respectively. For the first two
-DESI catalogs, we compare against our combined SV3 bright plus dark
-catalogs, while for the GSWLC-X2 we compare just against SV3/bright
-(there are a negligible number of matches from SV3/dark); as before,
-matching to the main-survey \fastspec{} catalogs increases the number
-of objects in the comparison sample but not the statistical results or
-our conclusions.
-
 \begin{figure*}
 \centering\includegraphics[width=1.0\textwidth]{compare-mstar-external.pdf}
 \caption{Comparison of \fastspec{} stellar masses ($h=1$, Chabrier
@@ -2688,22 +2674,41 @@ our conclusions.
   \citep{conroy13a}. \label{fig:compare-mstar-external}}
 \end{figure*}
 
+Finally, in Figure~\ref{fig:compare-mstar-external} we compare the
+stellar masses from \fastspec{} against three independent,
+CIGALE-based \citep{boquien19a} SED-fitting catalogs, organized by
+DESI target class (BGS, LRG, and ELG; \S\ref{ssec:targets}). The
+top row compares our measurements against the DR2 (\texttt{Loa})
+SED-fitting VAC from H.~Zou et~al. (in preparation; see also
+\citealt{zou24b, sui26a}), while the middle and bottom rows compare
+our measurements to the DR1 (\texttt{Iron}) \textit{AGN Host Galaxies
+  Physical Properties} VAC from
+\citet[\texttt{v1.2};][]{siudek25a}\footnote{\url{https://data.desi.lbl.gov/doc/releases/dr1/vac/cigale}}
+and the GSWLC-X2\footnote{\url{https://salims.pages.iu.edu/gswlc}}
+catalog of \citet{salim16a, salim18a}, respectively. For the first two
+DESI catalogs, we compare against our combined SV3 bright plus dark
+catalogs, while for the GSWLC-X2 we compare just against SV3/bright
+(there are a negligible number of matches from SV3/dark); as before,
+matching to the main-survey \fastspec{} catalogs increases the number
+of objects in the comparison sample but not the statistical results or
+our conclusions.
+
 %each panel lists the matched sample size $N$, the median mass offset
 %$\Delta_\mathrm{med}$ (external minus \fastspec{}) in dex, and the
 %\texttt{NMAD} scatter.
 
 All three of these external catalogs perform photometric SED fits, but
 the Zou et~al. VAC augments its $grz$ and WISE $W1$--$W2$ photometry
-with 10-band photometry synthesized from the DESI optical spectrum and
-scaled for aperture bias using an achromatic aperture correction
-analogous to our own (\S\ref{sssec:apercorr}). In addition, all three
-catalogs adopt a parametric SFH---a delayed-$\tau$ model, with an
-optional recent burst for \citet{siudek25a} and \citet{salim18a}, in
-contrast to \fastspec{}'s non-parametric, five-bin star-formation
-history (\S\ref{ssec:templates}). \citet{siudek25a} additionally
-include an AGN component \citep{fritz06a} in their SED fits. In
-constructing these comparisons, we correct for differences in IMF and
-cosmology.
+with 10-band top-hat filter photometry synthesized from the DESI
+optical spectrum and scaled for aperture bias using an achromatic
+aperture correction analogous to our own (\S\ref{sssec:apercorr}). In
+addition, all three catalogs adopt a parametric SFH---a delayed-$\tau$
+model, with an optional recent burst for \citet{siudek25a} and
+\citet{salim18a}, in contrast to \fastspec{}'s non-parametric,
+five-bin star-formation history
+(\S\ref{ssec:templates}). \citet{siudek25a} also include an AGN
+component \citep{fritz06a} in their SED fits. In constructing these
+comparisons, we correct for differences in IMF and cosmology.
 
 Within the BGS and LRG subsamples, the \fastspec{} stellar masses are
 systematically higher than each CIGALE-based catalog by
@@ -3017,12 +3022,11 @@ publicly released in 2027.
 
 %% ============================================================
 \begin{acknowledgements}
-We gratefully acknowledge Ben Johnson for assistance constructing
-custom FSPS models.
-
 JM gratefully acknowledges funding support for this work from the
 U.S. Department of Energy, Office of Science, Office of High Energy
 Physics under Award Number DE-SC0020086.
+
+We thank Ben Johnson for assistance constructing custom FSPS models.
 
 This research used data obtained with the Dark Energy Spectroscopic
 Instrument (DESI). DESI construction and operations is managed by the
@@ -3143,105 +3147,36 @@ under Contract No. AST-0950945 to NOAO.
 %% ============================================================
 \begin{appendix}
 
-\iffalse
-%% Appendix A (DR2 VAC Data Model) removed 2026-08-22: the HDU-structure
-%% summary now lives in \S\ref{ssec:catalog}, and the column-by-column
-%% table (table-datamodel.tex) is superseded by the pinned online docs.
-\section{DR2 VAC Data Model}
-\label{sec:appendix_datamodel}
-
-\todo{Possibly document the adaptive MORELINES HDU.}
-
-This appendix documents the data model of the \fastspec{} VAC; the
-companion \fastphot{} VAC is a separate data product with its own data
-model, described in Appendix~\ref{sec:appendix_fastphot}.
-
-We locate the per-HEALPix files, relative to the top-level VAC directory
-\texttt{VACDIR}, at
-
-\medskip
-\noindent\texttt{VACDIR/healpix/SURVEY/PROGRAM/HPIXGROUP/HEALPIX/}\\
-\texttt{\quad fastspec-SURVEY-PROGRAM-HEALPIX.fits.gz}
-\medskip
-
-\noindent where \texttt{SURVEY}, \texttt{PROGRAM}, \texttt{HPIXGROUP}, and
-\texttt{HEALPIX} follow the same conventions as the DESI data products. We
-gzip-compress these files because they include a
-\texttt{MODELS} extension containing the best-fitting model spectra (see
-below). We omit the \texttt{MODELS} extension from the
-merged catalogs described in \S\ref{ssec:catalog} to keep
-individual file sizes manageable. For large survey--program
-combinations---specifically \texttt{main-bright} and \texttt{main-dark}---we
-further subdivide the merged catalogs by \texttt{nside}~=~1 HEALPixel into 12
-files following the naming pattern
-\texttt{fastspec-SURVEY-PROGRAM-nside1-hpNN.fits}, where
-\texttt{NN} runs from \texttt{00} to \texttt{11}.
-
-Each per-HEALPix \texttt{fastspec} file contains five extensions:
-\begin{itemize}
-  \item \texttt{HDU0} (\texttt{PRIMARY}): empty image with processing
-    metadata keywords, including the software version, Monte Carlo
-    random seed, and boolean fitting flags.
-  \item \texttt{HDU1} (\texttt{METADATA}): target metadata mirroring
-    the DESI redshift catalog, including sky coordinates, the input
-    redshift and zwarning bitmask, targeting bits, and extinction-corrected
-    Legacy Survey photometry.
-  \item \texttt{HDU2} (\texttt{SPECPHOT}): derived spectrophotometric
-    quantities, including SFH template coefficients, stellar-population
-    parameters ($\tau_V$, $\vdisp$, age, metallicity, $\logmstar$, SFR),
-    $D_n(4000)$, synthesized photometry, K-corrections, absolute
-    magnitudes, monochromatic luminosities, and continuum flux densities
-    at key emission-line centers.
-  \item \texttt{HDU3} (\texttt{FASTSPEC}): emission-line fitting results,
-    including per-camera median S/N and smooth continuum corrections,
-    aperture correction factors, doublet line ratios, and per-line
-    measurements (amplitude, flux, equivalent width, velocity shift,
-    line width, and upper limits) for all modeled emission lines.
-  \item \texttt{HDU4} (\texttt{MODELS}): 3D image array
-    [$N_\lambda \times 3 \times N_\mathrm{obj}$] with the best-fitting
-    model spectra on a common linear wavelength grid (3600--9824\,\AA,
-    $0.8$\,\AA\,pixel$^{-1}$, vacuum wavelengths). The three planes
-    store the full spectrophotometric model, the smooth continuum
-    correction alone, and the emission-line model alone, respectively.
-\end{itemize}
-
-Table~\ref{table:datamodel} describes the key output columns in the
-\texttt{SPECPHOT} and \texttt{FASTSPEC} extensions. All integrated
-line fluxes are in units of \flux, flux densities in \fluxdensity, and
-uncertainties are stored as inverse variances (a value of zero indicates
-the parameter was not measured or the uncertainty is undefined).
-A machine-readable description of the complete data model is maintained
-in the \fastspecfit{} online
-documentation.\footnote{\url{https://fastspecfit.readthedocs.io/en/latest/fastspec.html}}
-
-\input{tables/table-datamodel}
-\fi
-
-\section{Stellar Masses inferred using \fastphot}
+\section{DR2 \fastphot{} VAC}
 \label{sec:appendix_fastphot}
 
-In addition to the \fastspec{} VAC described in the main text, we
-release a companion, photometry-only \fastphot{} VAC (\S\ref{sec:modes})
-for the same DR2 target sample. Although both VACs share the same
-underlying target list, \fastspecfit{} version, and SPS template
-library, they are independent data products, each produced,
-distributed, and checksummed under its own top-level directory:
-\url{https://data.desi.lbl.gov/desi/vac/dr2/fastphot/loa/v2.0} (NERSC:
-\texttt{/global/cfs/cdirs/desi/vac/dr2/fastphot/loa/v2.0}). Its
-per-HEALPix and merged catalogs follow the same
-\texttt{SURVEY}/\texttt{PROGRAM}/\texttt{HEALPIX} naming convention as
-\fastspec{} (\S\ref{ssec:catalog}), but with a
-\texttt{fastphot} rather than \texttt{fastspec} prefix.
+This appendix briefly documents the \fastphot{} \texttt{Loa/v2.0} VAC,
+a closely related but distinct catalog to the \fastspec{} VAC
+introduced in \S\ref{sec:vac}. As described in \S\ref{sec:modes},
+\fastphot{} is an alternative fitting mode available within the larger
+\fastspecfit{} software package which models just broadband
+photometry, but at the fixed DESI spectroscopic redshift. The VAC has
+been generated using the identical input DESI dataset (Loa specprod),
+\fastspecfit{} software tag (\texttt{3.6.1}), and template set
+(\texttt{ftemplates-chabrier-2.2.0.fits}); the sample selection,
+corrected QSO redshifts, and final object counts are identical to
+those given in Table~\ref{table:sample}.
 
 Because \fastphot{} fits only broadband photometry, its per-HEALPix
 files contain three FITS extensions rather than \fastspec{}'s
-five---\texttt{PRIMARY}, \texttt{METADATA}, and \texttt{SPECPHOT}---mirroring
-the corresponding \fastspec{} extensions but omitting the
-emission-line \texttt{FASTSPEC} table and the \texttt{MODELS}
-best-fitting-spectra extension entirely, since there is no spectrum to
-model or emission lines to fit. Because these files carry no bulky
-\texttt{MODELS} array, we do not gzip-compress them, unlike the
-\fastspec{} per-HEALPix files.
+five---\texttt{PRIMARY}, \texttt{METADATA}, and
+\texttt{SPECPHOT}---mirroring the corresponding \fastspec{} extensions
+but omitting the emission-line \texttt{FASTSPEC} table and the
+\texttt{MODELS} best-fitting-spectra extension entirely, since there
+is no spectrum to model or emission lines to fit
+(\S\ref{ssec:catalog}). Its per-HEALPix and merged catalogs, on the
+other hand, follow the same
+\texttt{SURVEY}/\texttt{PROGRAM}/\texttt{HEALPIX} naming convention as
+\fastspec, but with a ``fastphot'' rather than ``fastspec''
+prefix. For a detailed column-by-column description of the \fastphot{}
+data model, pinned to the \fastspecfit{} version used to produce this
+VAC, please see the online
+documentation.\footnote{\url{https://fastspecfit.readthedocs.io/en/3.6.1/fastphot.html}}
 
 \begin{figure*}
 \centering\includegraphics[width=1.0\textwidth]{figures/compare-mstar-fastphot.pdf}
@@ -3250,30 +3185,47 @@ model or emission lines to fit. Because these files carry no bulky
   fitting (\fastphot{}), organized by target class.  \textit{Top row:}
   \fastphot{} $\logmstar$ versus \fastspec{} $\logmstar$ ($h=1$,
   Chabrier IMF) for BGS (left), LRG (center), and ELG (right)
-  subsamples.  The logarithmically-scaled two-dimensional number
-  density is shown as a color map, with contours enclosing 50\%, 75\%,
-  95\%, and 99.5\% of the joint distribution; individual galaxies
-  outside the outermost contour are shown as markers.  Each panel
-  lists the matched sample size $N$, the median mass offset
+  subsamples.  As in Figure~\ref{fig:compare-mstar-external}, the color
+  map, contours, and outlying markers show the two-dimensional density
+  distribution and the dashed line is the one-to-one relation; each
+  panel lists the matched sample size $N$, the median mass offset
   $\Delta_{\rm med}$ (\fastphot{} minus \fastspec) in dex, and the
-  \texttt{NMAD} scatter.  The dashed line is the 1:1 relation.
+  \texttt{NMAD} scatter.
   \textit{Bottom row:} Residual $\Delta\logmstar$ (\fastphot{} minus
   \fastspec) as a function of redshift for the same three subsamples.
   Black points mark the running median in bins of redshift, with error
-  bars enclosing the interquartile range.  The dashed horizontal line marks
-  zero offset.  We attribute the systematic offset seen in BGS targets
-  at low redshift to imperfect aperture corrections for the most
-  extended, nearby galaxies, whose half-light radii subtend a
+  bars enclosing the interquartile range.  The dashed horizontal line
+  marks zero offset.  We attribute the systematic offset seen in BGS
+  targets at low redshift to imperfect aperture corrections for the
+  most extended, nearby galaxies, whose half-light radii subtend a
   significant fraction of the DESI fiber
   diameter.\label{fig:compare_mstar_fastphot}}
 \end{figure*}
 
-Figure~\ref{fig:compare_mstar_fastphot} compares the stellar masses we derive
-using \fastspec{} and \fastphot{} for targets in common, illustrating
-the consistency between the spectrophotometric and photometry-only
-fitting modes.
+Besides being substantially faster to produce (median runtime is
+0.42~s/object/core, an order-of-magnitude faster than \fastspec;
+\S\ref{ssec:performance}), \fastphot{} offers a purely photometric
+alternative for science cases that do not require the DESI spectrum
+itself. For example, its K-corrections and global physical properties,
+including the inferred stellar mass, come from the integrated
+broadband photometry, without the simplistic and uncertain
+aperture-correction \fastspec{} uses (\S\ref{sssec:apercorr}).
 
-
+To explore just one example, in
+Figure~\ref{fig:compare_mstar_fastphot} we compare the stellar masses
+we derive using \fastspec{} and \fastphot{} split by DESI target
+class. Overall, the agreement is very good, with median offsets and
+\texttt{NMAD} scatter of $-0.056\pm0.091$~dex, $-0.012\pm0.088$~dex,
+and $-0.019\pm0.324$~dex for BGS, LRG, and ELG targets,
+respectively. Examining the residuals with redshift, BGS targets at
+$z\lesssim0.4$ exhibit the most pronounced differences in exactly the
+sense that you might expect from aperture effects. The systematically
+higher \fastspec{} stellar masses are possibly due to the larger
+mass-to-light ratio (older stellar ages, higher metallicity) exhibited
+in the centers of galaxies and traced by the central DESI
+spectrum. Even so, the median offset does not exceed $|\Delta_{\rm
+  med}|\approx0.05$~dex for any of the three target classes,
+underscoring the overall agreement between the two fitting modes.
 
 %% ============================================================
 \section{Value-Added Catalog Revision History}
@@ -3284,11 +3236,13 @@ processed with \fastspecfit{}~v2.5.0 and was publicly released in
 January~2024. The DR1 VAC (Iron~v3.0) adds the first tranche of
 main-survey data, processed with \fastspecfit{}~v3.1.5, and totals
 approximately 18~million targets; it was publicly released in
-June~2025. Table~\ref{table:sample-edr-dr1} summarizes the EDR and
-DR1 target counts organized by survey and observing program, for
-direct comparison with the DR2 breakdown in Table~\ref{table:sample}.
+June~2025.
 
-\input{tables/table-sample-edr-dr1}
+%Table~\ref{table:sample-edr-dr1} summarizes the EDR and DR1 target
+%counts organized by survey and observing program, for direct
+%comparison with the DR2 breakdown in Table~\ref{table:sample}.
+
+%\input{tables/table-sample-edr-dr1}
 
 Relative to DR2, the EDR and DR1 catalogs are produced with earlier
 versions of the SPS template library and do not incorporate the
