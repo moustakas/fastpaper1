@@ -69,7 +69,7 @@ _SPLIT_COMBOS = {('main', 'bright'), ('main', 'dark')}
 # absent from a given file are silently skipped by _read_extensions.
 _DEFAULT_COLUMNS = frozenset({
     'TARGETID', 'SURVEY', 'PROGRAM', 'HEALPIX',
-    'RA', 'DEC', 'Z', 'ZERR', 'ZWARN', 'DELTACHI2',
+    'RA', 'DEC', 'Z', 'ZERR', 'ZWARN', 'DELTACHI2', 'SPECTYPE',
     'COADD_FIBERSTATUS',
     # OII doublet columns needed for the ELG redshift quality cut
     'OII_3726_FLUX', 'OII_3729_FLUX', 'OII_3726_FLUX_IVAR', 'OII_3729_FLUX_IVAR',
@@ -676,19 +676,26 @@ def _good_fiberstatus(cat):
 def good_redshift(cat, survey, fiberstatus_cut=True, ignore_emline=False):
     """Per-class redshift quality mask.
 
+    Matches the LSS redshift-quality cuts in desispec.validredshifts (as of
+    2026-08), substituting FastSpecFit's OII_3726/3729 fluxes for the
+    emlinefit OII_FLUX used there.
+
     Applies the standard DESI per-class cuts:
-      BGS  — ZWARN==0 & DELTACHI2>40
-      LRG  — ZWARN==0 & Z<1.5 & DELTACHI2>15
-      ELG  — Z<1.6 & OII S/N cut: log10(OII_FLUX * sqrt(OII_FLUX_IVAR)) > 0.9 - 0.2*log10(DELTACHI2)
+      BGS  — ZWARN==0 & DELTACHI2>40 & Z<0.8
+      LRG  — ZWARN==0 & Z<1.5 & DELTACHI2>15 (LRG or LGE targeting bit)
+      ELG  — OII S/N cut: log10(OII_FLUX * sqrt(OII_FLUX_IVAR)) > 0.9 - 0.2*log10(DELTACHI2)
               (falls back to ZWARN==0 & Z<1.6 & DELTACHI2>15 if OII columns are
-              absent or ``ignore_emline=True``)
+              absent or ``ignore_emline=True``; no redshift-range cut is applied
+              when the OII S/N cut is used)
       Other — ZWARN==0 & Z>0.001
+    BGS, LRG, and ELG additionally require SPECTYPE!='STAR' & Z>0.001 to
+    reject stellar contaminants in the target bits.
 
     Parameters
     ----------
     cat : astropy.table.Table
-        Must include ZWARN, DELTACHI2, Z, all survey-appropriate targeting bit
-        columns, and COADD_FIBERSTATUS (if fiberstatus_cut=True).
+        Must include ZWARN, DELTACHI2, Z, SPECTYPE, all survey-appropriate
+        targeting bit columns, and COADD_FIBERSTATUS (if fiberstatus_cut=True).
     survey : str
         DESI survey flavor: 'sv1', 'sv3', 'main', or 'special'.
     fiberstatus_cut : bool
@@ -714,12 +721,17 @@ def good_redshift(cat, survey, fiberstatus_cut=True, ignore_emline=False):
 
     is_bgs = cat[bgs_col] != 0
     is_lrg = (cat[desi_col] & int(desi_mask['LRG'])) != 0
+    if 'LGE' in desi_mask.names():
+        is_lrg |= (cat[desi_col] & int(desi_mask['LGE'])) != 0
     is_elg = (cat[desi_col] & int(desi_mask['ELG'])) != 0
 
     good_fs = _good_fiberstatus(cat) if fiberstatus_cut else np.ones(len(cat), bool)
 
-    good_bgs = (cat['ZWARN'] == 0) & (cat['DELTACHI2'] > 40) & good_fs
-    good_lrg = (cat['ZWARN'] == 0) & (cat['Z'] < 1.5) & (cat['DELTACHI2'] > 15) & good_fs
+    # reject stellar contaminants in the BGS/LRG/ELG target bits
+    nonstar = (cat['SPECTYPE'] != 'STAR') & (cat['Z'] > 0.001)
+
+    good_bgs = (cat['ZWARN'] == 0) & (cat['DELTACHI2'] > 40) & (cat['Z'] < 0.8) & good_fs & nonstar
+    good_lrg = (cat['ZWARN'] == 0) & (cat['Z'] < 1.5) & (cat['DELTACHI2'] > 15) & good_fs & nonstar
 
     _OII_COLS = ('OII_3726_FLUX', 'OII_3729_FLUX',
                  'OII_3726_FLUX_IVAR', 'OII_3729_FLUX_IVAR')
@@ -737,10 +749,10 @@ def good_redshift(cat, survey, fiberstatus_cut=True, ignore_emline=False):
             dc2     = np.log10(np.maximum(cat['DELTACHI2'], 1e-10))
         good_elg = ((oii_flux > 0) & (oii_ivar > 0) &
                     (oii_snr > 0.9 - 0.2 * dc2) &
-                    (cat['Z'] < 1.6) & good_fs)
+                    good_fs & nonstar)
     else:
         good_elg = ((cat['ZWARN'] == 0) & (cat['Z'] < 1.6) &
-                    (cat['DELTACHI2'] > 15) & good_fs)
+                    (cat['DELTACHI2'] > 15) & good_fs & nonstar)
 
     good_other = (cat['ZWARN'] == 0) & (cat['Z'] > 0.001)
 

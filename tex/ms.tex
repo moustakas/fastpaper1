@@ -2856,16 +2856,16 @@ values used in this version of \fastspecfit.
 
 The \fastspecfit{} DR2 VAC provides simultaneous measurements of
 stellar continuum, emission-line, and broadband SED properties for
-approximately 38~million extragalactic targets spanning more than six
-decades in stellar mass and nearly two decades in redshift. In
-\S\ref{ssec:reach} we illustrate the scientific reach of these
-measurements with two representative figures: the distribution of
-stellar mass with redshift across the three primary galaxy target
-classes, and the optical emission-line diagnostics that \fastspecfit{}
-uses to identify and characterize AGN. We then discuss planned
-improvements to the code and future VACs (\S\ref{ssec:improvements}).
+more than 38~million extragalactic DESI targets spanning an incredibly
+broad range of intrinsic physical properties and redshift. Although a
+specific scientific investigation is outside the scope of the current
+paper, we briefly illustrate the scientific reach of the
+\fastspecfit{} VAC in \S\ref{ssec:reach} with two example figures on
+the stellar mass and AGN content of the DESI sample. We then conclude
+in \S\ref{ssec:improvements} with a short discussion of some of the
+planned updates and improvements to the code.
 
-\subsection{Galaxy Demographics and Diagnostic Power}
+\subsection{Example Scientific Applications}
 \label{ssec:reach}
 
 \begin{figure*}
@@ -2874,37 +2874,63 @@ improvements to the code and future VACs (\S\ref{ssec:improvements}).
   and ELG (right) targets observed during the DESI SV3 bright and dark
   programs. The color scale and contours in each panel show the
   two-dimensional number density of galaxies passing per-class
-  redshift quality cuts (see Section~X); contours enclose 50, 75, 95,
+  redshift quality cuts (see \S\ref{ssec:cuts}); contours enclose 50, 75, 95,
   and 99.5\% of the sample, and individual galaxies outside the
   outermost contour are plotted as points.
   %The number of galaxies in each panel is indicated.
   \label{fig:mstar_z}}
 \end{figure*}
 
-Figure~\ref{fig:mstar_z} shows the stellar mass--redshift distribution
-for BGS, LRG, and ELG targets in the DR2 main survey. The three target
-classes trace complementary regions of this plane: BGS spans the
-widest mass range at $z \lesssim 0.6$, capturing galaxies from well
-below the knee of the stellar mass function to the most massive
-systems in the local universe; LRGs select the most massive, passively
-evolving galaxies over $0.4 \lesssim z \lesssim 1.1$; and ELGs
-preferentially identify low-to-intermediate mass star-forming systems
-at $0.6 \lesssim z \lesssim 1.6$. Together these three samples provide
-near-continuous coverage of the galaxy population from $z \approx 0$
-to $z \approx 1.6$, making the DR2 catalog a uniquely comprehensive
-resource for studies of galaxy evolution over the past $\sim$10~Gyr.
+%DESI's three primary galaxy target classes
+
+We begin by showing the distribution of stellar mass versus redshift
+for BGS, LRG, and ELG targets in Figure~\ref{fig:mstar_z}. We limit
+the sample to the SV3 bright (BGS) and SV3 dark (LRG, ELG) programs
+for this illustrative figure, but the results using the main-survey
+data are equivalent. To select ``good'' spectroscopic redshifts for
+each sample, we apply the following target-class-dependent criteria:
+\begin{align}
+  \mathrm{BGS:}\quad & \texttt{ZWARN}=0 \;\&\; \texttt{DELTACHI2} > 40 \;\&\;
+  z < 0.8 \\
+  \mathrm{LRG:}\quad & \texttt{ZWARN}=0 \;\&\; z < 1.5 \;\&\;
+  \texttt{DELTACHI2} > 15 \\
+  \mathrm{ELG:}\quad &
+  \log_{10}\!\left[\mathrm{S/N}(\text{\oiidoublet})\right] > 0.9 -
+  0.2\,\log_{10}(\texttt{DELTACHI2})
+\end{align}
+\noindent where $\mathrm{S/N}(\text{\oiidoublet}) \equiv
+F_{\text{\oiidoublet}}\sqrt{\mathrm{IVAR}_{\text{\oiidoublet}}}$ is
+computed from the summed \oiidoublet{} flux and inverse variance,
+following the standard ELG redshift-quality criterion of
+\citet{raichoor23a}; no additional redshift-range cut is applied to the
+ELG sample. All three criteria additionally require a valid coadded
+fiber status (\texttt{COADD\_FIBERSTATUS}; \S\ref{ssec:targets}) and
+reject stellar contaminants in the target bits
+(\texttt{SPECTYPE}~$\neq$~\texttt{STAR} and $z > 0.001$).
+
+The three target classes trace complementary regions of this plane:
+BGS spans the widest mass range at $z \lesssim 0.6$, capturing
+galaxies from well below the knee of the stellar mass function to the
+most massive systems in the local universe; LRGs select the most
+massive, passively evolving galaxies over $0.4 \lesssim z \lesssim
+1.1$; and ELGs preferentially identify low-to-intermediate mass
+star-forming systems at $0.6 \lesssim z \lesssim 1.6$. Together these
+three samples provide near-continuous coverage of the galaxy
+population from $z \approx 0$ to $z \approx 1.6$, making the DR2
+catalog a uniquely comprehensive resource for studies of galaxy
+evolution over the past $\sim$10~Gyr.
 
 \begin{figure*}
 \centering\includegraphics[width=1.0\textwidth]{figures/bpt-agn.pdf}
 \caption{AGN diagnostics for BGS galaxies in the DESI SV3 bright
-  program. Both panels show the same sample of $N = {N}$ galaxies with
-  signal-to-noise ratio $>3$ detected in all six diagnostic emission
-  lines ([\ion{N}{2}] $\lambda6584$, \ha{}, [\ion{S}{2}]
+  program. Both panels show the same sample of \todo{$N=$}~galaxies
+  with signal-to-noise ratio $>3$ detected in all six diagnostic
+  emission lines ([\ion{N}{2}] $\lambda6584$, \ha{}, [\ion{S}{2}]
   $\lambda\lambda6716,6731$, [\ion{O}{3}] $\lambda5007$, and
   \hb). The background color map and contours show the number
   density of objects. (Left) Classical BPT diagram
   \citep{baldwin81a}. The dashed curve shows the empirical
-  star-forming/AGN demarcation of \citet{kauffmann03b}; galaxies above
+  star-forming/AGN demarcation of \citet{kauffmann03c}; galaxies above
   this line are AGN candidates. (Right) The $P_1$--$P_3$ projection of
   \citet{ji20a}, which separates star-forming galaxies (low $P_1$)
   from AGN (high $P_1$). The top axis shows the AGN fraction
@@ -2912,24 +2938,32 @@ resource for studies of galaxy evolution over the past $\sim$10~Gyr.
   \citet{jin21a}. \label{fig:bpt}}
 \end{figure*}
 
-Figure~\ref{fig:bpt} shows the \citet{baldwin81a} BPT
-diagram---\oiiilam/\hb{} versus \niilam/\ha---for BGS targets at $z
-\lesssim 0.4$ with well-detected lines in all four diagnostics. The
-demarcation curves of \citet{kewley01a} and \citet{kauffmann03c}
-separate the star-forming sequence, composite systems, and AGN hosts;
-the density distribution of the DR2 BGS sample across these regions
-encodes the mix of nuclear activity in the low-redshift galaxy
-population. \fastspecfit{}'s joint spectrophotometric fit enables
-construction of this diagram for \todo{X}~million BGS galaxies in a
-single, homogeneous analysis---a nearly tenfold increase over the SDSS
-spectroscopic sample \todo{(cite)}. \todo{Quantify AGN, composite, and
-  star-forming fractions; note redshift or mass dependence.}
+Next, in Figure~\ref{fig:bpt} we illustrate how the \fastspecfit{}
+VAC...two optical emission-line diagnostic diagrams that uses to
+identify and characterize AGN. ...shows the \citet{baldwin81a} BPT
+diagram---\oiiilam/\hb{} versus \niilam/\ha---for BGS targets from the
+DESI SV3 bright program (\S\ref{ssec:targets}), again plotted here for
+its manageable sample size, with signal-to-noise ratio $>3$ detected
+in all six diagnostic emission lines. The dashed curve is the
+empirical star-forming/AGN demarcation of \citet{kauffmann03c};
+galaxies above this line are AGN candidates, and the density
+distribution of the sample across this boundary encodes the mix of
+nuclear activity in the low-redshift galaxy population. The right
+panel recasts the same sample in the $P_1$--$P_3$ projection of
+\citet{ji20a}, which replaces this hard boundary with a continuous AGN
+fraction $f_\mathrm{AGN}$ \citep{jin21a}. \fastspecfit{}'s joint
+spectrophotometric fit enables construction of diagrams like these for
+the full DR2 BGS sample of \todo{X}~million galaxies in a single,
+homogeneous analysis---\todo{a nearly tenfold increase over the
+  comparable SDSS spectroscopic sample \citep{york00a}; confirm this
+  factor once the full-sample count is in hand}. \todo{Quantify
+  AGN-candidate and star-forming fractions from the left panel, and
+  the $f_\mathrm{AGN}$ distribution from the right panel; note
+  redshift or mass dependence.}
 
 %Where $P_1 = 0.63,\log[\ion{N}{2}]/\ha + 0.51,\log[\ion{S}{2}]/\ha +0.59,\log[\ion{O}{3}]/\hb$
 %and
 %$P_3 = -0.46,\log[\ion{N}{2}]/\ha - 0.37,\log[\ion{S}{2}]/\ha + 0.81,\log[\ion{O}{3}]/\hb$
-
-\todo{Be sure to cite \citet{ji20a} and \citet{jin21a}.}
 
 \subsection{Planned Improvements}
 \label{ssec:improvements}
