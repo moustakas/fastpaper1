@@ -20,7 +20,9 @@ python code/build-figures.py --help
 
 ### Stellar mass comparison
 
-Compares `LOGMSTAR` from the fastspec and fastphot VACs. Default uses the sv3 (SV3/one-percent) catalogs, which are compact single files. Pass `--main` to use the full main-survey catalogs (larger, split into 12 nside=1 healpix files). All masses use **h=1, Chabrier IMF (0.1–100 M☉)**.
+Compares `LOGMSTAR` from the fastspec and fastphot VACs. Uses the sv3 (SV3/one-percent) catalogs by default, which are compact single files. All masses use **h=1, Chabrier IMF (0.1–100 M☉)**.
+
+Each figure function in `build-figures.py` takes its own `survey` argument (default `'sv3'`) rather than a shared CLI flag, so switching one figure to the main survey (larger, split into 12 nside=1 healpix files) is a one-line code edit — the function's default — not a global switch that would also affect unrelated figures. `compare_mstar`, `compare_mstar_external`, `compare_sfr_external`, `compare_emlines_external`, `compare_cosmos2020`, `mstar_redshift`, `ewoii_dn4000`, `bpt_agn`, `sfr_mstar_bgs`, and `broadhalpha_fraction_bgs` all support this.
 
 Diagonal panels always show per-target-class colored histograms (BGS/LRG/ELG/Other). Off-diagonal panels default to the all-objects Hess diagram; use `--split-contours` to also split the contours by target class.
 
@@ -30,15 +32,11 @@ python code/build-figures.py --compare-mstar [--specprod loa] [--verbose]
 
 # per-class contours on off-diagonal panels too
 python code/build-figures.py --compare-mstar --split-contours [--specprod loa] [--verbose]
-
-# full main survey
-python code/build-figures.py --compare-mstar --main [--specprod loa] [--verbose]
 ```
 
 Outputs:
 - `tex/figures/compare-mstar-sv3.png` — default (per-class diagonal, all-objects Hess)
 - `tex/figures/compare-mstar-sv3-split.png` — per-class contours (`--split-contours`)
-- `tex/figures/compare-mstar-main.png` / `compare-mstar-main-split.png` (with `--main`)
 
 ---
 

@@ -50,7 +50,6 @@ Figure-generation and QA scripts run on NERSC (Perlmutter) and require the DESI 
 # Figure generation (code/build-figures.py) — run from repo root
 python code/build-figures.py --compare-mstar [--specprod loa] [--verbose]
 python code/build-figures.py --compare-mstar --split-contours [--specprod loa]
-python code/build-figures.py --compare-mstar --main [--specprod loa]
 
 # Illustrative-example QA figure (Section 4) — single target, standalone fit, no completed catalog needed
 python code/example-qa.py --redrockfile data/redrock-main-bright-15344.fits --outfile tex/figures/example-bgs.pdf

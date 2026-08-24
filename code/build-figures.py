@@ -392,13 +392,20 @@ def compare_mstar(survey='sv3', specprod=DEFAULT_SPECPROD, verbose=False):
 # compare-mstar-external
 # ---------------------------------------------------------------------------
 
-def compare_mstar_external(verbose=False, black_contours=True):
+def compare_mstar_external(survey='sv3', verbose=False, black_contours=True):
     """3×3 grid: FastSpecFit stellar masses vs external catalogs, split by target class.
 
     Rows: Zou+CIGALE (loa), CIGALE-AGN (iron), GSWLC-X2 (bright/BGS only).
     Columns: BGS | LRG | ELG.  GSWLC-X2 populates BGS only; other cells hidden.
     Each panel uses a class-colored Hess background; contour/unity-line style
     is controlled by black_contours.
+
+    survey : str
+        DESI survey flavor: 'sv1', 'sv3' (default), 'main', or 'special'.
+        Determines both the targeting-bit columns/masks used to split by
+        target class and the external/*-{survey}-{bright,dark}.fits files
+        read below (must have been prepared for this survey by
+        prepare-external.py).
 
     black_contours : bool
         Default True: black, thinner contours (contour_color='k',
@@ -411,7 +418,18 @@ def compare_mstar_external(verbose=False, black_contours=True):
     Output: tex/figures/compare-mstar-external.pdf
     """
     import fitsio
-    from desitarget.sv3.sv3_targetmask import desi_mask as sv3_mask
+
+    if survey == 'sv3':
+        from desitarget.sv3.sv3_targetmask import desi_mask
+        desi_col, bgs_col = 'SV3_DESI_TARGET', 'SV3_BGS_TARGET'
+    elif survey == 'sv1':
+        from desitarget.sv1.sv1_targetmask import desi_mask
+        desi_col, bgs_col = 'SV1_DESI_TARGET', 'SV1_BGS_TARGET'
+    elif survey in ('main', 'special'):
+        from desitarget.targets import desi_mask
+        desi_col, bgs_col = 'DESI_TARGET', 'BGS_TARGET'
+    else:
+        raise ValueError(f'Unknown survey {survey!r}; expected sv1, sv3, main, or special.')
 
     extdir = os.path.join(REPODIR, 'external')
     mstarlim = [6, 13]
@@ -419,20 +437,20 @@ def compare_mstar_external(verbose=False, black_contours=True):
 
     catalogs = [
         dict(
-            files=['zouhu-loa-sv3-bright.fits', 'zouhu-loa-sv3-dark.fits'],
+            files=[f'zouhu-loa-{survey}-bright.fits', f'zouhu-loa-{survey}-dark.fits'],
             ext_col='LOGMSTAR_ZOUHU',
             label='Zou et al. (CIGALE)',
             classes=['BGS', 'LRG', 'ELG'],
         ),
         dict(
-            files=['cigaleagn-iron-sv3-bright.fits', 'cigaleagn-iron-sv3-dark.fits'],
+            files=[f'cigaleagn-iron-{survey}-bright.fits', f'cigaleagn-iron-{survey}-dark.fits'],
             ext_col='LOGMSTAR_CIGALEAGN',
             flag_col='FLAG_LOGMSTAR_CIGALEAGN',
             label='Siudek et al. (CIGALE-AGN)',
             classes=['BGS', 'LRG', 'ELG'],
         ),
         dict(
-            files=['gswlcx2-sv3-bright.fits'],
+            files=[f'gswlcx2-{survey}-bright.fits'],
             ext_col='LOGMSTAR_GSWLCX2',
             label='Salim et al. (GSWLC-X2)',
             classes=['BGS'],
@@ -463,9 +481,9 @@ def compare_mstar_external(verbose=False, black_contours=True):
             ext_l.append(d[cat['ext_col']].astype(float))
             if 'flag_col' in cat:
                 flag_l.append(d[cat['flag_col']].astype(float))
-            bgs_l.append(d['SV3_BGS_TARGET'].astype(np.int64))
-            desi_l.append(d['SV3_DESI_TARGET'].astype(np.int64))
-            goodz_l.append(good_redshift(d, 'sv3'))
+            bgs_l.append(d[bgs_col].astype(np.int64))
+            desi_l.append(d[desi_col].astype(np.int64))
+            goodz_l.append(good_redshift(d, survey))
 
         ref   = np.concatenate(ref_l)
         ext   = np.concatenate(ext_l)
@@ -488,9 +506,9 @@ def compare_mstar_external(verbose=False, black_contours=True):
             if cls == 'BGS':
                 cmask = base & (bgs != 0)
             elif cls == 'LRG':
-                cmask = base & ((desi & int(sv3_mask['LRG'])) != 0)
+                cmask = base & ((desi & int(desi_mask['LRG'])) != 0)
             else:  # ELG
-                cmask = base & ((desi & int(sv3_mask['ELG'])) != 0)
+                cmask = base & ((desi & int(desi_mask['ELG'])) != 0)
 
             r, e = ref[cmask], ext[cmask]
             delta = e - r
@@ -892,17 +910,36 @@ def compare_cosmos2020(survey='sv3', verbose=False):
 # compare-sfr-external
 # ---------------------------------------------------------------------------
 
-def compare_sfr_external(verbose=False):
+def compare_sfr_external(survey='sv3', verbose=False):
     """3×3 grid: FastSpecFit SFRs vs external catalogs, split by target class.
 
     Rows: Zou+CIGALE (loa), CIGALE-AGN (iron), GSWLC-X2 (bright/BGS only).
     Columns: BGS | LRG | ELG.  GSWLC-X2 populates BGS only; other cells hidden.
     Each panel uses a class-colored Hess background with thick colored contours.
+
+    survey : str
+        DESI survey flavor: 'sv1', 'sv3' (default), 'main', or 'special'.
+        Determines both the targeting-bit columns/masks used to split by
+        target class and the external/*-{survey}-{bright,dark}.fits files
+        read below (must have been prepared for this survey by
+        prepare-external.py).
+
     Output: tex/figures/compare-sfr-external.pdf
 
     """
     import fitsio
-    from desitarget.sv3.sv3_targetmask import desi_mask as sv3_mask
+
+    if survey == 'sv3':
+        from desitarget.sv3.sv3_targetmask import desi_mask
+        desi_col, bgs_col = 'SV3_DESI_TARGET', 'SV3_BGS_TARGET'
+    elif survey == 'sv1':
+        from desitarget.sv1.sv1_targetmask import desi_mask
+        desi_col, bgs_col = 'SV1_DESI_TARGET', 'SV1_BGS_TARGET'
+    elif survey in ('main', 'special'):
+        from desitarget.targets import desi_mask
+        desi_col, bgs_col = 'DESI_TARGET', 'BGS_TARGET'
+    else:
+        raise ValueError(f'Unknown survey {survey!r}; expected sv1, sv3, main, or special.')
 
     extdir = os.path.join(REPODIR, 'external')
     sfrlim = [-7, 4]
@@ -910,21 +947,21 @@ def compare_sfr_external(verbose=False):
 
     catalogs = [
         dict(
-            files=['zouhu-iron-sv3-bright.fits', 'zouhu-iron-sv3-dark.fits'],
-            #files=['zouhu-loa-sv3-bright.fits', 'zouhu-loa-sv3-dark.fits'],
+            files=[f'zouhu-iron-{survey}-bright.fits', f'zouhu-iron-{survey}-dark.fits'],
+            #files=[f'zouhu-loa-{survey}-bright.fits', f'zouhu-loa-{survey}-dark.fits'],
             ext_col='SFR_ZOUHU',
             label='Zou et al. (CIGALE)',
             classes=['BGS', 'LRG', 'ELG'],
         ),
         dict(
-            files=['cigaleagn-iron-sv3-bright.fits', 'cigaleagn-iron-sv3-dark.fits'],
+            files=[f'cigaleagn-iron-{survey}-bright.fits', f'cigaleagn-iron-{survey}-dark.fits'],
             ext_col='SFR_CIGALEAGN',
             flag_col='FLAG_LOGSFR_CIGALEAGN',
             label='Siudek et al. (CIGALE-AGN)',
             classes=['BGS', 'LRG', 'ELG'],
         ),
         dict(
-            files=['gswlcx2-sv3-bright.fits'],
+            files=[f'gswlcx2-{survey}-bright.fits'],
             ext_col='SFR_GSWLCX2',
             label='Salim et al. (GSWLC-X2)',
             classes=['BGS'],
@@ -954,9 +991,9 @@ def compare_sfr_external(verbose=False):
             ext_l.append(d[cat['ext_col']].astype(float))
             if 'flag_col' in cat:
                 flag_l.append(d[cat['flag_col']].astype(float))
-            bgs_l.append(d['SV3_BGS_TARGET'].astype(np.int64))
-            desi_l.append(d['SV3_DESI_TARGET'].astype(np.int64))
-            goodz_l.append(good_redshift(d, 'sv3'))
+            bgs_l.append(d[bgs_col].astype(np.int64))
+            desi_l.append(d[desi_col].astype(np.int64))
+            goodz_l.append(good_redshift(d, survey))
 
         ref   = np.concatenate(ref_l)
         ext   = np.concatenate(ext_l)
@@ -984,9 +1021,9 @@ def compare_sfr_external(verbose=False):
             if cls == 'BGS':
                 cmask = base & (bgs != 0)
             elif cls == 'LRG':
-                cmask = base & ((desi & int(sv3_mask['LRG'])) != 0)
+                cmask = base & ((desi & int(desi_mask['LRG'])) != 0)
             else:  # ELG
-                cmask = base & ((desi & int(sv3_mask['ELG'])) != 0)
+                cmask = base & ((desi & int(desi_mask['ELG'])) != 0)
 
             r, e = log_ref[cmask], log_ext[cmask]
             in_range = ((r >= sfrlim[0]) & (r <= sfrlim[1]) &
@@ -1032,12 +1069,15 @@ def compare_sfr_external(verbose=False):
 # mstar-redshift
 # ---------------------------------------------------------------------------
 
-def mstar_redshift(verbose=False, black_contours=True):
-    """M* vs. redshift for BGS, LRG, and ELG from sv3 (bright + dark programs).
+def mstar_redshift(survey='sv3', verbose=False, black_contours=True):
+    """M* vs. redshift for BGS, LRG, and ELG (bright + dark programs).
 
     Three-panel figure (one per target class) with Hess background and
     contours; panels share the y-axis (stellar mass) and use the same
     redshift range.
+
+    survey : str
+        DESI survey flavor: 'sv1', 'sv3' (default), 'main', or 'special'.
 
     black_contours : bool
         Default True: black, thinner contours (contour_color='k',
@@ -1054,14 +1094,14 @@ def mstar_redshift(verbose=False, black_contours=True):
 
     chunks = []
     for program in ('bright', 'dark'):
-        cat = read_fastspec('sv3', program, specprod=DEFAULT_SPECPROD,
+        cat = read_fastspec(survey, program, specprod=DEFAULT_SPECPROD,
                             columns=['LOGMSTAR'], verbose=verbose)
-        chunks.append(cat[good_galaxies(cat, survey='sv3')])
+        chunks.append(cat[good_galaxies(cat, survey=survey)])
     cat = vstack(chunks)
     if verbose:
         print(f'Total after quality cuts: {len(cat):,}')
 
-    groups = [g for g in target_class_groups(cat, 'sv3')
+    groups = [g for g in target_class_groups(cat, survey)
               if g['label'] in ('BGS', 'LRG', 'ELG')]
 
     plot_style(talk=True, font_scale=0.85, palette='colorblind')
@@ -1102,11 +1142,15 @@ def mstar_redshift(verbose=False, black_contours=True):
 # ewoii-dn4000
 # ---------------------------------------------------------------------------
 
-def ewoii_dn4000(verbose=False):
-    """log10 EW([OII]) vs. Dn(4000) for BGS, LRG, and ELG from sv3 (bright + dark).
+def ewoii_dn4000(survey='sv3', verbose=False):
+    """log10 EW([OII]) vs. Dn(4000) for BGS, LRG, and ELG (bright + dark).
 
     Single panel: combined grayscale Hess background for all galaxies, with
     per-class colored contours overlaid.
+
+    survey : str
+        DESI survey flavor: 'sv1', 'sv3' (default), 'main', or 'special'.
+
     Output: tex/figures/ewoii-dn4000.pdf
     """
     from matplotlib.lines import Line2D
@@ -1119,9 +1163,9 @@ def ewoii_dn4000(verbose=False):
 
     chunks = []
     for program in ('bright', 'dark'):
-        cat = read_fastspec('sv3', program, specprod=DEFAULT_SPECPROD,
+        cat = read_fastspec(survey, program, specprod=DEFAULT_SPECPROD,
                             columns=cols, verbose=verbose)
-        chunks.append(cat[good_galaxies(cat, survey='sv3')])
+        chunks.append(cat[good_galaxies(cat, survey=survey)])
     cat = vstack(chunks)
     if verbose:
         print(f'Total after good_galaxies: {len(cat):,}')
@@ -1138,7 +1182,7 @@ def ewoii_dn4000(verbose=False):
     dn4000    = np.array(cat['DN4000'], dtype=float)
     log_ewoii = np.log10(cat['OII_3726_EW'] + cat['OII_3729_EW'])
 
-    groups = [g for g in target_class_groups(cat, 'sv3')
+    groups = [g for g in target_class_groups(cat, survey)
               if g['label'] in ('BGS', 'LRG', 'ELG')]
 
     plot_style(talk=True, font_scale=0.85, palette='colorblind')
@@ -1180,14 +1224,18 @@ def ewoii_dn4000(verbose=False):
 # bpt-agn
 # ---------------------------------------------------------------------------
 
-def bpt_agn(verbose=False):
-    """BPT diagram and Ji & Yan (2020) P1-P3 projection for BGS from sv3/bright.
+def bpt_agn(survey='sv3', verbose=False):
+    """BPT diagram and Ji & Yan (2020) P1-P3 projection for BGS from the bright program.
 
     Left panel : [OIII] 5007/Hβ vs [NII] 6584/Hα with Kauffmann et al. (2003)
                  and Kewley et al. (2001) demarcation lines.
     Right panel: P3 vs P1 (Ji & Yan 2020).
     Both panels show the same sample: BGS galaxies passing good_galaxies and
     S/N > 3 on all six diagnostic lines.
+
+    survey : str
+        DESI survey flavor: 'sv1', 'sv3' (default), 'main', or 'special'.
+
     Output: tex/figures/bpt-agn.pdf
     """
     bpt_xrange = [-2.0, 0.8]
@@ -1202,11 +1250,11 @@ def bpt_agn(verbose=False):
             'SII_6716_FLUX',  'SII_6716_FLUX_IVAR',
             'SII_6731_FLUX',  'SII_6731_FLUX_IVAR']
 
-    cat = read_fastspec('sv3', 'bright', specprod=DEFAULT_SPECPROD,
+    cat = read_fastspec(survey, 'bright', specprod=DEFAULT_SPECPROD,
                         columns=cols, verbose=verbose)
-    cat = cat[good_galaxies(cat, survey='sv3')]
+    cat = cat[good_galaxies(cat, survey=survey)]
 
-    groups   = target_class_groups(cat, 'sv3')
+    groups   = target_class_groups(cat, survey)
     bgs_mask = next(g['mask'] for g in groups if g['label'] == 'BGS')
     cat      = cat[bgs_mask]
     if verbose:
@@ -1732,20 +1780,17 @@ def main():
     #                    help='Skip AGN flagging in sfr-mstar-bgs (include all objects).')
     parser.add_argument('--specprod', default=DEFAULT_SPECPROD,
                         help='Spectroscopic production name.')
-    parser.add_argument('--main', action='store_true',
-                        help='Use main-survey catalogs instead of sv3 (default).')
     parser.add_argument('--verbose', action='store_true',
                         help='Print progress while reading catalogs.')
     args = parser.parse_args()
 
-    survey = 'main' if args.main else 'sv3'
     os.makedirs(FIGDIR, exist_ok=True)
 
     if args.all:
         sps_models(verbose=args.verbose)
-        compare_mstar(survey=survey, specprod=args.specprod, verbose=args.verbose)
+        compare_mstar(specprod=args.specprod, verbose=args.verbose)
         compare_mstar_external(verbose=args.verbose)
-        compare_emlines_external(verbose=args.verbose, survey=survey, pull_denom=args.pull_denom)
+        compare_emlines_external(verbose=args.verbose, pull_denom=args.pull_denom)
         mstar_redshift(verbose=args.verbose)
         bpt_agn(verbose=args.verbose)
         compare_vdisp(verbose=args.verbose, two_panel=args.vdisp_two_panel)
@@ -1755,13 +1800,13 @@ def main():
         sps_models(verbose=args.verbose)
 
     if args.compare_mstar:
-        compare_mstar(survey=survey, specprod=args.specprod, verbose=args.verbose)
+        compare_mstar(specprod=args.specprod, verbose=args.verbose)
 
     if args.compare_mstar_external:
         compare_mstar_external(verbose=args.verbose)
 
     if args.compare_emlines_external:
-        compare_emlines_external(verbose=args.verbose, survey=survey, pull_denom=args.pull_denom)
+        compare_emlines_external(verbose=args.verbose, pull_denom=args.pull_denom)
 
     if args.cosmos2020:
         compare_cosmos2020(verbose=args.verbose)
@@ -1782,11 +1827,11 @@ def main():
         compare_vdisp(verbose=args.verbose, two_panel=args.vdisp_two_panel)
 
     if args.sfr_mstar_bgs:
-        sfr_mstar_bgs(survey=survey, specprod=args.specprod,
+        sfr_mstar_bgs(specprod=args.specprod,
                       flag_agn=args.flag_agn, verbose=args.verbose)
 
     if args.broadhalpha_fraction_bgs:
-        broadhalpha_fraction_bgs(survey=survey, specprod=args.specprod,
+        broadhalpha_fraction_bgs(specprod=args.specprod,
                                  binwidth=args.binwidth, verbose=args.verbose)
 
 
