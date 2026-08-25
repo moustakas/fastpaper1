@@ -673,8 +673,8 @@ def _good_fiberstatus(cat):
     return (cat['COADD_FIBERSTATUS'] & okmask) == cat['COADD_FIBERSTATUS']
 
 
-def good_redshift(cat, survey, fiberstatus_cut=True, ignore_emline=False):
-    """Per-class redshift quality mask.
+def good_redshift_by_class(cat, survey, fiberstatus_cut=True, ignore_emline=False):
+    """Per-class redshift-quality-and-membership masks.
 
     Matches the LSS redshift-quality cuts in desispec.validredshifts (as of
     2026-08), substituting FastSpecFit's OII_3726/3729 fluxes for the
@@ -691,6 +691,17 @@ def good_redshift(cat, survey, fiberstatus_cut=True, ignore_emline=False):
     BGS, LRG, and ELG additionally require SPECTYPE!='STAR' & Z>0.001 to
     reject stellar contaminants in the target bits.
 
+    Each returned mask already combines that class's targeting-bit
+    membership with its own quality cut above. This matters because DESI
+    targeting bits are not mutually exclusive (an object can carry, e.g.,
+    both a BGS and an LRG bit, especially in SV3): naively taking a
+    combined ``good_redshift`` mask (the OR of all four classes) and then
+    slicing it by targeting bit alone can leak an object into the wrong
+    class's sample if it passed a *different* class's cut. Use this
+    function directly whenever building a per-class sample; use
+    ``good_redshift`` only when a single combined "is this redshift good
+    for its own class" mask is wanted.
+
     Parameters
     ----------
     cat : astropy.table.Table
@@ -705,7 +716,7 @@ def good_redshift(cat, survey, fiberstatus_cut=True, ignore_emline=False):
 
     Returns
     -------
-    numpy.ndarray of bool
+    dict of numpy.ndarray of bool, keyed by 'BGS', 'LRG', 'ELG', 'Other'
     """
     if survey == 'sv3':
         from desitarget.sv3.sv3_targetmask import desi_mask
@@ -756,10 +767,35 @@ def good_redshift(cat, survey, fiberstatus_cut=True, ignore_emline=False):
 
     good_other = (cat['ZWARN'] == 0) & (cat['Z'] > 0.001)
 
-    return ((is_bgs & good_bgs) |
-            (is_lrg & good_lrg) |
-            (is_elg & good_elg) |
-            (~(is_bgs | is_lrg | is_elg) & good_other))
+    return {
+        'BGS':   is_bgs & good_bgs,
+        'LRG':   is_lrg & good_lrg,
+        'ELG':   is_elg & good_elg,
+        'Other': (~(is_bgs | is_lrg | is_elg)) & good_other,
+    }
+
+
+def good_redshift(cat, survey, fiberstatus_cut=True, ignore_emline=False):
+    """Combined redshift-quality mask: any class's cut, OR'd together.
+
+    Equivalent to ``functools.reduce(operator.or_,
+    good_redshift_by_class(...).values())``. Useful for a general-purpose
+    "does this object have a good redshift for its own target class"
+    filter, but do *not* use this to build a per-class sample by slicing
+    on a targeting bit afterward --- targeting bits are not mutually
+    exclusive, so an object can survive this mask via one class's cut
+    while carrying a different class's bit. Use
+    ``good_redshift_by_class`` directly for that.
+
+    See ``good_redshift_by_class`` for the cut definitions and parameters.
+
+    Returns
+    -------
+    numpy.ndarray of bool
+    """
+    masks = good_redshift_by_class(cat, survey, fiberstatus_cut=fiberstatus_cut,
+                                   ignore_emline=ignore_emline)
+    return masks['BGS'] | masks['LRG'] | masks['ELG'] | masks['Other']
 
 
 def good_galaxies(cat, survey=None, fiberstatus_cut=True):

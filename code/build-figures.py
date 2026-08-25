@@ -16,7 +16,8 @@ from astropy.table import Table, vstack, join
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from util import (read_fastspec, read_fastphot, plot_style,
                   corner_plot, hess_contours, DEFAULT_SPECPROD,
-                  nmad, running_binstat, good_galaxies, good_redshift,
+                  nmad, running_binstat, good_galaxies,
+                  good_redshift_by_class,
                   jiyan_p1p3, make_class_cmap, halpha_sfr, wilson_binomial_ci)
 
 REPODIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -148,46 +149,42 @@ def sps_models(verbose=False):
 # compare-mstar
 # ---------------------------------------------------------------------------
 
-def target_class_groups(cat, survey):
+def target_class_groups(cat, survey, fiberstatus_cut=True, ignore_emline=False):
     """Return a list of corner_plot group dicts split by DESI target class.
 
-    Loads the survey-appropriate targetmask module explicitly so that bit names
-    and column names match the actual catalog columns.
+    Each group's mask combines that class's targeting-bit membership with
+    its own redshift-quality cut, via ``good_redshift_by_class``. DESI
+    targeting bits are not mutually exclusive (some SV3 objects carry both
+    a BGS and an LRG/ELG bit, for instance), so splitting purely on
+    targeting bit --- without also re-applying that class's own quality
+    cut here --- can leak an object into the wrong panel if it only passed
+    a *different* class's cut upstream (e.g., via a prior
+    ``good_galaxies``/``good_redshift`` filter).
 
     Parameters
     ----------
     cat : astropy.table.Table
-        Must include the survey-appropriate targeting bitmask columns.
+        Must include ZWARN, DELTACHI2, Z, SPECTYPE, all survey-appropriate
+        targeting bit columns, and COADD_FIBERSTATUS (if fiberstatus_cut=True).
     survey : str
         DESI survey flavor: 'sv1', 'sv3', 'main', or 'special'.
+    fiberstatus_cut : bool
+        Apply fiber status mask (RESTRICTED and VARIABLE bits allowed).
+    ignore_emline : bool
+        Skip the OII emission-line cut for ELGs and use DELTACHI2>15 instead.
 
     Returns
     -------
     list of dict with keys 'label', 'color', 'mask' (boolean array).
     """
-    if survey == 'sv3':
-        from desitarget.sv3.sv3_targetmask import desi_mask
-        desi_col, bgs_col = 'SV3_DESI_TARGET', 'SV3_BGS_TARGET'
-    elif survey == 'sv1':
-        from desitarget.sv1.sv1_targetmask import desi_mask
-        desi_col, bgs_col = 'SV1_DESI_TARGET', 'SV1_BGS_TARGET'
-    elif survey in ('main', 'special'):
-        from desitarget.targets import desi_mask
-        desi_col, bgs_col = 'DESI_TARGET', 'BGS_TARGET'
-    else:
-        raise ValueError(f'Unknown survey {survey!r}; expected sv1, sv3, main, or special.')
-
-    # BGS: use the dedicated BGS_TARGET column; sv3_desi_mask has no BGS_ANY summary bit
-    is_bgs   = cat[bgs_col] != 0
-    is_lrg   = (cat[desi_col] & int(desi_mask['LRG'])) != 0
-    is_elg   = (cat[desi_col] & int(desi_mask['ELG'])) != 0
-    is_other = ~(is_bgs | is_lrg | is_elg)
+    masks = good_redshift_by_class(cat, survey, fiberstatus_cut=fiberstatus_cut,
+                                   ignore_emline=ignore_emline)
 
     return [
-        {'label': 'BGS',   'color': TARGET_CLASS_COLORS['BGS'],   'mask': is_bgs},
-        {'label': 'LRG',   'color': TARGET_CLASS_COLORS['LRG'],   'mask': is_lrg},
-        {'label': 'ELG',   'color': TARGET_CLASS_COLORS['ELG'],   'mask': is_elg},
-        {'label': 'Other', 'color': TARGET_CLASS_COLORS['Other'], 'mask': is_other},
+        {'label': 'BGS',   'color': TARGET_CLASS_COLORS['BGS'],   'mask': masks['BGS']},
+        {'label': 'LRG',   'color': TARGET_CLASS_COLORS['LRG'],   'mask': masks['LRG']},
+        {'label': 'ELG',   'color': TARGET_CLASS_COLORS['ELG'],   'mask': masks['ELG']},
+        {'label': 'Other', 'color': TARGET_CLASS_COLORS['Other'], 'mask': masks['Other']},
     ]
 
 
@@ -419,18 +416,6 @@ def compare_mstar_external(survey='sv3', verbose=False, black_contours=True):
     """
     import fitsio
 
-    if survey == 'sv3':
-        from desitarget.sv3.sv3_targetmask import desi_mask
-        desi_col, bgs_col = 'SV3_DESI_TARGET', 'SV3_BGS_TARGET'
-    elif survey == 'sv1':
-        from desitarget.sv1.sv1_targetmask import desi_mask
-        desi_col, bgs_col = 'SV1_DESI_TARGET', 'SV1_BGS_TARGET'
-    elif survey in ('main', 'special'):
-        from desitarget.targets import desi_mask
-        desi_col, bgs_col = 'DESI_TARGET', 'BGS_TARGET'
-    else:
-        raise ValueError(f'Unknown survey {survey!r}; expected sv1, sv3, main, or special.')
-
     extdir = os.path.join(REPODIR, 'external')
     mstarlim = [6, 13]
     all_classes = ['BGS', 'LRG', 'ELG']
@@ -471,7 +456,8 @@ def compare_mstar_external(survey='sv3', verbose=False, black_contours=True):
 
     for ri, cat in enumerate(catalogs):
         # load and stack all files for this row
-        ref_l, ext_l, flag_l, bgs_l, desi_l, goodz_l = [], [], [], [], [], []
+        ref_l, ext_l, flag_l = [], [], []
+        goodz_l = {cls: [] for cls in all_classes}
         for fn in cat['files']:
             path = os.path.join(extdir, fn)
             if verbose:
@@ -481,18 +467,16 @@ def compare_mstar_external(survey='sv3', verbose=False, black_contours=True):
             ext_l.append(d[cat['ext_col']].astype(float))
             if 'flag_col' in cat:
                 flag_l.append(d[cat['flag_col']].astype(float))
-            bgs_l.append(d[bgs_col].astype(np.int64))
-            desi_l.append(d[desi_col].astype(np.int64))
-            goodz_l.append(good_redshift(d, survey))
+            gz = good_redshift_by_class(d, survey)
+            for cls in all_classes:
+                goodz_l[cls].append(gz[cls])
 
         ref   = np.concatenate(ref_l)
         ext   = np.concatenate(ext_l)
-        bgs   = np.concatenate(bgs_l)
-        desi  = np.concatenate(desi_l)
-        goodz = np.concatenate(goodz_l)
+        goodz = {cls: np.concatenate(v) for cls, v in goodz_l.items()}
         flag  = np.concatenate(flag_l) if flag_l else None
 
-        base = np.isfinite(ref) & (ref > 0) & np.isfinite(ext) & (ext > 0) & goodz
+        base = np.isfinite(ref) & (ref > 0) & np.isfinite(ext) & (ext > 0)
         if flag is not None:
             base &= (flag > 0.2) & (flag < 5.0)
 
@@ -503,12 +487,7 @@ def compare_mstar_external(survey='sv3', verbose=False, black_contours=True):
                 ax.set_visible(False)
                 continue
 
-            if cls == 'BGS':
-                cmask = base & (bgs != 0)
-            elif cls == 'LRG':
-                cmask = base & ((desi & int(desi_mask['LRG'])) != 0)
-            else:  # ELG
-                cmask = base & ((desi & int(desi_mask['ELG'])) != 0)
+            cmask = base & goodz[cls]
 
             r, e = ref[cmask], ext[cmask]
             delta = e - r
@@ -929,18 +908,6 @@ def compare_sfr_external(survey='sv3', verbose=False):
     """
     import fitsio
 
-    if survey == 'sv3':
-        from desitarget.sv3.sv3_targetmask import desi_mask
-        desi_col, bgs_col = 'SV3_DESI_TARGET', 'SV3_BGS_TARGET'
-    elif survey == 'sv1':
-        from desitarget.sv1.sv1_targetmask import desi_mask
-        desi_col, bgs_col = 'SV1_DESI_TARGET', 'SV1_BGS_TARGET'
-    elif survey in ('main', 'special'):
-        from desitarget.targets import desi_mask
-        desi_col, bgs_col = 'DESI_TARGET', 'BGS_TARGET'
-    else:
-        raise ValueError(f'Unknown survey {survey!r}; expected sv1, sv3, main, or special.')
-
     extdir = os.path.join(REPODIR, 'external')
     sfrlim = [-7, 4]
     all_classes = ['BGS', 'LRG', 'ELG']
@@ -981,7 +948,8 @@ def compare_sfr_external(survey='sv3', verbose=False):
     fig.subplots_adjust(hspace=0.08, wspace=0.08)
 
     for ri, cat in enumerate(catalogs):
-        ref_l, ext_l, flag_l, bgs_l, desi_l, goodz_l = [], [], [], [], [], []
+        ref_l, ext_l, flag_l = [], [], []
+        goodz_l = {cls: [] for cls in all_classes}
         for fn in cat['files']:
             path = os.path.join(extdir, fn)
             if verbose:
@@ -991,19 +959,17 @@ def compare_sfr_external(survey='sv3', verbose=False):
             ext_l.append(d[cat['ext_col']].astype(float))
             if 'flag_col' in cat:
                 flag_l.append(d[cat['flag_col']].astype(float))
-            bgs_l.append(d[bgs_col].astype(np.int64))
-            desi_l.append(d[desi_col].astype(np.int64))
-            goodz_l.append(good_redshift(d, survey))
+            gz = good_redshift_by_class(d, survey)
+            for cls in all_classes:
+                goodz_l[cls].append(gz[cls])
 
         ref   = np.concatenate(ref_l)
         ext   = np.concatenate(ext_l)
-        bgs   = np.concatenate(bgs_l)
-        desi  = np.concatenate(desi_l)
-        goodz = np.concatenate(goodz_l)
+        goodz = {cls: np.concatenate(v) for cls, v in goodz_l.items()}
         flag  = np.concatenate(flag_l) if flag_l else None
 
         base = (np.isfinite(ref) & (ref > 0) &
-                np.isfinite(ext) & (ext > 0) & goodz)
+                np.isfinite(ext) & (ext > 0))
         if flag is not None:
             base &= (flag > 0.2) & (flag < 5.0)
 
@@ -1018,12 +984,7 @@ def compare_sfr_external(survey='sv3', verbose=False):
                 ax.set_visible(False)
                 continue
 
-            if cls == 'BGS':
-                cmask = base & (bgs != 0)
-            elif cls == 'LRG':
-                cmask = base & ((desi & int(desi_mask['LRG'])) != 0)
-            else:  # ELG
-                cmask = base & ((desi & int(desi_mask['ELG'])) != 0)
+            cmask = base & goodz[cls]
 
             r, e = log_ref[cmask], log_ext[cmask]
             in_range = ((r >= sfrlim[0]) & (r <= sfrlim[1]) &
@@ -1262,24 +1223,27 @@ def bpt_agn(survey='sv3', verbose=False):
 
     # uniform S/N > 3 on all six lines
     with np.errstate(invalid='ignore'):
-        sncut = (
+        sncut1 = (
             (cat['OIII_5007_FLUX'] * np.sqrt(cat['OIII_5007_FLUX_IVAR']) > 3) &
             (cat['HBETA_FLUX']     * np.sqrt(cat['HBETA_FLUX_IVAR'])     > 3) &
             (cat['NII_6584_FLUX']  * np.sqrt(cat['NII_6584_FLUX_IVAR'])  > 3) &
-            (cat['HALPHA_FLUX']    * np.sqrt(cat['HALPHA_FLUX_IVAR'])    > 3) &
+            (cat['HALPHA_FLUX']    * np.sqrt(cat['HALPHA_FLUX_IVAR'])    > 3)
+        )
+        sncut2 = (sncut1 &
             (cat['SII_6716_FLUX']  * np.sqrt(cat['SII_6716_FLUX_IVAR'])  > 3) &
             (cat['SII_6731_FLUX']  * np.sqrt(cat['SII_6731_FLUX_IVAR'])  > 3)
         )
-    cat = cat[sncut]
-    if verbose:
-        print(f'  After S/N>3 cuts: {len(cat):,}')
+    cat1 = cat[sncut1]
+    cat2 = cat[sncut2]
 
-    log_nii_ha  = np.log10(cat['NII_6584_FLUX']  / cat['HALPHA_FLUX'])
-    log_oiii_hb = np.log10(cat['OIII_5007_FLUX'] / cat['HBETA_FLUX'])
-    log_sii_ha  = np.log10((cat['SII_6716_FLUX'] + cat['SII_6731_FLUX'])
-                            / cat['HALPHA_FLUX'])
+    log_nii_ha = np.log10(cat1['NII_6584_FLUX']  / cat1['HALPHA_FLUX'])
+    log_oiii_hb = np.log10(cat1['OIII_5007_FLUX'] / cat1['HBETA_FLUX'])
 
-    p1, p3 = jiyan_p1p3(log_nii_ha, log_sii_ha, log_oiii_hb)
+    log_nii_ha2 = np.log10(cat2['NII_6584_FLUX']  / cat2['HALPHA_FLUX'])
+    log_oiii_hb2 = np.log10(cat2['OIII_5007_FLUX'] / cat2['HBETA_FLUX'])
+    log_sii_ha2 = np.log10((cat2['SII_6716_FLUX'] + cat2['SII_6731_FLUX']) / cat2['HALPHA_FLUX'])
+
+    p1, p3 = jiyan_p1p3(log_nii_ha2, log_sii_ha2, log_oiii_hb2)
 
     color_left  = TARGET_CLASS_COLORS['BGS']  # forest green
     color_right = '#8E4585'                   # plum
@@ -1310,7 +1274,7 @@ def bpt_agn(survey='sv3', verbose=False):
     ax.set_xlabel(r'$\log_{10}\,[\mathrm{N\,II}]\,\lambda6584\,/\,\mathrm{H}\alpha$')
     ax.set_ylabel(r'$\log_{10}\,[\mathrm{O\,III}]\,\lambda5007\,/\,\mathrm{H}\beta$')
     ax.legend(loc='lower left', fontsize='small', framealpha=0.75)
-    ax.text(0.96, 0.96, f'$N={len(cat):,}$',
+    ax.text(0.96, 0.96, f'$N={len(cat1):,}$',
             transform=ax.transAxes, fontsize='small', va='top', ha='right',
             bbox=dict(facecolor='white', edgecolor='none', alpha=0.75, pad=2))
 
@@ -1352,6 +1316,9 @@ def bpt_agn(survey='sv3', verbose=False):
     ax2.set_xticklabels([f'{f:.2f}' for f in fagn_ticks])
     ax2.set_xlabel(r'$f_{\rm AGN}$', labelpad=8)
     ax2.grid(False)
+    ax2.text(0.96, 0.96, f'$N={len(cat2):,}$',
+             transform=ax2.transAxes, fontsize='small', va='top', ha='right',
+             bbox=dict(facecolor='white', edgecolor='none', alpha=0.75, pad=2))
 
     fig.tight_layout()
 

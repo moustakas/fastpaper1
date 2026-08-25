@@ -56,7 +56,7 @@
 \newcommand{\tauv}{\ensuremath{\tau_V}}
 \newcommand{\Mstar}{\ensuremath{\mathcal{M}_{\star}}}
 \newcommand{\msun}{\ensuremath{\mathcal{M}_{\odot}}}
-\newcommand{\logmstar}{\log_{10}(\Mstar/\msun)}
+\newcommand{\logmstar}{\ensuremath{\log_{10}(\Mstar\,h^{-2}/\msun)}}
 
 \graphicspath{{./}{figures/}}
 
@@ -107,7 +107,7 @@ nearly 50 emission lines spanning the rest-frame UV through
 near-infrared. We describe the algorithms, validate the measurements
 using repeat observations and comparisons to complementary codes, and
 present the \fastspecfit{} value-added catalog for the DESI Data
-Release 2, comprising \todo{N} million extragalactic targets.
+Release 2, comprising 37 million extragalactic targets.
 \end{abstract}
 
 \keywords{Galaxies --- Surveys --- Catalogs --- Spectrophotometry ---
@@ -260,18 +260,19 @@ units with $h=1$.
 \subsection{A Roadmap to this Paper}
 \label{sec:roadmap}
 
-This paper is long... In this paper we describe the DESI spectroscopic
-and photometric data (\S\ref{sec:data}) and the algorithms underlying
-\fastspecfit{} in detail, including the spectrophotometric and
-physical quantities the code derives (\S\ref{sec:modeling}). We
-illustrate the complete fitting sequence applied end-to-end to three
-representative targets spanning the range of DESI extragalactic
-classes in \S\ref{sec:casestudy}.  We then present the \fastspecfit{}
-VAC for DESI DR2, comprising 38 million extragalactic targets,
-document the code's computational performance, and validate the
-measurements against independent codes
-(\S\ref{sec:vac}). \todo{Missing \S\ref{sec:discussion}.} We conclude
-with a summary and an outlook toward future improvements
+\todo{Rewrite with a bit more narrative. Also currently missing
+  \S\ref{sec:discussion}. This paper is long...} In this paper we
+describe the DESI spectroscopic and photometric data
+(\S\ref{sec:data}) and the algorithms underlying \fastspecfit{} in
+detail, including the spectrophotometric and physical quantities the
+code derives (\S\ref{sec:modeling}). We illustrate the complete
+fitting sequence applied end-to-end to three representative targets
+spanning the range of DESI extragalactic classes in
+\S\ref{sec:casestudy}.  We then present the \fastspecfit{} VAC for
+DESI DR2, comprising 38 million extragalactic targets, document the
+code's computational performance, and validate the measurements
+against independent codes (\S\ref{sec:vac}). We conclude with a
+summary and an outlook toward future improvements
 (\S\ref{sec:summary}).
 
 %% ============================================================
@@ -385,18 +386,18 @@ detailed discussion of all these topics see
 DESI observations are organized by survey and program
 \citep{schlafly23a, myers23a}. \todo{Need to reconcile the following
   statements with the eight-year program mentioned in the
-  introduction. Mention the DESI extension.} The primary five-year
-program is the main survey, which began on 2021 May 14 and was
-preceded by several SV phases, most notably the One-Percent Survey
-(SV3), which covered roughly 1\% of the final DESI footprint to high
-spectroscopic completeness \citep{desi-collaboration24e,
-  desi-collaboration24d}. Within each survey, observations are
-assigned to the ``bright'' program (moonlight or reduced
-transparency), the ``dark'' program (nominal dark-sky conditions), or
-the ``backup'' program \citep[twilight and poor-weather
-  time;][]{dey26a}, on the basis of sky conditions. A small fraction
-of observations that do not fit any of these three categories are
-assigned to an ``other'' category \citep{desi-collaboration26a}.
+  introduction.} The primary five-year program is the main survey,
+which began on 2021 May 14 and was preceded by several SV phases, most
+notably the One-Percent Survey (SV3), which covered roughly 1\% of the
+final DESI footprint to high spectroscopic completeness
+\citep{desi-collaboration24e, desi-collaboration24d}. Within each
+survey, observations are assigned to the ``bright'' program (moonlight
+or reduced transparency), the ``dark'' program (nominal dark-sky
+conditions), or the ``backup'' program \citep[twilight and
+  poor-weather time;][]{dey26a}, on the basis of sky conditions. A
+small fraction of observations that do not fit any of these three
+categories are assigned to an ``other'' category
+\citep{desi-collaboration26a}.
 
 DESI photometrically selects primary extragalactic targets from the
 Legacy Surveys \citep{dey19a} and organizes them into four classes
@@ -415,22 +416,30 @@ Spectroscopic redshifts and spectral classifications are determined by
 Redrock (S.~Bailey et~al., in preparation; \citealt{anand24a}), a
 principal component analysis (PCA) template-fitting code that
 independently fits templates for stars, galaxies, and quasars over a
-type-dependent grid of trial redshifts (S.~Bailey et~al., in
-preparation; \citealt{guy23a, anand24a}). The two primary
-redshift-quality diagnostics reported by Redrock are \texttt{ZWARN}, a
-per-object warning bitmask where \texttt{ZWARN=0} signals no known
-hardware, data-quality, or redshift-fitting problems, and
-\texttt{DELTACHI2}, the difference in $\chi^2$ between the best and
-second-best fits across all spectral classes. \todo{Should probably
-  mention \texttt{COADD\_FIBERSTATUS}, if we are going to use it in
-  \S\ref{ssec:cuts} to select ``good'' redshifts.} Three after-burner
-processing steps follow Redrock: an emission-line fitter
-(\texttt{emlinefit}; \citealt{raichoor23a, desi-collaboration24d})
-used to validate ELG redshifts; a \mgiidoublet{} doublet fitter
-\citep{chaussidon23a}; and the \texttt{QuasarNET} neural-network QSO
-classifier \citep{busca18a, green25a}. The latter two after-burners
-are essential for correctly classifying and measuring accurate
-redshifts for QSOs (\S\ref{ssec:catalog}).
+type-dependent grid of trial redshifts and records the
+maximum-likelihood redshift \texttt{Z} and template class
+\texttt{SPECTYPE} (\texttt{STAR}, \texttt{GALAXY}, or \texttt{QSO})
+(S.~Bailey et~al., in preparation; see also \citealt{guy23a,
+  anand24a}). The two primary redshift-quality diagnostics reported by
+Redrock are \texttt{ZWARN}, a per-object warning bitmask where
+\texttt{ZWARN=0} signals no known hardware, data-quality, or
+redshift-fitting problems, and \texttt{DELTACHI2}, the difference in
+$\chi^2$ between the best and second-best fits across all spectral
+classes. A third diagnostic, \texttt{COADD\_FIBERSTATUS}, is a
+per-object bitmask that logically combines the per-exposure
+fiber-status flags contributing to the coadded spectrum and records
+hardware or data-quality problems such as a broken or stuck fiber,
+poor positioning, or a bad amplifier readout (D.~Green et~al., in
+preparation; S.~Bailey et~al., in preparation).
+
+Finally, three after-burner processing steps follow Redrock: an
+emission-line fitter (\texttt{emlinefit}; \citealt{raichoor23a,
+  desi-collaboration24d}) used to validate ELG redshifts; a
+\mgiidoublet{} doublet fitter \citep{chaussidon23a}; and the
+\texttt{QuasarNET} neural-network QSO classifier \citep{busca18a,
+  green25a}. The latter two after-burners are essential for correctly
+classifying and measuring accurate redshifts for QSOs
+(\S\ref{ssec:catalog}).
 
 %% ============================================================
 \section{Spectrophotometric Modeling}
@@ -2268,9 +2277,9 @@ across five FITS extensions:
 data model, pinned to the \fastspecfit{} version used to produce this
 VAC, we refer to the online
 documentation.\footnote{\url{https://fastspecfit.readthedocs.io/en/3.6.1/fastspec.html}}
-\todo{I'm not sure we should link to the 3.6.1 documation because I've
-  already corrected a few errors, although there's some risk with
-  pointing to ``latest.''}
+\todo{I'm not sure we should link to the 3.6.1 documentation because
+  I've already corrected a few errors that are only in main. That
+  said, although there's some risk to pointing to ``latest.''}
 
 Because there are more than 52,000 individual files (one per HEALPix),
 most users will find it convenient to work with the merged catalogs
@@ -2356,15 +2365,44 @@ documentation.\footnote{\url{https://fastspecfit.readthedocs.io/en/latest/tutori
 
 Which quality cuts to apply depends on the science being done, so
 below we describe several \fastspecfit{} diagnostics rather than
-recommend a single threshold.
-
-The starting point for any sample selection is a
-target-class-dependent redshift-quality cut. The relevant ingredients
-are \texttt{ZWARN}, \texttt{DELTACHI2}, and potentially
-\texttt{COADD\_FIBERSTATUS} (\S\ref{ssec:targets}). The appropriate
-combination and thresholds, however, differ by target class, so we
-recommend checking the DESI documentation and associated data-release
-papers for the most recent
+recommend a single threshold. With that in mind, the starting point
+for any sample selection is a target-class-dependent redshift-quality
+cut using the quantities and bitmasks reported by Redrock
+(\S\ref{ssec:targets}). In the remainder of this paper, we adopt the
+following ``good redshift'' criteria for the three primary DESI galaxy
+classes. First, we define
+\begin{equation}
+  \begin{split}
+    \mathcal{Q} \equiv {} & [\mathtt{COADD\_FIBERSTATUS} \;\&\;
+    \sim (\mathtt{RESTRICTED} \,|\, \mathtt{VARIABLE}) = 0] \;\&\; \\
+    & (\mathtt{SPECTYPE} \texttt{!=} \mathtt{STAR}) \;\&\; (\mathtt{Z} > 0.001),
+  \end{split}
+  \label{eq:goodz_common}
+\end{equation}
+\noindent where the bracketed term is a bitwise \texttt{AND}
+restricting \texttt{COADD\_FIBERSTATUS} to the \texttt{RESTRICTED} and
+\texttt{VARIABLE} \texttt{FIBERSTATUS}
+bits\footnote{\url{https://desidatamodel.readthedocs.io/en/latest/bitmasks.html\#fiberstatus-bit-definitions}}---informational
+flags that do not by themselves indicate a data-quality problem---and
+two additional cuts intended to reject stellar contaminants. The
+per-class criteria are then
+\begin{align}
+  \mathrm{BGS:}\quad & (\mathtt{ZWARN}=0) \;\&\; (\mathtt{DELTACHI2} > 40) \;\&\;
+  (\mathtt{Z} < 0.8) \;\&\; \mathcal{Q} \label{eq:goodz_bgs}\\
+  \mathrm{LRG:}\quad & (\mathtt{ZWARN}=0) \;\&\; (\mathtt{Z} < 1.5) \;\&\;
+  (\mathtt{DELTACHI2} > 15) \;\&\; \mathcal{Q} \label{eq:goodz_lrg}\\
+  \mathrm{ELG:}\quad &
+  \log_{10}\!\left[\mathrm{S/N}(\text{\oiidoublet})\right] > 0.9 -
+  0.2\,\log_{10}(\mathtt{DELTACHI2}) \;\&\; \mathcal{Q}
+  \label{eq:goodz_elg}
+\end{align}
+\noindent where the ELG cut is taken from \citet{raichoor23a} but
+using the \oii{} fluxes measured by \fastspecfit{}
+(\S\ref{ssec:validation}). Of course, although we adopt these
+particular criteria to generate some of the figures in this paper,
+per-class cuts continue to be refined by the DESI team, and so readers
+building their own samples should check the DESI documentation and
+associated data-release papers for the most recent
 recommendations.\footnote{\url{https://data.desi.lbl.gov/doc}}
 
 For individual emission lines, we recommend selecting on
@@ -2516,22 +2554,6 @@ catalogs, and combine the SV3 bright and dark programs to maximize the
 matched sample. (Combining the main bright and dark samples gives
 nearly identical statistics, simply with many more objects.)
 
-\begin{figure*}
-\centering\includegraphics[width=1.0\textwidth]{compare-vdisp.pdf}
-\caption{Comparison of \fastspec{} stellar velocity dispersions with
-  those measured by \citet{ross25a} using \texttt{pPXF}
-  \citep{cappellari23a}, for a matched sample of main-survey,
-  bright-time galaxies (\S\ref{sssec:vdisp}). As in
-  Figure~\ref{fig:compare-emlines-external}, the color map, contours,
-  and outlying markers show the two-dimensional density distribution,
-  the dashed line is the one-to-one relation, and the inset shows the
-  pull distribution (equation~\ref{eq:pull}) compared to a unit
-  Gaussian (black curve). We find a median offset and \texttt{NMAD}
-  scatter of $-15.9\pm12.9$~\kms{} (\fastspec{} yields systematically
-  larger \vdisp{} values) and a median pull of
-  $-1.06\pm0.82$. \label{fig:vdisp}}
-\end{figure*}
-
 The agreement with \texttt{emlinefit} is very good for \oii, with a
 median difference and \texttt{NMAD}\footnote{The normalized median
 absolute deviation,
@@ -2602,6 +2624,22 @@ statistical significance of individual lines.
 %  range.\label{fig:cosmos2020}}
 %\end{figure*}
 
+\begin{figure*}
+\centering\includegraphics[width=1.0\textwidth]{compare-vdisp.pdf}
+\caption{Comparison of \fastspec{} stellar velocity dispersions with
+  those measured by \citet{ross25a} using \texttt{pPXF}
+  \citep{cappellari23a}, for a matched sample of main-survey,
+  bright-time galaxies (\S\ref{sssec:vdisp}). As in
+  Figure~\ref{fig:compare-emlines-external}, the color map, contours,
+  and outlying markers show the two-dimensional density distribution,
+  the dashed line is the one-to-one relation, and the inset shows the
+  pull distribution (equation~\ref{eq:pull}) compared to a unit
+  Gaussian (black curve). We find a median offset and \texttt{NMAD}
+  scatter of $-15.9\pm12.9$~\kms{} (\fastspec{} yields systematically
+  larger \vdisp{} values) and a median pull of
+  $-1.06\pm0.82$. \label{fig:vdisp}}
+\end{figure*}
+
 Next, Figure~\ref{fig:vdisp} compares the \fastspec{} $\vdisp$
 measurements (\S\ref{sssec:vdisp}) against those from the DESI DR1
 (Iron) Fundamental Plane study of \citet{ross25a} for the same set of
@@ -2617,6 +2655,28 @@ $\sigma_{\mathrm{B}}\approx 85-150$~\kms; see
 (\S\ref{ssec:templates}) and we fit \vdisp{} over a slightly different
 observed-frame wavelength range, 3800--6000~\AA{}
 (\S\ref{sssec:vdisp}).
+
+\begin{figure*}
+\centering\includegraphics[width=1.0\textwidth]{compare-mstar-external.pdf}
+\caption{Comparison of \fastspec{} stellar masses ($h=1$, Chabrier
+  IMF) against three independent, CIGALE-based catalogs, organized by
+  DESI target class along columns. In each row, we compare our
+  measurements against (top) the DR2 (\texttt{Loa}) VAC of H.~Zou
+  et~al. (in preparation; see also \citealt{zou24b, sui26a}), (middle)
+  the DR1 (\texttt{Iron}) CIGALE-AGN VAC of \citet{siudek25a}, and
+  (bottom) the GSWLC-X2 catalog of \citet{salim16a, salim18a}. As in
+  Figure~\ref{fig:compare-emlines-external}, the color map, contours,
+  and markers show the two-dimensional density distribution and the
+  dashed line is the one-to-one relation.  Overall, we find median
+  offsets of $\Delta_\mathrm{med}=0.15$--$0.30$~dex (\fastspec{}
+  systematically higher) with $\mathtt{NMAD}=0.09$--$0.17$~dex scatter
+  for BGS and LRG targets, increasing to $\approx\pm0.4$~dex for ELG
+  targets. The median offsets and scatter are consistent with
+  expectations from different (non-parametric versus parametric) SFH
+  priors \citep{leja19b, leja20a}, and, more generally, from the stellar-library,
+  dust-attenuation, and other modeling choices that differ across
+  independent SED-fitting codes. \label{fig:compare-mstar-external}} 
+\end{figure*}
 
 For $N=80,693$ objects in common, we find a median offset and
 \texttt{NMAD} scatter of $\Delta_\mathrm{med}=-15.9\pm12.9$~\kms{}
@@ -2645,29 +2705,6 @@ velocity dispersion. In conclusion, we find that \fastspec{} yields
 precise velocity dispersions over the full dynamic range of \vdisp{}
 values spanned by low-redshift galaxies, albeit with an as-yet
 unexplained systematic difference relative to existing measurements.
-
-\begin{figure*}
-\centering\includegraphics[width=1.0\textwidth]{compare-mstar-external.pdf}
-\caption{Comparison of \fastspec{} stellar masses ($h=1$, Chabrier
-  IMF) against three independent, CIGALE-based catalogs, organized by
-  DESI target class along columns. In each row, we compare our
-  measurements against (top) the DR2 (\texttt{Loa}) VAC of H.~Zou
-  et~al. (in preparation; see also \citealt{zou24b, sui26a}), (middle)
-  the DR1 (\texttt{Iron}) CIGALE-AGN VAC of \citet{siudek25a}, and
-  (bottom) the GSWLC-X2 catalog of \citet{salim16a, salim18a}. As in
-  Figure~\ref{fig:compare-emlines-external}, the color map, contours,
-  and markers show the two-dimensional density distribution and the
-  dashed line is the one-to-one relation.  Overall, we find median
-  offsets of $\Delta_\mathrm{med}=0.15$--$0.30$~dex (\fastspec{}
-  systematically higher) with $\mathtt{NMAD}=0.09$--$0.17$~dex scatter
-  for BGS and LRG targets, increasing to $\approx\pm0.4$~dex for ELG
-  targets. The median offsets and scatter are consistent with
-  expectations from different (non-parametric versus parametric) SFH
-  priors and, more generally, from the stellar-library,
-  dust-attenuation, and other modeling choices that differ across
-  independent SED-fitting codes
-  \citep{conroy13a}. \label{fig:compare-mstar-external}}
-\end{figure*}
 
 Finally, in Figure~\ref{fig:compare-mstar-external} we compare the
 stellar masses from \fastspec{} against three independent,
@@ -2728,6 +2765,21 @@ star-formation-history parameterizations involved.
 \subsection{Pipeline Diagnostics}
 \label{ssec:diagnostics}
 
+\begin{figure*}
+\centering\includegraphics[width=1.0\textwidth]{wave-residuals.pdf}
+\caption{Running median \texttt{VSHIFT} (top) and the number of
+  contributing measurements (bottom) as a function of observed-frame
+  wavelength, for DR2 main-survey galaxies with a relaxed, per-line
+  kinematic solution (\S\ref{sssec:kinematic}), computed in 62
+  equal-width, $\approx100$~\AA{} bins spanning the full DESI
+  wavelength range (3550--9850~\AA). The black curve combines all
+  curated forbidden and Balmer lines; the colored curves show
+  forbidden and Balmer lines separately, and the shaded bands are the
+  interquartile range of the individual measurements within each bin.
+  Gray vertical bands mark the B/R and R/Z camera-boundary transitions
+  and the horizontal dashed line marks zero offset. \label{fig:wave_resid}}
+\end{figure*}
+
 One of the dividends of fitting every DESI spectrum with a physically
 motivated forward model is that the residuals carry information about
 possible systematic calibration errors in the reduced data. To
@@ -2755,24 +2807,10 @@ aggregated across many lines and redshifts, serves as a proxy for
 residual wavelength-solution errors as a function of observed-frame
 wavelength even though no single camera is ever fit in isolation.
 
-\begin{figure*}
-\centering\includegraphics[width=1.0\textwidth]{wave-residuals.pdf}
-\caption{Running median \texttt{VSHIFT} (top) and the number of
-  contributing measurements (bottom) as a function of observed-frame
-  wavelength, for DR2 main-survey galaxies with a relaxed, per-line
-  kinematic solution (\S\ref{sssec:kinematic}), computed in 62
-  equal-width, $\approx100$~\AA{} bins spanning the full DESI
-  wavelength range (3550--9850~\AA). The black curve combines all
-  curated forbidden and Balmer lines; the colored curves show
-  forbidden and Balmer lines separately, and the shaded bands are the
-  interquartile range of the individual measurements within each bin.
-  Gray vertical bands mark the B/R and R/Z camera-boundary transitions
-  and the horizontal dashed line marks zero offset. \label{fig:wave_resid}}
-\end{figure*}
-
-To investigate this effect, we select main-survey galaxies for which
-the relaxed kinematic pass is adopted and no broad Balmer component
-was fit, so that every narrow line's \texttt{VSHIFT} is a genuine
+To investigate this effect, we select main-survey galaxies passing our
+baseline redshift-quality criteria (\S\ref{ssec:cuts}) for which the
+relaxed kinematic pass is adopted and no broad Balmer component was
+fit, so that every narrow line's \texttt{VSHIFT} is a genuine
 measurement rather than a copy of its tied anchor. We select any line
 detected with flux $\mathrm{S/N}>7$ and a formal \texttt{VSHIFT}
 uncertainty below 25~\kms. We exclude the $0.02$\% of fits pinned at
@@ -2859,10 +2897,10 @@ stellar continuum, emission-line, and broadband SED properties for
 more than 38~million extragalactic DESI targets spanning an incredibly
 broad range of intrinsic physical properties and redshift. Although a
 specific scientific investigation is outside the scope of the current
-paper, we briefly illustrate the scientific reach of the
-\fastspecfit{} VAC in \S\ref{ssec:reach} with two example figures on
-the stellar mass and AGN content of the DESI sample. We then conclude
-in \S\ref{ssec:improvements} with a short discussion of some of the
+paper, in \S\ref{ssec:reach} we briefly illustrate the scientific
+reach of the \fastspecfit{} VAC with two example figures on the
+stellar mass and AGN content of the DESI sample. We then conclude in
+\S\ref{ssec:improvements} with a short discussion of some of the
 planned updates and improvements to the code.
 
 \subsection{Example Scientific Applications}
@@ -2886,84 +2924,67 @@ planned updates and improvements to the code.
 We begin by showing the distribution of stellar mass versus redshift
 for BGS, LRG, and ELG targets in Figure~\ref{fig:mstar_z}. We limit
 the sample to the SV3 bright (BGS) and SV3 dark (LRG, ELG) programs
-for this illustrative figure, but the results using the main-survey
-data are equivalent. To select ``good'' spectroscopic redshifts for
-each sample, we apply the following target-class-dependent criteria:
-\begin{align}
-  \mathrm{BGS:}\quad & \texttt{ZWARN}=0 \;\&\; \texttt{DELTACHI2} > 40 \;\&\;
-  z < 0.8 \\
-  \mathrm{LRG:}\quad & \texttt{ZWARN}=0 \;\&\; z < 1.5 \;\&\;
-  \texttt{DELTACHI2} > 15 \\
-  \mathrm{ELG:}\quad &
-  \log_{10}\!\left[\mathrm{S/N}(\text{\oiidoublet})\right] > 0.9 -
-  0.2\,\log_{10}(\texttt{DELTACHI2})
-\end{align}
-\noindent where $\mathrm{S/N}(\text{\oiidoublet}) \equiv
-F_{\text{\oiidoublet}}\sqrt{\mathrm{IVAR}_{\text{\oiidoublet}}}$ is
-computed from the summed \oiidoublet{} flux and inverse variance,
-following the standard ELG redshift-quality criterion of
-\citet{raichoor23a}; no additional redshift-range cut is applied to the
-ELG sample. All three criteria additionally require a valid coadded
-fiber status (\texttt{COADD\_FIBERSTATUS}; \S\ref{ssec:targets}) and
-reject stellar contaminants in the target bits
-(\texttt{SPECTYPE}~$\neq$~\texttt{STAR} and $z > 0.001$).
+for this illustrative figure, but the results using the DR2
+main-survey data are equivalent. For each panel, we only retain
+objects which pass the target-class-dependent criteria listed in
+\S\ref{ssec:cuts}, as well as requiring $\mathtt{LOGMSTAR\_IVAR}>0$.
 
-The three target classes trace complementary regions of this plane:
-BGS spans the widest mass range at $z \lesssim 0.6$, capturing
-galaxies from well below the knee of the stellar mass function to the
-most massive systems in the local universe; LRGs select the most
-massive, passively evolving galaxies over $0.4 \lesssim z \lesssim
-1.1$; and ELGs preferentially identify low-to-intermediate mass
-star-forming systems at $0.6 \lesssim z \lesssim 1.6$. Together these
-three samples provide near-continuous coverage of the galaxy
-population from $z \approx 0$ to $z \approx 1.6$, making the DR2
-catalog a uniquely comprehensive resource for studies of galaxy
-evolution over the past $\sim$10~Gyr.
+This figure shows that the three target classes trace complementary
+regions of stellar mass and redshift. The BGS sample spans the widest
+mass range at $z \lesssim 0.6$, and includes galaxies from well below
+the knee of the stellar mass function to the most massive systems in
+the local universe \citep{moustakas13a, hahn23a}; the LRG sample
+includes, by design, the most massive, passively evolving galaxies
+over $0.3 \lesssim z \lesssim 1.5$ \citep{zhou23a}; and the ELG sample
+preferentially consists of low-to-intermediate mass star-forming
+systems at $0.6 \lesssim z \lesssim 1.6$, with a secondary tail of
+dwarf galaxies, $\logmstar\lesssim9$, to $z\approx0$ (V.~Manwadkar
+et~al., in preparation; \citealt{raichoor23a}). Together, these three
+samples provide expansive coverage of the galaxy population from $z
+\approx 0$ to $z \approx 1.6$, making the DR2 catalog a uniquely
+comprehensive resource for studies of galaxy evolution over the past
+$\approx$10~Gyr.
 
 \begin{figure*}
 \centering\includegraphics[width=1.0\textwidth]{figures/bpt-agn.pdf}
-\caption{AGN diagnostics for BGS galaxies in the DESI SV3 bright
-  program. Both panels show the same sample of \todo{$N=$}~galaxies
-  with signal-to-noise ratio $>3$ detected in all six diagnostic
-  emission lines ([\ion{N}{2}] $\lambda6584$, \ha{}, [\ion{S}{2}]
-  $\lambda\lambda6716,6731$, [\ion{O}{3}] $\lambda5007$, and
-  \hb). The background color map and contours show the number
-  density of objects. (Left) Classical BPT diagram
-  \citep{baldwin81a}. The dashed curve shows the empirical
-  star-forming/AGN demarcation of \citet{kauffmann03c}; galaxies above
-  this line are AGN candidates. (Right) The $P_1$--$P_3$ projection of
-  \citet{ji20a}, which separates star-forming galaxies (low $P_1$)
-  from AGN (high $P_1$). The top axis shows the AGN fraction
-  $f_\mathrm{AGN}$ mapped from $P_1$ following
-  \citet{jin21a}. \label{fig:bpt}}
+\caption{AGN diagnostics for BGS galaxies in the SV3 bright
+  program. Both panels show the same sample of with signal-to-noise
+  ratio $>3$ detected in all six diagnostic emission lines
+  ([\ion{N}{2}] $\lambda6584$, \ha{}, [\ion{S}{2}]
+  $\lambda\lambda6716,6731$, [\ion{O}{3}] $\lambda5007$, and \hb). The
+  background color map and contours show the number density of
+  objects. (Left) Classical BPT diagram \citep{baldwin81a}. The dashed
+  curve shows the empirical star-forming/AGN demarcation of
+  \citet{kauffmann03c}; galaxies above this line are AGN
+  candidates. (Right) The $P_1$--$P_3$ projection of \citet{ji20a},
+  which separates star-forming galaxies (low $P_1$) from AGN (high
+  $P_1$). The top axis shows the AGN fraction $f_\mathrm{AGN}$ mapped
+  from $P_1$ following \citet{jin21a}. \label{fig:bpt}}
 \end{figure*}
-
-Next, in Figure~\ref{fig:bpt} we illustrate how the \fastspecfit{}
-VAC...two optical emission-line diagnostic diagrams that uses to
-identify and characterize AGN. ...shows the \citet{baldwin81a} BPT
-diagram---\oiiilam/\hb{} versus \niilam/\ha---for BGS targets from the
-DESI SV3 bright program (\S\ref{ssec:targets}), again plotted here for
-its manageable sample size, with signal-to-noise ratio $>3$ detected
-in all six diagnostic emission lines. The dashed curve is the
-empirical star-forming/AGN demarcation of \citet{kauffmann03c};
-galaxies above this line are AGN candidates, and the density
-distribution of the sample across this boundary encodes the mix of
-nuclear activity in the low-redshift galaxy population. The right
-panel recasts the same sample in the $P_1$--$P_3$ projection of
-\citet{ji20a}, which replaces this hard boundary with a continuous AGN
-fraction $f_\mathrm{AGN}$ \citep{jin21a}. \fastspecfit{}'s joint
-spectrophotometric fit enables construction of diagrams like these for
-the full DR2 BGS sample of \todo{X}~million galaxies in a single,
-homogeneous analysis---\todo{a nearly tenfold increase over the
-  comparable SDSS spectroscopic sample \citep{york00a}; confirm this
-  factor once the full-sample count is in hand}. \todo{Quantify
-  AGN-candidate and star-forming fractions from the left panel, and
-  the $f_\mathrm{AGN}$ distribution from the right panel; note
-  redshift or mass dependence.}
 
 %Where $P_1 = 0.63,\log[\ion{N}{2}]/\ha + 0.51,\log[\ion{S}{2}]/\ha +0.59,\log[\ion{O}{3}]/\hb$
 %and
 %$P_3 = -0.46,\log[\ion{N}{2}]/\ha - 0.37,\log[\ion{S}{2}]/\ha + 0.81,\log[\ion{O}{3}]/\hb$
+
+Next, in Figure~\ref{fig:bpt} we construct two optical emission-line
+diagnostic diagrams from the \fastspecfit{} VAC which can be used to
+identify and characterize AGN. For simplicity, we show just BGS
+targets from the SV3 bright program with a flux $\mathrm{S/N}>3$ on
+all the relevant emission lines. For a more comprehensive sample of
+AGN in BGS and other target classes, see \citet{juneau25a} and
+S.~Juneau et~al., in preparation. The left-hand panel of
+Figure~\ref{fig:bpt} shows the traditional BPT \citep{baldwin81a}
+diagram, \oiiilam/\hb{} versus \niilam/\ha, with the empirical
+star-forming/AGN demarcation line from \citet{kauffmann03c} shown as a
+dashed curve. Galaxies above this line are AGN candidates, and the
+density distribution of the sample across this boundary encodes the
+mix of nuclear activity in the low-redshift galaxy population.
+
+The right panel recasts the same sample in the $P_1$--$P_3$ projection
+of \citet{ji20a}, which replaces this hard boundary with a continuous
+AGN fraction $f_\mathrm{AGN}$ \citep{jin21a}. \todo{Quantify
+  AGN-candidate and star-forming fractions from the left panel, and
+  the $f_\mathrm{AGN}$ distribution from the right panel.}
 
 \subsection{Planned Improvements}
 \label{ssec:improvements}
