@@ -940,3 +940,97 @@ def read_fastphot(survey='main', program='dark', specprod=DEFAULT_SPECPROD,
         ['METADATA', 'SPECPHOT'],
         survey, program, columns, verbose,
     )
+
+
+def target_class(objmeta, survey='main'):
+    """Best-effort one-word target-class label for a single object.
+
+    Checked in DESI dark/bright program priority order (QSO > LRG > ELG >
+    BGS > MWS); an object can carry more than one targeting bit (e.g. a BGS
+    target that also passes the LRG cut), so this is a display label for
+    figure titles, not a full membership classification -- use
+    good_redshift_by_class for that.
+
+    Parameters
+    ----------
+    objmeta : astropy.table.Row
+        Metadata row with DESI_TARGET/BGS_TARGET/MWS_TARGET (or the
+        survey-prefixed equivalents for sv1/sv3).
+    survey : str
+        DESI survey flavor: 'sv1', 'sv3', 'main', or 'special'.
+
+    Returns
+    -------
+    str
+        'QSO', 'LRG', 'ELG', 'BGS', 'MWS', or 'Target' if no bit matches.
+    """
+    if survey == 'sv3':
+        from desitarget.sv3.sv3_targetmask import desi_mask
+        desi_col, bgs_col, mws_col = 'SV3_DESI_TARGET', 'SV3_BGS_TARGET', 'SV3_MWS_TARGET'
+    elif survey == 'sv1':
+        from desitarget.sv1.sv1_targetmask import desi_mask
+        desi_col, bgs_col, mws_col = 'SV1_DESI_TARGET', 'SV1_BGS_TARGET', 'SV1_MWS_TARGET'
+    elif survey in ('main', 'special'):
+        from desitarget.targets import desi_mask
+        desi_col, bgs_col, mws_col = 'DESI_TARGET', 'BGS_TARGET', 'MWS_TARGET'
+    else:
+        raise ValueError(f'Unknown survey {survey!r}; expected sv1, sv3, main, or special.')
+
+    desi_target = int(objmeta[desi_col])
+    is_qso = (desi_target & int(desi_mask['QSO'])) != 0
+    is_lrg = (desi_target & int(desi_mask['LRG'])) != 0
+    if 'LGE' in desi_mask.names():
+        is_lrg |= (desi_target & int(desi_mask['LGE'])) != 0
+    is_elg = (desi_target & int(desi_mask['ELG'])) != 0
+    is_bgs = int(objmeta[bgs_col]) != 0
+    is_mws = int(objmeta[mws_col]) != 0
+
+    for is_class, label in ((is_qso, 'QSO'), (is_lrg, 'LRG'), (is_elg, 'ELG'),
+                            (is_bgs, 'BGS'), (is_mws, 'MWS')):
+        if is_class:
+            return label
+    return 'Target'
+
+
+def fetch_cutout_cached(objmeta, cutoutdir, layer='ls-dr9', pixscale=0.262, timeout=15):
+    """Fetch a Legacy Survey grz cutout JPEG and keep it on disk permanently.
+
+    fastspecfit.qa._fetch_cutout downloads to a temp JPEG and always deletes
+    it after loading (it's built for one-shot batch QA, not for reuse), so
+    scripts that call it directly re-download on every run. This instead
+    caches to ``cutoutdir/cutout-<targetid>.jpeg`` and only fetches if that
+    file isn't already there.
+
+    Parameters
+    ----------
+    objmeta : astropy.table.Row
+        Metadata row with RA, DEC, TARGETID.
+    cutoutdir : str
+        Directory for the cached JPEG (must already exist).
+    layer : str
+        Legacy Survey viewer layer (e.g. 'ls-dr9').
+    pixscale : float
+        Pixel scale in arcsec/pixel.
+    timeout : float
+        Network timeout in seconds for the single fetch attempt.
+
+    Returns
+    -------
+    numpy.ndarray
+        RGB image array, shape (height, width, 3).
+    """
+    import urllib.request
+    import matplotlib.image as mpimg
+
+    width = int(30 / pixscale)
+    height = int(width / 1.3)
+    cutoutjpeg = os.path.join(cutoutdir, f"cutout-{objmeta['TARGETID']}.jpeg")
+
+    if not os.path.isfile(cutoutjpeg):
+        url = ('https://www.legacysurvey.org/viewer/jpeg-cutout?ra=' +
+              f'{objmeta["RA"]}&dec={objmeta["DEC"]}&width={width}&height={height}&layer={layer}')
+        with urllib.request.urlopen(url, timeout=timeout) as response:
+            with open(cutoutjpeg, 'wb') as f:
+                f.write(response.read())
+
+    return mpimg.imread(cutoutjpeg)

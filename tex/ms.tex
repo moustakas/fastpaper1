@@ -94,20 +94,27 @@
 \affiliation{INSTITUTION, ADDRESS}
 
 \begin{abstract}
-\todo{Placeholder abstract.} Optical spectrophotometry opens a wide
-window into the physical conditions, dynamical state, and formation
-history of galaxies and quasars. \fastspecfit{} is open-source Python
-software that extracts this information by jointly modeling each DESI
-spectrum and its broadband photometry using physically motivated
-stellar continuum and emission-line templates. Measured quantities
-include light-weighted stellar ages, velocity dispersions, stellar
-masses, star-formation rates, K-corrections, rest-frame absolute
-magnitudes and colors, and integrated fluxes and equivalent widths for
-nearly 50 emission lines spanning the rest-frame UV through
-near-infrared. We describe the algorithms, validate the measurements
-using repeat observations and comparisons to complementary codes, and
-present the \fastspecfit{} value-added catalog for the DESI Data
-Release 2, comprising 37 million extragalactic targets.
+Optical spectrophotometry provides a direct window into the physical
+conditions, kinematics, and formation histories of galaxies and
+quasars. \fastspecfit{} is open-source Python software that
+forward-models each Dark Energy Spectroscopic Instrument (DESI)
+spectrum jointly with its broadband photometry, convolving
+stellar-population synthesis and emission-line templates with each
+fiber's native spectral resolution. This forward-modeling approach
+preserves DESI's uncorrelated pixel statistics, fits a typical
+spectrum in under a millisecond, and scales to tens of millions of
+objects, with uncertainties estimated via Monte Carlo
+resampling. \fastspecfit{} measures stellar velocity dispersions,
+non-parametric star-formation histories, stellar masses,
+star-formation rates, dust attenuation, K-corrections, rest-frame
+magnitudes, and fluxes and equivalent widths for 46 emission lines
+with independent narrow and broad kinematics. We describe these
+algorithms in detail, validate the measurements against independent
+codes, and present the resulting value-added catalog for DESI Data
+Release 2, comprising spectrophotometric and physical properties for
+38 million extragalactic targets, together with a companion
+photometry-only catalog and earlier Early Data Release and Data
+Release 1 catalogs.
 \end{abstract}
 
 \keywords{Galaxies --- Surveys --- Catalogs --- Spectrophotometry ---
@@ -223,15 +230,14 @@ potential of a dataset as large and diverse as DESI, where unusual or
 physically ambiguous objects emerge naturally from the fit rather than
 requiring special-case handling.
 
-\todo{Mention Viraj's dwarf-galaxy paper.} Although this paper
-presents the first comprehensive description of \fastspecfit{}'s
-algorithms, measurements from the earlier EDR and DR1 value-added
-catalogs (VACs; see Appendix~\ref{sec:appendix_vacs}) have already
-enabled a remarkably broad range of extragalactic science by both DESI
-collaboration members and the broader scientific community. We briefly
-highlight a small, illustrative sample of that work
-here. Emission-line fluxes, equivalent widths, and stellar masses from
-\fastspecfit{} have been used to identify and characterize
+Although this paper presents the first comprehensive description of
+\fastspecfit{}'s algorithms, measurements from the earlier EDR and DR1
+value-added catalogs (VACs; see Appendix~\ref{sec:appendix_vacs}) have
+already enabled a remarkably broad range of extragalactic science by
+both DESI collaboration members and the broader scientific
+community. We briefly highlight a small, illustrative sample of that
+work here. Emission-line fluxes, equivalent widths, and stellar masses
+from \fastspecfit{} have been used to identify and characterize
 changing-look AGN \citep{guo25a} and to triple the census of dwarf AGN
 candidates in the local universe \citep{pucha25a}; to measure
 direct-method ($T_e$-based) chemical abundances for nearly 50,000
@@ -250,30 +256,39 @@ the modeling of intrinsic alignments \citep{siegel25a} and
 photometric-redshift calibration \citep{blanco25a} for the next
 generation of weak-lensing surveys.
 
-Throughout this paper we adopt a flat $\Lambda$CDM cosmology with
-$\Omega_m = 0.315$, consistent with \citet{planck-collaboration20a},
-and a \citet{chabrier03a} initial mass function (IMF) spanning
+%\subsection{A Roadmap to this Paper}
+%\label{sec:roadmap}
+
+Although this paper is long, we have striven to write it so it can be
+read in pieces as well as start to end. In \S\ref{sec:data} we
+describe the DESI spectroscopic and photometric data \fastspecfit{}
+fits, together with the survey, program, and target-class structure
+needed to interpret the catalogs that follow. The technical core of
+the paper, \S\ref{sec:modeling}, presents \fastspecfit{}'s algorithms
+and the physical quantities it derives in full detail; as noted there,
+readers who want the output before the machinery can skip ahead. In
+\S\ref{sec:casestudy} we ground that machinery in three worked
+examples spanning the DESI extragalactic classes, a natural starting
+point for readers who want to see spectra and their best-fitting
+models and to help build intuition first. In \S\ref{sec:vac} we
+present the DR2 catalog itself---its construction and organization,
+recommended quality cuts, computational performance, and validation
+against independent codes---and readers who only want to use the VAC
+will find this section largely self-contained. In
+\S\ref{sec:discussion} we step back to illustrate the catalog's
+scientific reach and describe planned improvements, before concluding
+with a summary in \S\ref{sec:summary}. Finally, in
+Appendix~\ref{sec:appendix_fastphot} we document a companion,
+photometry-only VAC, and in Appendix~\ref{sec:appendix_vacs} we place
+the DR2 catalog in the context of \fastspecfit{}'s full release
+history, including the earlier EDR and DR1 catalogs.
+
+We adopt a flat $\Lambda$CDM cosmology with $\Omega_m = 0.315$,
+consistent with \citet{planck-collaboration20a}, and a
+\citet{chabrier03a} initial mass function (IMF) spanning
 $0.1$--$100$~\msun; we define $h \equiv H_0 / (100~\kms\,{\rm
-Mpc}^{-1})$ and express stellar masses and other derived quantities in
-units with $h=1$.
-
-\subsection{A Roadmap to this Paper}
-\label{sec:roadmap}
-
-\todo{Rewrite with a bit more narrative. Also currently missing
-  \S\ref{sec:discussion}. This paper is long...} In this paper we
-describe the DESI spectroscopic and photometric data
-(\S\ref{sec:data}) and the algorithms underlying \fastspecfit{} in
-detail, including the spectrophotometric and physical quantities the
-code derives (\S\ref{sec:modeling}). We illustrate the complete
-fitting sequence applied end-to-end to three representative targets
-spanning the range of DESI extragalactic classes in
-\S\ref{sec:casestudy}.  We then present the \fastspecfit{} VAC for
-DESI DR2, comprising 38 million extragalactic targets, document the
-code's computational performance, and validate the measurements
-against independent codes (\S\ref{sec:vac}). We conclude with a
-summary and an outlook toward future improvements
-(\S\ref{sec:summary}).
+  Mpc}^{-1})$ and express stellar masses and other derived quantities
+in units with $h=1$.
 
 %% ============================================================
 \section{Spectroscopic and Photometric Data}
@@ -2767,17 +2782,25 @@ star-formation-history parameterizations involved.
 
 \begin{figure*}
 \centering\includegraphics[width=1.0\textwidth]{wave-residuals.pdf}
-\caption{Running median \texttt{VSHIFT} (top) and the number of
-  contributing measurements (bottom) as a function of observed-frame
-  wavelength, for DR2 main-survey galaxies with a relaxed, per-line
-  kinematic solution (\S\ref{sssec:kinematic}), computed in 62
-  equal-width, $\approx100$~\AA{} bins spanning the full DESI
-  wavelength range (3550--9850~\AA). The black curve combines all
-  curated forbidden and Balmer lines; the colored curves show
-  forbidden and Balmer lines separately, and the shaded bands are the
-  interquartile range of the individual measurements within each bin.
-  Gray vertical bands mark the B/R and R/Z camera-boundary transitions
-  and the horizontal dashed line marks zero offset. \label{fig:wave_resid}}
+\caption{Running median velocity shift $\Delta v$ (top) and the number
+  of contributing measurements (bottom) as a function of
+  observed-frame wavelength for DR2 main-survey galaxies with a
+  relaxed, per-line kinematic solution (\S\ref{sssec:kinematic}). We
+  compute statistics in equal-width ($\approx100$~\AA) bins spanning
+  the full DESI wavelength range (3600--9850~\AA). The blue and orange
+  curves show the derived trends using forbidden and Balmer lines,
+  respectively, while the black curve combines all the lines; the
+  shaded horizontal bands show the interquartile range of the
+  individual measurements within each bin. Gray vertical bands mark
+  the B/R and R/Z camera-boundary transitions and the thin horizontal
+  dashed line marks zero offset. Although the Balmer lines show a
+  $\approx-5$~\kms{} offset between roughly 4800 and 5800~\AA, we
+  attribute this shift to imperfect stellar absorption subtraction of
+  the higher-order Balmer lines rather systematic
+  wavelength-calibration errors. Considering the full line-list, we
+  measure an overall systematic error of $<1$~\kms{} ($\lesssim$few\%
+  of a pixel) over the full DESI spectral range, including at the
+  inter-camera boundaries. \label{fig:wave_resid}}
 \end{figure*}
 
 One of the dividends of fitting every DESI spectrum with a physically
@@ -2827,20 +2850,20 @@ measurements within each bin (shaded band). The forbidden-line median
 is consistent with zero to within $\pm1$~\kms{} across the full DESI
 wavelength range, with no discontinuity at the B/R or R/Z camera
 boundaries (vertical shaded gray band). The Balmer lines, by contrast,
-show a $\approx-5$~\kms{} offset between roughly 4800 and 5600~\AA,
+show a $\approx-5$~\kms{} offset between roughly 4800 and 5800~\AA,
 the observed-frame window populated by \hb{} and higher-order Balmer
 lines at low redshift, returning to zero once \ha{} dominates the
 sample redward of $\approx6600$~\AA. However, because this offset
 appears only in the Balmer lines and not in the forbidden lines at the
-same observed wavelength, we attribute it to residual stellar
-Balmer-absorption or continuum-blending bias in the narrow-line
-centroid rather than to a wavelength-calibration error, which would
-affect all species equally at fixed observed wavelength. Given DESI's
-per-pixel velocity sampling of 25--66~\kms{} over this wavelength range
-(\S\ref{ssec:emlines}), the $<1$~\kms{} forbidden-line residual amounts
-to no more than a few percent of a single pixel, indicating that the
-wavelength solution is calibrated well below the pixel scale across
-the full DESI optical range.
+same observed wavelength, we attribute it to imperfect
+continuum-subraction in and around the higher-order Balmer lines
+rather than a wavelength-calibration error, which would affect all
+species equally at fixed observed wavelength. Given DESI's per-pixel
+velocity sampling of 25--66~\kms{} over this wavelength range
+(\S\ref{ssec:emlines}), the $<1$~\kms{} forbidden-line residual
+amounts to no more than a few percent of a single pixel, indicating
+that the wavelength solution is calibrated well below the pixel scale
+across the full DESI optical range.
 
 One final notable finding: We exclude the \siiidoublet{} doublet from
 Figure~\ref{fig:wave_resid} because both lines show a consistent
@@ -3051,9 +3074,12 @@ emission-line fluxes against independent codes and catalogs
 (\S\ref{ssec:validation}), and we illustrate the catalog's scientific
 reach with the stellar mass--redshift distribution of the three
 primary galaxy target classes and with optical emission-line
-diagnostics of nuclear activity (\S\ref{ssec:reach}). Companion
-catalogs for the Early Data Release and Data Release~1, produced with
-earlier template and \fastspecfit{} versions, are described in
+diagnostics of nuclear activity (\S\ref{ssec:reach}). Alongside the
+\fastspec{} VAC we also produce a companion, photometry-only
+\fastphot{} VAC using the same input dataset and template set
+(Appendix~\ref{sec:appendix_fastphot}). Companion catalogs for the
+Early Data Release and Data Release~1, produced with earlier template
+and \fastspecfit{} versions, are described in
 Appendix~\ref{sec:appendix_vacs}.
 
 Several improvements are planned for future \fastspecfit{} releases,
